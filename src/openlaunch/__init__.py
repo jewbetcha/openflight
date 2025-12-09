@@ -2,7 +2,15 @@
 
 __version__ = "0.2.0"
 
-from .ops243 import OPS243Radar
-from .launch_monitor import LaunchMonitor
+from .ops243 import OPS243Radar, SpeedUnit, Direction, SpeedReading, PowerMode
+from .launch_monitor import LaunchMonitor, Shot
 
-__all__ = ["OPS243Radar", "LaunchMonitor"]
+__all__ = [
+    "OPS243Radar",
+    "LaunchMonitor",
+    "Shot",
+    "SpeedUnit",
+    "Direction",
+    "SpeedReading",
+    "PowerMode",
+]

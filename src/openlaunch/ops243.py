@@ -5,11 +5,16 @@ This module provides a Python interface to the OmniPreSense OPS243-A
 short-range radar sensor via USB/serial connection.
 
 Key specs for golf application:
-- Speed reporting up to 222 kph (138 mph) - sufficient for golf balls (~180 mph max)
 - Speed accuracy: +/- 0.5%
 - Direction reporting (inbound/outbound)
-- Default update rate: ~5-6 Hz (can be increased)
-- Detection range: ~4-5m for golf ball sized objects
+- Default update rate: ~5-6 Hz (can be increased with buffer size)
+- Detection range: 50-100m (RCS=10), ~4-5m for golf ball sized objects
+
+Speed limits by sample rate (per API docs):
+- 10kHz (SX): max 69.5 mph  - too slow for golf
+- 20kHz (S2): max 139 mph   - good for most shots
+- 50kHz (SL): max 347 mph   - handles all golf balls
+- 100kHz (SC): max 695 mph  - overkill but works
 """
 
 import serial
@@ -24,11 +29,18 @@ from enum import Enum
 
 class SpeedUnit(Enum):
     """Speed units supported by OPS243-A."""
-    MPS = "UM"      # meters per second
+    MPS = "UM"      # meters per second (default)
     MPH = "US"      # miles per hour
     KPH = "UK"      # kilometers per hour
     FPS = "UF"      # feet per second
     CMS = "UC"      # centimeters per second
+
+
+class PowerMode(Enum):
+    """Power modes for OPS243-A."""
+    ACTIVE = "PA"   # Normal operating mode
+    IDLE = "PI"     # Low power idle, waits for Active command
+    PULSE = "PP"    # Single pulse mode (must be in IDLE first)
 
 
 class Direction(Enum):
@@ -239,7 +251,11 @@ class OPS243Radar:
         Set sampling rate for speed measurement.
 
         Higher rates allow detecting faster objects but reduce resolution.
-        For golf (150+ mph), use at least 20000 (S2 command).
+        Max detectable speeds by rate:
+        - 10kHz: 69.5 mph (too slow for golf)
+        - 20kHz: 139.1 mph (good for most shots)
+        - 50kHz: 347.7 mph (recommended for golf - handles all balls)
+        - 100kHz: 695.4 mph
 
         Args:
             rate: Sample rate in samples/second
@@ -257,8 +273,10 @@ class OPS243Radar:
         if rate in rate_commands:
             self._send_command(rate_commands[rate])
         else:
-            # Use configurable rate command
-            self._send_command(f"S={rate // 1000}")
+            # Use configurable rate command (S=nn where nn is in ksps)
+            # Requires carriage return
+            ksps = rate // 1000
+            self._send_command(f"S={ksps}\r")
 
     def set_buffer_size(self, size: int):
         """
@@ -375,21 +393,24 @@ class OPS243Radar:
 
         This sets up:
         - MPH units
-        - 20kHz sample rate (supports up to 139 mph)
-        - 512 buffer for faster updates
+        - 50kHz sample rate (supports up to 347 mph - covers all golf balls)
+        - 512 buffer for faster updates (~10-15 Hz report rate)
         - Magnitude reporting enabled
         - Min speed filter at 10 mph (ignore slow movements)
         - Direction filtering for outbound only (ball moving away)
+        - Peak speed averaging enabled (filters multiple reports to primary speed)
+        - Max transmit power for best detection range
         """
         # Set units to MPH
         self.set_units(SpeedUnit.MPH)
 
-        # 20kHz sample rate - max detectable speed ~139 mph
-        # Golf balls rarely exceed 190 mph, pros average 160-180
-        # We might need 50kHz for very fast swings
-        self.set_sample_rate(20000)
+        # 50kHz sample rate - max detectable speed ~347 mph
+        # This covers all golf balls (pros max out around 190 mph)
+        # 20kHz only goes to 139 mph which could miss fast shots
+        self.set_sample_rate(50000)
 
         # 512 buffer for faster update rate (~10-15 Hz)
+        # Resolution at 50kHz with 512 buffer: ~0.68 mph
         self.set_buffer_size(512)
 
         # Enable magnitude to help filter weak signals
@@ -407,6 +428,101 @@ class OPS243Radar:
 
         # Enable JSON for easier parsing
         self.enable_json_output(True)
+
+        # Enable peak speed averaging to get cleaner single-speed reports
+        self.enable_peak_averaging(True)
+
+    def enable_peak_averaging(self, enabled: bool = True):
+        """
+        Enable/disable peak speed averaging.
+
+        When enabled, filters out multiple speed reports from signal reflections
+        and provides just the primary speed of the detected object. Recommended
+        for golf to get cleaner ball speed readings.
+
+        Args:
+            enabled: True to enable averaging, False to disable
+        """
+        self._send_command("K+" if enabled else "K-")
+
+    def set_decimal_precision(self, places: int):
+        """
+        Set number of decimal places in speed output.
+
+        Args:
+            places: Number of decimal places (0-5)
+        """
+        if places < 0 or places > 5:
+            raise ValueError("Decimal places must be 0-5")
+        self._send_command(f"F{places}")
+
+    def set_led(self, enabled: bool = True):
+        """
+        Enable/disable the onboard LEDs.
+
+        Disabling LEDs saves ~10mA of power.
+
+        Args:
+            enabled: True to turn LEDs on, False to turn off
+        """
+        self._send_command("OL" if enabled else "Ol")
+
+    def set_power_mode(self, mode: PowerMode):
+        """
+        Set the radar power mode.
+
+        Args:
+            mode: PowerMode.ACTIVE (normal), PowerMode.IDLE (low power),
+                  or PowerMode.PULSE (single shot, must be IDLE first)
+        """
+        self._send_command(mode.value)
+
+    def system_reset(self):
+        """Perform a full system reset including the clock."""
+        self._send_command("P!")
+        time.sleep(1)
+
+    def get_serial_number(self) -> str:
+        """Get the radar's serial number."""
+        response = self._send_command("?N")
+        try:
+            data = json.loads(response)
+            return data.get("SerialNumber", "unknown")
+        except json.JSONDecodeError:
+            return response
+
+    def get_speed_filter(self) -> dict:
+        """
+        Get current speed filter settings.
+
+        Returns:
+            Dict with min/max speed filter values
+        """
+        response = self._send_command("R?")
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            return {"raw": response}
+
+    def get_current_units(self) -> str:
+        """Get the currently configured speed units."""
+        response = self._send_command("U?")
+        try:
+            data = json.loads(response)
+            return data.get("Units", "unknown")
+        except json.JSONDecodeError:
+            return response
+
+    def enable_time_report(self, enabled: bool = True):
+        """
+        Enable/disable timestamp reporting with each reading.
+
+        When enabled, time since power-on is included with speed data.
+
+        Args:
+            enabled: True to include timestamps
+        """
+        self._send_command("OT" if enabled else "Ot")
 
     def read_speed(self) -> Optional[SpeedReading]:
         """
