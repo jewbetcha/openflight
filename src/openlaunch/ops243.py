@@ -1,0 +1,521 @@
+"""
+OPS243-A Doppler Radar Driver for Golf Launch Monitor.
+
+This module provides a Python interface to the OmniPreSense OPS243-A
+short-range radar sensor via USB/serial connection.
+
+Key specs for golf application:
+- Speed reporting up to 222 kph (138 mph) - sufficient for golf balls (~180 mph max)
+- Speed accuracy: +/- 0.5%
+- Direction reporting (inbound/outbound)
+- Default update rate: ~5-6 Hz (can be increased)
+- Detection range: ~4-5m for golf ball sized objects
+"""
+
+import serial
+import serial.tools.list_ports
+import json
+import time
+import threading
+from dataclasses import dataclass
+from typing import Optional, Callable, List
+from enum import Enum
+
+
+class SpeedUnit(Enum):
+    """Speed units supported by OPS243-A."""
+    MPS = "UM"      # meters per second
+    MPH = "US"      # miles per hour
+    KPH = "UK"      # kilometers per hour
+    FPS = "UF"      # feet per second
+    CMS = "UC"      # centimeters per second
+
+
+class Direction(Enum):
+    """Direction of detected object."""
+    INBOUND = "inbound"
+    OUTBOUND = "outbound"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class SpeedReading:
+    """A single speed reading from the radar."""
+    speed: float
+    direction: Direction
+    magnitude: Optional[float] = None
+    timestamp: Optional[float] = None
+    unit: str = "mph"
+
+
+class OPS243Radar:
+    """
+    Driver for OPS243-A Doppler radar sensor.
+
+    Example usage:
+        radar = OPS243Radar()
+        radar.connect()
+        radar.configure_for_golf()
+
+        # Blocking read
+        reading = radar.read_speed()
+        print(f"Speed: {reading.speed} {reading.unit}")
+
+        # Or use callback for continuous monitoring
+        def on_speed(reading):
+            print(f"Detected: {reading.speed} mph")
+
+        radar.start_streaming(callback=on_speed)
+    """
+
+    # Default serial settings per datasheet
+    DEFAULT_BAUD = 57600
+    DEFAULT_TIMEOUT = 1.0
+
+    # Common USB identifiers for OPS243
+    VENDOR_IDS = [0x0483]  # STMicroelectronics
+
+    def __init__(self, port: Optional[str] = None, baud: int = DEFAULT_BAUD):
+        """
+        Initialize radar driver.
+
+        Args:
+            port: Serial port (e.g., '/dev/ttyACM0'). If None, auto-detect.
+            baud: Baud rate (default 57600 per datasheet)
+        """
+        self.port = port
+        self.baud = baud
+        self.serial: Optional[serial.Serial] = None
+        self._streaming = False
+        self._stream_thread: Optional[threading.Thread] = None
+        self._callback: Optional[Callable[[SpeedReading], None]] = None
+        self._unit = "mph"
+        self._json_mode = False
+        self._magnitude_enabled = False
+
+    @staticmethod
+    def find_radar_ports() -> List[str]:
+        """
+        Find potential OPS243 radar ports.
+
+        Returns:
+            List of port names that might be OPS243 devices
+        """
+        ports = []
+        for port in serial.tools.list_ports.comports():
+            # OPS243 shows up as USB serial device
+            if port.vid in OPS243Radar.VENDOR_IDS or "ACM" in port.device:
+                ports.append(port.device)
+            # Also check description for OmniPreSense
+            elif port.description and "OmniPreSense" in port.description:
+                ports.append(port.device)
+        return ports
+
+    def connect(self, timeout: float = DEFAULT_TIMEOUT) -> bool:
+        """
+        Connect to the radar sensor.
+
+        Args:
+            timeout: Serial read timeout in seconds
+
+        Returns:
+            True if connection successful
+        """
+        if self.port is None:
+            ports = self.find_radar_ports()
+            if not ports:
+                raise ConnectionError(
+                    "No OPS243 radar found. Check USB connection and try specifying port manually."
+                )
+            self.port = ports[0]
+
+        try:
+            self.serial = serial.Serial(
+                port=self.port,
+                baudrate=self.baud,
+                timeout=timeout,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE
+            )
+            # Give sensor time to initialize
+            time.sleep(0.5)
+            # Flush any startup data
+            self.serial.reset_input_buffer()
+            return True
+        except serial.SerialException as e:
+            raise ConnectionError(f"Failed to connect to {self.port}: {e}")
+
+    def disconnect(self):
+        """Disconnect from the radar sensor."""
+        self.stop_streaming()
+        if self.serial and self.serial.is_open:
+            self.serial.close()
+            self.serial = None
+
+    def _send_command(self, cmd: str) -> str:
+        """
+        Send a command to the radar and return response.
+
+        Args:
+            cmd: Two-character command (e.g., "??", "US")
+
+        Returns:
+            Response string from radar
+        """
+        if not self.serial or not self.serial.is_open:
+            raise ConnectionError("Not connected to radar")
+
+        # Clear input buffer
+        self.serial.reset_input_buffer()
+
+        # Send command
+        self.serial.write(cmd.encode('ascii'))
+
+        # For commands that require carriage return
+        if '=' in cmd or '>' in cmd or '<' in cmd:
+            self.serial.write(b'\r')
+
+        # Wait for response
+        time.sleep(0.1)
+
+        # Read response
+        response = ""
+        while self.serial.in_waiting:
+            response += self.serial.read(self.serial.in_waiting).decode('ascii', errors='ignore')
+            time.sleep(0.05)
+
+        return response.strip()
+
+    def get_info(self) -> dict:
+        """
+        Get radar module information.
+
+        Returns:
+            Dict with product, version, settings info
+        """
+        response = self._send_command("??")
+        info = {}
+
+        for line in response.split('\n'):
+            line = line.strip()
+            if line.startswith('{') and line.endswith('}'):
+                try:
+                    data = json.loads(line)
+                    info.update(data)
+                except json.JSONDecodeError:
+                    pass
+
+        return info
+
+    def get_firmware_version(self) -> str:
+        """Get firmware version string."""
+        response = self._send_command("?V")
+        try:
+            data = json.loads(response)
+            return data.get("Version", "unknown")
+        except json.JSONDecodeError:
+            return response
+
+    def set_units(self, unit: SpeedUnit):
+        """
+        Set speed output units.
+
+        Args:
+            unit: SpeedUnit enum value
+        """
+        self._send_command(unit.value)
+        unit_names = {
+            SpeedUnit.MPS: "m/s",
+            SpeedUnit.MPH: "mph",
+            SpeedUnit.KPH: "kph",
+            SpeedUnit.FPS: "fps",
+            SpeedUnit.CMS: "cm/s"
+        }
+        self._unit = unit_names[unit]
+
+    def set_sample_rate(self, rate: int):
+        """
+        Set sampling rate for speed measurement.
+
+        Higher rates allow detecting faster objects but reduce resolution.
+        For golf (150+ mph), use at least 20000 (S2 command).
+
+        Args:
+            rate: Sample rate in samples/second
+                  Common values: 10000 (default), 20000, 50000, 100000
+        """
+        rate_commands = {
+            1000: "SI",
+            5000: "SV",
+            10000: "SX",
+            20000: "S2",
+            50000: "SL",
+            100000: "SC"
+        }
+
+        if rate in rate_commands:
+            self._send_command(rate_commands[rate])
+        else:
+            # Use configurable rate command
+            self._send_command(f"S={rate // 1000}")
+
+    def set_buffer_size(self, size: int):
+        """
+        Set sample buffer size.
+
+        Smaller buffers = faster updates but lower resolution.
+
+        Args:
+            size: Buffer size (128, 256, 512, or 1024)
+        """
+        size_commands = {
+            128: "S(",
+            256: "S[",
+            512: "S<",
+            1024: "S>"
+        }
+        if size in size_commands:
+            self._send_command(size_commands[size])
+
+    def set_min_speed_filter(self, min_speed: float):
+        """
+        Set minimum speed filter - ignore speeds below this.
+
+        Args:
+            min_speed: Minimum speed to report (in current units)
+        """
+        self._send_command(f"R>{min_speed}")
+
+    def set_max_speed_filter(self, max_speed: float):
+        """
+        Set maximum speed filter - ignore speeds above this.
+
+        Args:
+            max_speed: Maximum speed to report (in current units)
+        """
+        self._send_command(f"R<{max_speed}")
+
+    def set_magnitude_filter(self, min_mag: int = 0, max_mag: int = 0):
+        """
+        Set magnitude (signal strength) filter.
+
+        Higher magnitude = larger/closer/more reflective objects.
+
+        Args:
+            min_mag: Minimum magnitude to report (0 = no filter)
+            max_mag: Maximum magnitude to report (0 = no filter)
+        """
+        if min_mag > 0:
+            self._send_command(f"M>{min_mag}")
+        if max_mag > 0:
+            self._send_command(f"M<{max_mag}")
+
+    def set_direction_filter(self, direction: Optional[Direction]):
+        """
+        Filter by direction.
+
+        Args:
+            direction: Direction.INBOUND, Direction.OUTBOUND, or None for both
+        """
+        if direction == Direction.INBOUND:
+            self._send_command("R+")
+        elif direction == Direction.OUTBOUND:
+            self._send_command("R-")
+        else:
+            self._send_command("R|")
+
+    def enable_json_output(self, enabled: bool = True):
+        """
+        Enable/disable JSON formatted output.
+
+        Args:
+            enabled: True for JSON, False for plain numbers
+        """
+        self._send_command("OJ" if enabled else "Oj")
+        self._json_mode = enabled
+
+    def enable_magnitude_report(self, enabled: bool = True):
+        """
+        Enable/disable magnitude reporting with speed.
+
+        Args:
+            enabled: True to include magnitude in readings
+        """
+        self._send_command("OM" if enabled else "Om")
+        self._magnitude_enabled = enabled
+
+    def enable_direction_report(self, enabled: bool = True):
+        """
+        Enable/disable direction detection.
+
+        When disabled, all speeds are reported as positive.
+
+        Args:
+            enabled: True to detect direction (inbound=negative, outbound=positive)
+        """
+        # Direction is on by default, R| enables both directions
+        if enabled:
+            self._send_command("R|")
+
+    def set_transmit_power(self, level: int):
+        """
+        Set transmit power level.
+
+        Args:
+            level: 0-7, where 0 is max power and 7 is min power
+        """
+        if level < 0 or level > 7:
+            raise ValueError("Power level must be 0-7")
+        self._send_command(f"P{level}")
+
+    def configure_for_golf(self):
+        """
+        Configure radar with optimal settings for golf ball detection.
+
+        This sets up:
+        - MPH units
+        - 20kHz sample rate (supports up to 139 mph)
+        - 512 buffer for faster updates
+        - Magnitude reporting enabled
+        - Min speed filter at 10 mph (ignore slow movements)
+        - Direction filtering for outbound only (ball moving away)
+        """
+        # Set units to MPH
+        self.set_units(SpeedUnit.MPH)
+
+        # 20kHz sample rate - max detectable speed ~139 mph
+        # Golf balls rarely exceed 190 mph, pros average 160-180
+        # We might need 50kHz for very fast swings
+        self.set_sample_rate(20000)
+
+        # 512 buffer for faster update rate (~10-15 Hz)
+        self.set_buffer_size(512)
+
+        # Enable magnitude to help filter weak signals
+        self.enable_magnitude_report(True)
+
+        # Minimum speed 10 mph to filter noise/slow movements
+        self.set_min_speed_filter(10)
+
+        # Filter for outbound direction (ball moving away from radar)
+        # Assumes radar is positioned behind the tee
+        self.set_direction_filter(Direction.OUTBOUND)
+
+        # Max transmit power for best range
+        self.set_transmit_power(0)
+
+        # Enable JSON for easier parsing
+        self.enable_json_output(True)
+
+    def read_speed(self) -> Optional[SpeedReading]:
+        """
+        Read a single speed measurement (blocking).
+
+        Returns:
+            SpeedReading object or None if no valid reading
+        """
+        if not self.serial or not self.serial.is_open:
+            raise ConnectionError("Not connected to radar")
+
+        try:
+            line = self.serial.readline().decode('ascii', errors='ignore').strip()
+            if not line:
+                return None
+
+            return self._parse_reading(line)
+        except serial.SerialException:
+            return None
+
+    def _parse_reading(self, line: str) -> Optional[SpeedReading]:
+        """
+        Parse a reading from the radar output.
+
+        Args:
+            line: Raw line from serial output
+
+        Returns:
+            SpeedReading or None if parse fails
+        """
+        try:
+            if self._json_mode and line.startswith('{'):
+                data = json.loads(line)
+                speed = float(data.get('speed', 0))
+                magnitude = data.get('magnitude')
+
+                direction = Direction.OUTBOUND if speed > 0 else Direction.INBOUND
+
+                return SpeedReading(
+                    speed=abs(speed),
+                    direction=direction,
+                    magnitude=float(magnitude) if magnitude else None,
+                    timestamp=time.time(),
+                    unit=self._unit
+                )
+            else:
+                # Plain number format
+                # Negative = inbound, positive = outbound
+                speed = float(line)
+                direction = Direction.OUTBOUND if speed > 0 else Direction.INBOUND
+
+                return SpeedReading(
+                    speed=abs(speed),
+                    direction=direction,
+                    timestamp=time.time(),
+                    unit=self._unit
+                )
+        except (ValueError, json.JSONDecodeError):
+            return None
+
+    def start_streaming(self, callback: Callable[[SpeedReading], None]):
+        """
+        Start continuous speed streaming with callback.
+
+        Args:
+            callback: Function called with each SpeedReading
+        """
+        if self._streaming:
+            return
+
+        self._callback = callback
+        self._streaming = True
+        self._stream_thread = threading.Thread(target=self._stream_loop, daemon=True)
+        self._stream_thread.start()
+
+    def stop_streaming(self):
+        """Stop continuous speed streaming."""
+        self._streaming = False
+        if self._stream_thread:
+            self._stream_thread.join(timeout=2.0)
+            self._stream_thread = None
+
+    def _stream_loop(self):
+        """Internal streaming loop."""
+        while self._streaming:
+            try:
+                reading = self.read_speed()
+                if reading and self._callback:
+                    self._callback(reading)
+            except Exception:
+                if self._streaming:
+                    time.sleep(0.1)
+
+    def save_config(self):
+        """Save current configuration to persistent memory."""
+        self._send_command("A!")
+        time.sleep(1)  # Wait for flash write
+
+    def reset_config(self):
+        """Reset configuration to factory defaults."""
+        self._send_command("AX")
+        time.sleep(1)
+
+    def __enter__(self):
+        """Context manager entry."""
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.disconnect()
+        return False

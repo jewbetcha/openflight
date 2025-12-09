@@ -1,19 +1,20 @@
 [project]
 name = "openlaunch"
-version = "0.1.0"
-description = "DIY golf launch monitor using Raspberry Pi and Doppler radar"
+version = "0.2.0"
+description = "DIY golf launch monitor using OPS243-A Doppler radar"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
     { name = "OpenLaunch Contributors" }
 ]
-keywords = ["golf", "launch-monitor", "doppler", "radar", "raspberry-pi"]
+keywords = ["golf", "launch-monitor", "doppler", "radar", "ops243", "raspberry-pi"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -23,30 +24,22 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy>=1.21.0",
-    "scipy>=1.7.0",
+    "pyserial>=3.5",
 ]
 
 [project.optional-dependencies]
-# Raspberry Pi specific packages (install on Pi only)
-pi = [
-    "spidev>=3.5",
-    "RPi.GPIO>=0.7.0",
-]
-# Phase 2: Camera support
-camera = [
-    "opencv-python>=4.5.0",
-    "picamera2>=0.3.0",
-]
 # Development dependencies
 dev = [
     "pytest>=7.0.0",
     "ruff>=0.1.0",
 ]
+# Future: Camera support for launch angle
+camera = [
+    "opencv-python>=4.5.0",
+]
 
 [project.scripts]
-openlaunch = "launch_monitor:main"
-openlaunch-diagnose = "diagnose:main"
+openlaunch = "openlaunch.launch_monitor:main"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/openlaunch"
@@ -56,6 +49,9 @@ Issues = "https://github.com/yourusername/openlaunch/issues"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openlaunch"]
 
 [tool.uv]
 dev-dependencies = [
