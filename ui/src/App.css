@@ -24,11 +24,9 @@
   flex-shrink: 0;
 }
 
-.header__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
-  margin: 0;
+.header__logo {
+  height: 48px;
+  width: auto;
 }
 
 .header__controls {

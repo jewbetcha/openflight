@@ -22,7 +22,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1 className="header__title">OpenLaunch</h1>
+        <img src="/logo-header.png" alt="OpenLaunch" className="header__logo" />
         <div className="header__controls">
           <ClubPicker selectedClub={selectedClub} onClubChange={handleClubChange} />
           <ConnectionStatus connected={connected} />
