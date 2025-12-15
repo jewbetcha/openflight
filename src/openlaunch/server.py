@@ -172,11 +172,38 @@ class MockLaunchMonitor:
         """Stop mock monitoring."""
         self._running = False
 
-    def simulate_shot(self, ball_speed: float = 150.0):
-        """Simulate a shot for testing."""
-        # Add some variance
-        ball_speed += random.uniform(-10, 10)
-        club_speed = ball_speed / random.uniform(1.42, 1.48)
+    def simulate_shot(self, ball_speed: float = None):
+        """Simulate a shot for testing using realistic TrackMan-based values."""
+        # Typical ball speeds by club (TrackMan averages for amateur golfers)
+        # Format: (avg_ball_speed, std_dev, typical_smash_factor)
+        club_ball_speeds = {
+            ClubType.DRIVER: (143, 12, 1.45),
+            ClubType.WOOD_3: (135, 10, 1.42),
+            ClubType.WOOD_5: (128, 10, 1.40),
+            ClubType.HYBRID: (122, 9, 1.38),
+            ClubType.IRON_3: (118, 9, 1.35),
+            ClubType.IRON_4: (114, 8, 1.33),
+            ClubType.IRON_5: (110, 8, 1.31),
+            ClubType.IRON_6: (105, 7, 1.29),
+            ClubType.IRON_7: (100, 7, 1.27),
+            ClubType.IRON_8: (94, 6, 1.25),
+            ClubType.IRON_9: (88, 6, 1.23),
+            ClubType.PW: (82, 5, 1.21),
+            ClubType.UNKNOWN: (120, 15, 1.35),
+        }
+
+        avg_speed, std_dev, smash = club_ball_speeds.get(
+            self._current_club, (120, 15, 1.35)
+        )
+
+        # Generate realistic ball speed with normal distribution
+        if ball_speed is None:
+            ball_speed = random.gauss(avg_speed, std_dev)
+            ball_speed = max(50, min(200, ball_speed))  # Clamp to realistic range
+
+        # Calculate club speed from smash factor with small variance
+        smash_factor = smash + random.uniform(-0.03, 0.03)
+        club_speed = ball_speed / smash_factor
 
         shot = Shot(
             ball_speed_mph=ball_speed,
