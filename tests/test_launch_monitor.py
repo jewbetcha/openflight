@@ -197,3 +197,128 @@ class TestLaunchMonitorSessionStats:
         monitor.set_club(ClubType.IRON_7)
 
         assert monitor._current_club == ClubType.IRON_7
+
+
+class TestShotDetection:
+    """Tests for shot detection logic."""
+
+    def setup_method(self):
+        """Set up test monitor instance."""
+        self.monitor = LaunchMonitor.__new__(LaunchMonitor)
+        self.monitor._shots = []
+        self.monitor._current_readings = []
+        self.monitor._shot_callback = None
+        self.monitor._detect_club_speed = True
+        self.monitor._current_club = ClubType.DRIVER
+
+    def test_process_shot_extracts_ball_speed(self):
+        """Ball speed should be the peak reading."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        self.monitor._current_readings = [
+            SpeedReading(speed=95.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=148.5, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=147.2, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(self.monitor._shots) == 1
+        assert self.monitor._shots[0].ball_speed_mph == 148.5
+
+    def test_process_shot_extracts_club_speed(self):
+        """Club speed should be detected from lower readings."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        # Simulate: club at ~100 mph, ball at ~145 mph (smash ~1.45)
+        self.monitor._current_readings = [
+            SpeedReading(speed=98.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=100.5, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=145.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=143.2, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(self.monitor._shots) == 1
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 145.0
+        assert shot.club_speed_mph is not None
+        assert 95 <= shot.club_speed_mph <= 105
+
+    def test_process_shot_minimum_readings(self):
+        """Less than MIN_READINGS_FOR_SHOT should not create a shot."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        self.monitor._current_readings = [
+            SpeedReading(speed=150.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(self.monitor._shots) == 0
+
+    def test_process_shot_clears_readings(self):
+        """Processing a shot should clear current readings."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        self.monitor._current_readings = [
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=145.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(self.monitor._current_readings) == 0
+
+    def test_process_shot_callback_called(self):
+        """Shot callback should be called with the shot."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        received_shots = []
+        self.monitor._shot_callback = lambda s: received_shots.append(s)
+
+        self.monitor._current_readings = [
+            SpeedReading(speed=150.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=152.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(received_shots) == 1
+        assert received_shots[0].ball_speed_mph == 152.0
+
+    def test_process_shot_uses_current_club(self):
+        """Shot should use the currently selected club."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        self.monitor._current_club = ClubType.IRON_7
+        self.monitor._current_readings = [
+            SpeedReading(speed=100.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=102.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert self.monitor._shots[0].club == ClubType.IRON_7
+
+    def test_process_shot_records_magnitude(self):
+        """Peak magnitude should be recorded."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        self.monitor._current_readings = [
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1200, timestamp=time.time()),
+            SpeedReading(speed=150.0, direction=Direction.OUTBOUND, magnitude=1800, timestamp=time.time()),
+            SpeedReading(speed=148.0, direction=Direction.OUTBOUND, magnitude=1500, timestamp=time.time()),
+        ]
+
+        self.monitor._process_shot()
+
+        assert self.monitor._shots[0].peak_magnitude == 1800

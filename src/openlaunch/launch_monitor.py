@@ -298,6 +298,9 @@ class LaunchMonitor:
         """Stop monitoring."""
         self._running = False
         self.radar.stop_streaming()
+        # Process any pending readings
+        if self._current_readings:
+            self._process_shot()
 
     def _on_reading(self, reading: SpeedReading):
         """Process incoming speed readings."""
