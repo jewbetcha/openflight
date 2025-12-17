@@ -38,7 +38,7 @@ def create_test_frame(width, height, ball_x, ball_y, ball_radius):
     # Add some noise
     frame += np.random.randint(0, 30, frame.shape, dtype=np.uint8)
     # Draw white ball
-    cv2.circle(frame, (ball_x, ball_y), ball_radius, (255, 255, 255), -1)
+    cv2.circle(frame, (int(ball_x), int(ball_y)), int(ball_radius), (255, 255, 255), -1)
     return frame
 
 
@@ -50,6 +50,10 @@ def main():
                         help="Save frames to disk")
     parser.add_argument("--mock", action="store_true",
                         help="Use synthetic frames (no camera)")
+    parser.add_argument("--headless", action="store_true",
+                        help="Headless mode - save frames without display (for SSH)")
+    parser.add_argument("--num-frames", type=int, default=10,
+                        help="Number of frames to capture in headless mode")
     parser.add_argument("--width", type=int, default=640)
     parser.add_argument("--height", type=int, default=480)
     parser.add_argument("--exposure", type=int, default=2000,
@@ -66,15 +70,20 @@ def main():
     print("  OpenLaunch Camera Calibration")
     print("=" * 50)
     print()
-    print("Controls:")
-    print("  q - Quit")
-    print("  s - Save current frame")
-    print("  t - Toggle threshold view")
-    print("  d - Toggle detection overlay")
-    print("  +/- - Adjust threshold")
-    print("  [/] - Adjust min radius")
-    print("  {/} - Adjust max radius")
-    print()
+
+    if args.headless:
+        print(f"Headless mode: capturing {args.num_frames} frames to disk")
+        print()
+    else:
+        print("Controls:")
+        print("  q - Quit")
+        print("  s - Save current frame")
+        print("  t - Toggle threshold view")
+        print("  d - Toggle detection overlay")
+        print("  +/- - Adjust threshold")
+        print("  [/] - Adjust min radius")
+        print("  {/} - Adjust max radius")
+        print()
 
     # Detection settings (can be adjusted live)
     settings = {
@@ -114,6 +123,45 @@ def main():
 
     if args.mock:
         print("Using synthetic test frames")
+
+    # Headless mode - capture frames without display
+    if args.headless:
+        print()
+        for i in range(args.num_frames):
+            if camera:
+                frame = camera.capture_array()
+            else:
+                frame = create_test_frame(args.width, args.height, 320, 240, 20)
+
+            filename = f"frame_{i:04d}.png"
+            cv2.imwrite(filename, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            print(f"Saved: {filename}")
+
+            # Also save threshold view
+            if len(frame.shape) == 3:
+                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = frame
+            _, thresh = cv2.threshold(gray, settings["threshold"], 255, cv2.THRESH_BINARY)
+            thresh_filename = f"frame_{i:04d}_thresh.png"
+            cv2.imwrite(thresh_filename, thresh)
+            print(f"Saved: {thresh_filename}")
+
+            time.sleep(0.5)  # Small delay between captures
+
+        if camera:
+            camera.stop()
+            camera.close()
+
+        print()
+        print(f"Captured {args.num_frames} frames. Transfer to your computer to view:")
+        print(f"  scp pi@<ip>:~/openlaunch/frame_*.png .")
+        print()
+        print("Settings used:")
+        print(f"  brightness_threshold={settings['threshold']}")
+        print(f"  min_radius={settings['min_radius']}")
+        print(f"  max_radius={settings['max_radius']}")
+        return
 
     cv2.namedWindow("Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Camera", args.width, args.height)
