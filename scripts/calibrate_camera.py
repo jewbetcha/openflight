@@ -68,6 +68,10 @@ def main():
                         help="Hough circle detection sensitivity (lower = more detections, default 20)")
     parser.add_argument("--use-contours", action="store_true",
                         help="Use contour detection instead of Hough circles")
+    parser.add_argument("--circularity", type=float, default=0.3,
+                        help="Minimum circularity for contour detection (0-1, default 0.3)")
+    parser.add_argument("--min-area", type=int, default=0,
+                        help="Minimum blob area in pixels (overrides min-radius calculation)")
     args = parser.parse_args()
 
     print("=" * 50)
@@ -96,6 +100,8 @@ def main():
         "max_radius": args.max_radius,
         "hough_param2": args.hough_param2,
         "use_contours": args.use_contours,
+        "circularity": args.circularity,
+        "min_area": args.min_area,
         "show_threshold": False,
         "show_detection": not args.no_detect,
     }
@@ -219,28 +225,44 @@ def main():
                 if settings["use_contours"]:
                     # Alternative: contour-based detection (better for bright blobs)
                     contours, _ = cv2.findContours(blurred, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                    # Find the largest valid contour (most likely to be the ball)
+                    best_contour = None
+                    best_area = 0
+
                     for contour in contours:
                         area = cv2.contourArea(contour)
-                        min_area = 3.14159 * settings["min_radius"] ** 2
+
+                        # Use min_area if specified, otherwise calculate from radius
+                        if settings["min_area"] > 0:
+                            min_area = settings["min_area"]
+                        else:
+                            min_area = 3.14159 * settings["min_radius"] ** 2
                         max_area = 3.14159 * settings["max_radius"] ** 2
 
                         if min_area <= area <= max_area:
-                            # Fit a circle to the contour
-                            (cx, cy), r = cv2.minEnclosingCircle(contour)
-                            cx, cy, r = int(cx), int(cy), int(r)
-
                             # Check circularity (perimeter^2 / area, perfect circle = 4*pi)
                             perimeter = cv2.arcLength(contour, True)
                             if perimeter > 0:
                                 circularity = 4 * 3.14159 * area / (perimeter ** 2)
-                                if circularity > 0.5:  # At least 50% circular
-                                    cv2.circle(display, (cx, cy), r, (0, 255, 0), 2)
-                                    cv2.circle(display, (cx, cy), 3, (0, 0, 255), -1)
-                                    cv2.putText(
-                                        display, f"r={r} c={circularity:.2f}",
-                                        (cx + 10, cy), cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (0, 255, 0), 1
-                                    )
+                                if circularity >= settings["circularity"]:
+                                    # Keep track of largest valid contour
+                                    if area > best_area:
+                                        best_area = area
+                                        best_contour = (contour, circularity)
+
+                    # Only draw the best (largest) detection
+                    if best_contour is not None:
+                        contour, circularity = best_contour
+                        (cx, cy), r = cv2.minEnclosingCircle(contour)
+                        cx, cy, r = int(cx), int(cy), int(r)
+                        cv2.circle(display, (cx, cy), r, (0, 255, 0), 2)
+                        cv2.circle(display, (cx, cy), 3, (0, 0, 255), -1)
+                        cv2.putText(
+                            display, f"r={r} c={circularity:.2f}",
+                            (cx + 10, cy), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (0, 255, 0), 1
+                        )
                 else:
                     # Hough circle detection
                     circles = cv2.HoughCircles(
