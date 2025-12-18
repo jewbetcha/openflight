@@ -294,7 +294,7 @@ def main():
     print()
 
     try:
-        socketio.run(app, host=args.host, port=args.web_port, debug=args.debug)
+        socketio.run(app, host=args.host, port=args.web_port, debug=args.debug, allow_unsafe_werkzeug=True)
     finally:
         stop_monitor()
 
