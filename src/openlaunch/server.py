@@ -5,9 +5,11 @@ Provides real-time shot data to the web frontend via Flask-SocketIO.
 """
 
 import json
+import os
 import random
 import statistics
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, List
 
 from flask import Flask, send_from_directory
@@ -15,6 +17,7 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 
 from .launch_monitor import LaunchMonitor, Shot, ClubType
+from .ops243 import SpeedReading
 
 
 app = Flask(__name__, static_folder="../../ui/dist", static_url_path="")
@@ -24,6 +27,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 # Global state
 monitor: Optional["LaunchMonitor | MockLaunchMonitor"] = None
 mock_mode: bool = False
+debug_mode: bool = False
+debug_log_file = None
+debug_log_path: Optional[Path] = None
 
 
 def shot_to_dict(shot: Shot) -> dict:
@@ -55,6 +61,62 @@ def static_files(path):
     return send_from_directory(app.static_folder, path)
 
 
+def start_debug_logging():
+    """Start logging raw readings to a file."""
+    global debug_log_file, debug_log_path  # pylint: disable=global-statement
+
+    # Create logs directory
+    log_dir = Path.home() / "openlaunch_logs"
+    log_dir.mkdir(exist_ok=True)
+
+    # Create timestamped log file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    debug_log_path = log_dir / f"debug_{timestamp}.jsonl"
+    debug_log_file = open(debug_log_path, "w")  # pylint: disable=consider-using-with
+
+    print(f"Debug logging to: {debug_log_path}")
+    return str(debug_log_path)
+
+
+def stop_debug_logging():
+    """Stop logging and close the file."""
+    global debug_log_file, debug_log_path  # pylint: disable=global-statement
+
+    if debug_log_file:
+        debug_log_file.close()
+        debug_log_file = None
+        print(f"Debug log saved: {debug_log_path}")
+
+
+def log_debug_reading(reading: SpeedReading):
+    """Log a raw reading to the debug file."""
+    if debug_log_file:
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "speed": reading.speed,
+            "direction": reading.direction.value,
+            "magnitude": reading.magnitude,
+            "unit": reading.unit,
+        }
+        debug_log_file.write(json.dumps(entry) + "\n")
+        debug_log_file.flush()
+
+
+def on_live_reading(reading: SpeedReading):
+    """Callback for live radar readings - used in debug mode."""
+    # Log to file if debug mode is on
+    if debug_mode:
+        log_debug_reading(reading)
+
+        # Emit to UI
+        socketio.emit("debug_reading", {
+            "speed": reading.speed,
+            "direction": reading.direction.value,
+            "magnitude": reading.magnitude,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+
 @socketio.on("connect")
 def handle_connect():
     """Handle client connection."""
@@ -62,7 +124,12 @@ def handle_connect():
     if monitor:
         stats = monitor.get_session_stats()
         shots = [shot_to_dict(s) for s in monitor.get_shots()]
-        socketio.emit("session_state", {"stats": stats, "shots": shots, "mock_mode": mock_mode})
+        socketio.emit("session_state", {
+            "stats": stats,
+            "shots": shots,
+            "mock_mode": mock_mode,
+            "debug_mode": debug_mode,
+        })
 
 
 @socketio.on("disconnect")
@@ -108,6 +175,103 @@ def handle_simulate_shot():
         monitor.simulate_shot()
 
 
+@socketio.on("toggle_debug")
+def handle_toggle_debug():
+    """Toggle debug mode on/off."""
+    global debug_mode  # pylint: disable=global-statement
+
+    debug_mode = not debug_mode
+
+    if debug_mode:
+        log_path = start_debug_logging()
+        socketio.emit("debug_toggled", {"enabled": True, "log_path": log_path})
+        print("Debug mode ENABLED")
+    else:
+        stop_debug_logging()
+        socketio.emit("debug_toggled", {"enabled": False})
+        print("Debug mode DISABLED")
+
+
+@socketio.on("get_debug_status")
+def handle_get_debug_status():
+    """Get current debug mode status."""
+    socketio.emit("debug_status", {
+        "enabled": debug_mode,
+        "log_path": str(debug_log_path) if debug_log_path else None,
+    })
+
+
+# Radar tuning state
+radar_config = {
+    "min_speed": 10,
+    "max_speed": 220,
+    "min_magnitude": 0,
+    "transmit_power": 0,
+}
+
+
+@socketio.on("get_radar_config")
+def handle_get_radar_config():
+    """Get current radar configuration."""
+    socketio.emit("radar_config", radar_config)
+
+
+@socketio.on("set_radar_config")
+def handle_set_radar_config(data):
+    """Update radar configuration."""
+    global radar_config  # pylint: disable=global-statement
+
+    if not monitor or mock_mode:
+        socketio.emit("radar_config_error", {"error": "Radar not connected"})
+        return
+
+    try:
+        # Update min speed filter
+        if "min_speed" in data:
+            new_min = int(data["min_speed"])
+            monitor.radar.set_min_speed_filter(new_min)
+            radar_config["min_speed"] = new_min
+            print(f"Set min speed filter: {new_min} mph")
+
+        # Update max speed filter
+        if "max_speed" in data:
+            new_max = int(data["max_speed"])
+            monitor.radar.set_max_speed_filter(new_max)
+            radar_config["max_speed"] = new_max
+            print(f"Set max speed filter: {new_max} mph")
+
+        # Update magnitude filter
+        if "min_magnitude" in data:
+            new_mag = int(data["min_magnitude"])
+            monitor.radar.set_magnitude_filter(min_mag=new_mag)
+            radar_config["min_magnitude"] = new_mag
+            print(f"Set min magnitude filter: {new_mag}")
+
+        # Update transmit power (0=max, 7=min)
+        if "transmit_power" in data:
+            new_power = int(data["transmit_power"])
+            if 0 <= new_power <= 7:
+                monitor.radar.set_transmit_power(new_power)
+                radar_config["transmit_power"] = new_power
+                print(f"Set transmit power: {new_power}")
+
+        # Log config change if debug mode is on
+        if debug_mode and debug_log_file:
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "type": "config_change",
+                "config": radar_config.copy(),
+            }
+            debug_log_file.write(json.dumps(entry) + "\n")
+            debug_log_file.flush()
+
+        socketio.emit("radar_config", radar_config)
+
+    except Exception as e:
+        print(f"Error setting radar config: {e}")
+        socketio.emit("radar_config_error", {"error": str(e)})
+
+
 def on_shot_detected(shot: Shot):
     """Callback when a shot is detected - emit to all clients."""
     shot_data = shot_to_dict(shot)
@@ -132,7 +296,7 @@ def start_monitor(port: Optional[str] = None, mock: bool = False):
         monitor = LaunchMonitor(port=port)
 
     monitor.connect()
-    monitor.start(shot_callback=on_shot_detected)
+    monitor.start(shot_callback=on_shot_detected, live_callback=on_live_reading)
 
 
 def stop_monitor():

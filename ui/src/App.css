@@ -84,6 +84,27 @@
   font-size: 0.75rem;
 }
 
+.nav__button--recording {
+  border-color: rgba(255, 100, 100, 0.5);
+}
+
+.nav__recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff6464;
+  border-radius: 50%;
+  animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 /* Main Content */
 .main {
   flex: 1;
