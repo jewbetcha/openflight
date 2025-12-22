@@ -58,6 +58,8 @@ def main():
     parser.add_argument("--height", type=int, default=480)
     parser.add_argument("--confidence", type=float, default=0.3, help="Minimum confidence threshold")
     parser.add_argument("--model", type=str, default="yolov8n.pt", help="YOLO model to use")
+    parser.add_argument("--iou", type=float, default=0.5, help="IoU threshold for NMS (lower = fewer overlapping boxes)")
+    parser.add_argument("--max-det", type=int, default=1, help="Maximum detections per frame")
     args = parser.parse_args()
 
     if not YOLO_AVAILABLE or not CV2_AVAILABLE:
@@ -85,7 +87,7 @@ def main():
             return 1
 
         # Run detection
-        results = model(frame, conf=args.confidence, verbose=False)
+        results = model(frame, conf=args.confidence, iou=args.iou, max_det=args.max_det, verbose=False)
 
         # Process results
         detections = []
@@ -146,7 +148,7 @@ def main():
 
             # Run YOLO detection
             start_time = time.time()
-            results = model(frame, conf=args.confidence, verbose=False)
+            results = model(frame, conf=args.confidence, iou=args.iou, max_det=args.max_det, verbose=False)
             inference_time = time.time() - start_time
 
             # Process and draw results
@@ -200,7 +202,7 @@ def main():
 
             # Run YOLO
             start_time = time.time()
-            results = model(frame, conf=args.confidence, verbose=False)
+            results = model(frame, conf=args.confidence, iou=args.iou, max_det=args.max_det, verbose=False)
             inference_time = time.time() - start_time
             fps = 1.0 / inference_time if inference_time > 0 else 0
             fps_list.append(fps)
