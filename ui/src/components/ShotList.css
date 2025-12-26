@@ -1,3 +1,4 @@
+/* Shot List */
 .shot-list {
   display: flex;
   flex-direction: column;
@@ -8,43 +9,53 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 1.125rem;
+  color: var(--text-muted);
+  font-size: 1rem;
 }
 
 .shot-list__rows {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   flex: 1;
 }
 
+/* Shot Row */
 .shot-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  min-height: 64px;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(245, 240, 230, 0.06);
+  border-radius: var(--radius-md);
+  min-height: 60px;
+  transition: all var(--transition-smooth);
+}
+
+.shot-row:hover {
+  background: var(--color-bg-elevated);
+  border-color: rgba(212, 175, 55, 0.15);
 }
 
 .shot-row__number {
-  font-size: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  min-width: 3rem;
+  color: var(--text-muted);
+  min-width: 2.5rem;
 }
 
 .shot-row__club {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #a78bfa;
-  background: rgba(167, 139, 250, 0.15);
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  background: rgba(212, 175, 55, 0.12);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
-  min-width: 4rem;
+  letter-spacing: 0.05em;
+  min-width: 3.5rem;
   text-align: center;
 }
 
@@ -53,28 +64,34 @@
   flex-direction: column;
   align-items: center;
   flex: 1;
-  max-width: 5rem;
+  max-width: 4.5rem;
 }
 
 .shot-row__value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  color: var(--color-cream);
+  line-height: 1;
 }
 
 .shot-row__label {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
   text-transform: uppercase;
-  margin-top: 0.125rem;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
 }
 
+/* Primary stat (ball speed) */
 .shot-row__stat:first-of-type .shot-row__value {
-  color: #00ff88;
+  color: var(--color-gold);
 }
 
+/* Carry stat */
 .shot-row__stat--carry .shot-row__value {
-  color: #00ff88;
+  color: var(--color-gold);
 }
 
 /* Pagination */
@@ -82,39 +99,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding-top: 0.75rem;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
   flex-shrink: 0;
 }
 
 .pagination__button {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: 0.875rem;
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--color-gold);
+  font-size: 0.8125rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 44px;
+  transition: all var(--transition-smooth);
+  min-height: 42px;
   min-width: 80px;
   touch-action: manipulation;
 }
 
 .pagination__button:active:not(:disabled) {
   transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(212, 175, 55, 0.1);
 }
 
 .pagination__button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+  color: var(--text-muted);
+  border-color: rgba(245, 240, 230, 0.1);
 }
 
 .pagination__info {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
   min-width: 3rem;
   text-align: center;
 }
@@ -122,31 +143,31 @@
 /* Landscape 7" screen (800x480) */
 @media (max-height: 500px) {
   .shot-list__rows {
-    gap: 0.5rem;
+    gap: var(--space-xs);
   }
 
   .shot-row {
-    padding: 0.625rem 1rem;
-    min-height: 52px;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 50px;
   }
 
   .shot-row__number {
-    font-size: 0.875rem;
-    min-width: 2.5rem;
+    font-size: 0.8125rem;
+    min-width: 2rem;
   }
 
   .shot-row__club {
-    font-size: 0.75rem;
-    min-width: 3.5rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+    min-width: 3rem;
+    padding: 2px var(--space-xs);
   }
 
   .shot-row__value {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 
   .shot-row__label {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
   }
 
   .shot-row__stat {
@@ -154,14 +175,14 @@
   }
 
   .pagination {
-    padding-top: 0.5rem;
-    gap: 0.75rem;
+    padding-top: var(--space-sm);
+    gap: var(--space-sm);
   }
 
   .pagination__button {
-    padding: 0.5rem 1rem;
-    min-height: 40px;
+    padding: var(--space-xs) var(--space-md);
+    min-height: 38px;
     min-width: 70px;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
   }
 }

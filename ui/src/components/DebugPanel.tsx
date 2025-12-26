@@ -1,11 +1,13 @@
 import { memo, useState } from 'react';
-import type { DebugReading, RadarConfig } from '../hooks/useSocket';
+import type { DebugReading, RadarConfig, DebugShotLog, CameraStatus } from '../hooks/useSocket';
 import './DebugPanel.css';
 
 interface DebugPanelProps {
   enabled: boolean;
   readings: DebugReading[];
+  shotLogs: DebugShotLog[];
   radarConfig: RadarConfig;
+  cameraStatus: CameraStatus;
   mockMode: boolean;
   onToggle: () => void;
   onUpdateConfig: (config: Partial<RadarConfig>) => void;
@@ -29,6 +31,84 @@ const ReadingRow = memo(function ReadingRow({ reading }: ReadingRowProps) {
       <span className="debug-reading__speed">{reading.speed.toFixed(1)}</span>
       <span className="debug-reading__dir">{reading.direction === 'outbound' ? 'OUT' : 'IN'}</span>
       <span className="debug-reading__mag">{reading.magnitude?.toFixed(0) ?? '--'}</span>
+    </div>
+  );
+});
+
+interface ShotLogRowProps {
+  log: DebugShotLog;
+}
+
+const ShotLogRow = memo(function ShotLogRow({ log }: ShotLogRowProps) {
+  const time = new Date(log.timestamp).toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  const hasLaunchAngle = log.camera && log.camera.launch_detected;
+
+  return (
+    <div className="debug-shot-log">
+      <div className="debug-shot-log__header">
+        <span className="debug-shot-log__time">{time}</span>
+        <span className="debug-shot-log__club">{log.club}</span>
+      </div>
+      <div className="debug-shot-log__data">
+        <div className="debug-shot-log__section">
+          <span className="debug-shot-log__section-label">Radar</span>
+          <div className="debug-shot-log__row">
+            <span className="debug-shot-log__label">Ball Speed</span>
+            <span className="debug-shot-log__value debug-shot-log__value--primary">{log.radar.ball_speed_mph} mph</span>
+          </div>
+          <div className="debug-shot-log__row">
+            <span className="debug-shot-log__label">Club Speed</span>
+            <span className="debug-shot-log__value">{log.radar.club_speed_mph ?? '—'} {log.radar.club_speed_mph ? 'mph' : ''}</span>
+          </div>
+          <div className="debug-shot-log__row">
+            <span className="debug-shot-log__label">Smash</span>
+            <span className="debug-shot-log__value">{log.radar.smash_factor?.toFixed(2) ?? '—'}</span>
+          </div>
+          <div className="debug-shot-log__row">
+            <span className="debug-shot-log__label">Magnitude</span>
+            <span className="debug-shot-log__value">{log.radar.peak_magnitude}</span>
+          </div>
+        </div>
+        <div className="debug-shot-log__section">
+          <span className="debug-shot-log__section-label">Camera</span>
+          {log.camera ? (
+            <>
+              <div className="debug-shot-log__row">
+                <span className="debug-shot-log__label">Launch Angle</span>
+                <span className={`debug-shot-log__value ${hasLaunchAngle ? 'debug-shot-log__value--success' : 'debug-shot-log__value--muted'}`}>
+                  {hasLaunchAngle ? `${log.camera.launch_angle_vertical.toFixed(1)}°` : 'Not detected'}
+                </span>
+              </div>
+              <div className="debug-shot-log__row">
+                <span className="debug-shot-log__label">Horizontal</span>
+                <span className="debug-shot-log__value">
+                  {hasLaunchAngle ? `${log.camera.launch_angle_horizontal.toFixed(1)}°` : '—'}
+                </span>
+              </div>
+              <div className="debug-shot-log__row">
+                <span className="debug-shot-log__label">Confidence</span>
+                <span className="debug-shot-log__value">
+                  {hasLaunchAngle ? `${(log.camera.launch_angle_confidence * 100).toFixed(0)}%` : '—'}
+                </span>
+              </div>
+              <div className="debug-shot-log__row">
+                <span className="debug-shot-log__label">Positions</span>
+                <span className="debug-shot-log__value">{log.camera.positions_tracked}</span>
+              </div>
+            </>
+          ) : (
+            <div className="debug-shot-log__row">
+              <span className="debug-shot-log__value debug-shot-log__value--muted">Camera disabled</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 });
@@ -89,7 +169,7 @@ function SliderControl({ label, value, min, max, step = 1, unit = '', disabled, 
   );
 }
 
-export function DebugPanel({ enabled, readings, radarConfig, mockMode, onToggle, onUpdateConfig }: DebugPanelProps) {
+export function DebugPanel({ enabled, readings, shotLogs, radarConfig, cameraStatus, mockMode, onToggle, onUpdateConfig }: DebugPanelProps) {
   return (
     <div className="debug-panel">
       <div className="debug-panel__header">
@@ -100,6 +180,34 @@ export function DebugPanel({ enabled, readings, radarConfig, mockMode, onToggle,
         >
           {enabled ? 'Stop' : 'Start'}
         </button>
+      </div>
+
+      {/* Camera Status */}
+      <div className="debug-panel__section">
+        <h4>Camera Status</h4>
+        <div className="debug-panel__status-grid">
+          <div className="debug-panel__status-item">
+            <span className="debug-panel__status-label">Available</span>
+            <span className={`debug-panel__status-value ${cameraStatus.available ? 'debug-panel__status-value--success' : 'debug-panel__status-value--error'}`}>
+              {cameraStatus.available ? 'Yes' : 'No'}
+            </span>
+          </div>
+          <div className="debug-panel__status-item">
+            <span className="debug-panel__status-label">Enabled</span>
+            <span className={`debug-panel__status-value ${cameraStatus.enabled ? 'debug-panel__status-value--success' : ''}`}>
+              {cameraStatus.enabled ? 'Yes' : 'No'}
+            </span>
+          </div>
+          <div className="debug-panel__status-item">
+            <span className="debug-panel__status-label">Ball Detected</span>
+            <span className={`debug-panel__status-value ${cameraStatus.ball_detected ? 'debug-panel__status-value--success' : ''}`}>
+              {cameraStatus.ball_detected ? `Yes (${(cameraStatus.ball_confidence * 100).toFixed(0)}%)` : 'No'}
+            </span>
+          </div>
+        </div>
+        <p className="debug-panel__note">
+          Launch angle detection is ready for testing. Spin detection requires a high-speed camera and is not yet available.
+        </p>
       </div>
 
       {/* Radar Tuning Controls */}
@@ -141,11 +249,27 @@ export function DebugPanel({ enabled, readings, radarConfig, mockMode, onToggle,
         </p>
       </div>
 
+      {/* Shot History */}
+      {enabled && (
+        <div className="debug-panel__section debug-panel__section--shots">
+          <h4>Shot History (Radar + Camera)</h4>
+          <p className="debug-panel__log-info">Logging to ~/openlaunch_logs/</p>
+          <div className="debug-panel__shot-logs">
+            {shotLogs.length === 0 ? (
+              <p className="debug-panel__empty">No shots recorded yet...</p>
+            ) : (
+              [...shotLogs].reverse().map((log, index) => (
+                <ShotLogRow key={`${log.timestamp}-${index}`} log={log} />
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Raw Readings */}
       {enabled && (
         <div className="debug-panel__section debug-panel__section--readings">
-          <h4>Raw Readings</h4>
-          <p className="debug-panel__log-info">Logging to ~/openlaunch_logs/</p>
+          <h4>Raw Radar Readings</h4>
 
           <div className="debug-panel__labels">
             <span>Time</span>
@@ -169,7 +293,7 @@ export function DebugPanel({ enabled, readings, radarConfig, mockMode, onToggle,
       {!enabled && (
         <div className="debug-panel__section">
           <p className="debug-panel__hint">
-            Start debug mode to see raw radar readings and log data for analysis.
+            Start debug mode to see raw radar readings, shot history with camera data, and log data for analysis.
           </p>
         </div>
       )}

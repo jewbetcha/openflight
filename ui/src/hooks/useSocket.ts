@@ -26,12 +26,32 @@ export interface CameraStatus {
   ball_confidence: number;
 }
 
+export interface DebugShotLog {
+  type: 'shot';
+  timestamp: string;
+  radar: {
+    ball_speed_mph: number;
+    club_speed_mph: number | null;
+    smash_factor: number | null;
+    peak_magnitude: number;
+  };
+  camera: {
+    launch_angle_vertical: number;
+    launch_angle_horizontal: number;
+    launch_angle_confidence: number;
+    positions_tracked: number;
+    launch_detected: boolean;
+  } | null;
+  club: string;
+}
+
 export function useSocket() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [debugReadings, setDebugReadings] = useState<DebugReading[]>([]);
+  const [debugShotLogs, setDebugShotLogs] = useState<DebugShotLog[]>([]);
   const [radarConfig, setRadarConfig] = useState<RadarConfig>({
     min_speed: 10,
     max_speed: 220,
@@ -113,7 +133,16 @@ export function useSocket() {
       setDebugMode(data.enabled);
       if (!data.enabled) {
         setDebugReadings([]);
+        setDebugShotLogs([]);
       }
+    });
+
+    newSocket.on('debug_shot', (data: DebugShotLog) => {
+      setDebugShotLogs((prev) => {
+        const updated = [...prev, data];
+        // Keep only last 20 shot logs to prevent memory issues
+        return updated.length > 20 ? updated.slice(-20) : updated;
+      });
     });
 
     newSocket.on('debug_reading', (data: DebugReading) => {
@@ -196,6 +225,7 @@ export function useSocket() {
     mockMode,
     debugMode,
     debugReadings,
+    debugShotLogs,
     radarConfig,
     latestShot,
     shots,

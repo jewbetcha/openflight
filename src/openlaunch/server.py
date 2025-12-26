@@ -76,6 +76,10 @@ def shot_to_dict(shot: Shot) -> dict:
         "club": shot.club.value,
         "timestamp": shot.timestamp.isoformat(),
         "peak_magnitude": shot.peak_magnitude,
+        # Launch angle from camera
+        "launch_angle_vertical": shot.launch_angle_vertical,
+        "launch_angle_horizontal": shot.launch_angle_horizontal,
+        "launch_angle_confidence": shot.launch_angle_confidence,
     }
 
 
@@ -510,14 +514,62 @@ def handle_set_radar_config(data):
 
 def on_shot_detected(shot: Shot):
     """Callback when a shot is detected - emit to all clients."""
+    global ball_detected, ball_detection_confidence  # pylint: disable=global-statement
+
+    # Capture camera tracking data if available
+    camera_data = None
+    if camera_tracker and camera_enabled:
+        launch_angle = camera_tracker.calculate_launch_angle()
+        if launch_angle:
+            # Update shot with launch angle data
+            shot.launch_angle_vertical = launch_angle.vertical
+            shot.launch_angle_horizontal = launch_angle.horizontal
+            shot.launch_angle_confidence = launch_angle.confidence
+
+            camera_data = {
+                "launch_angle_vertical": launch_angle.vertical,
+                "launch_angle_horizontal": launch_angle.horizontal,
+                "launch_angle_confidence": launch_angle.confidence,
+                "positions_tracked": len(launch_angle.positions),
+                "launch_detected": camera_tracker.launch_detected,
+            }
+
+        # Reset camera tracker for next shot
+        camera_tracker.reset()
+        ball_detected = False
+        ball_detection_confidence = 0.0
+
     shot_data = shot_to_dict(shot)
     stats = monitor.get_session_stats() if monitor else {}
 
-    # Log shot details
-    log_data = {"shot": shot_data, "session_stats": stats}
-    print(f"[SHOT] {json.dumps(log_data)}")
+    # Create debug log entry
+    debug_log_entry = {
+        "type": "shot",
+        "timestamp": datetime.now().isoformat(),
+        "radar": {
+            "ball_speed_mph": shot_data["ball_speed_mph"],
+            "club_speed_mph": shot_data["club_speed_mph"],
+            "smash_factor": shot_data["smash_factor"],
+            "peak_magnitude": shot_data["peak_magnitude"],
+        },
+        "camera": camera_data,
+        "club": shot_data["club"],
+    }
 
+    # Log shot details
+    print(f"[SHOT] {json.dumps(debug_log_entry)}")
+
+    # Log to debug file if enabled
+    if debug_mode and debug_log_file:
+        debug_log_file.write(json.dumps(debug_log_entry) + "\n")
+        debug_log_file.flush()
+
+    # Emit shot to clients
     socketio.emit("shot", {"shot": shot_data, "stats": stats})
+
+    # Emit debug shot log if debug mode is on
+    if debug_mode:
+        socketio.emit("debug_shot", debug_log_entry)
 
 
 def start_monitor(port: Optional[str] = None, mock: bool = False):

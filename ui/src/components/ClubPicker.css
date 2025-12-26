@@ -1,3 +1,4 @@
+/* Club Picker */
 .club-picker {
   position: relative;
 }
@@ -5,67 +6,97 @@
 .club-picker__trigger {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-cream);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 100px;
+  transition: all var(--transition-smooth);
+  min-width: 90px;
+  min-height: 40px;
 }
 
 .club-picker__trigger:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.club-picker__trigger:active {
+  transform: scale(0.97);
 }
 
 .club-picker__label {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .club-picker__value {
-  font-weight: 700;
-  color: #00ff88;
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--color-gold);
+  font-size: 1.125rem;
 }
 
 .club-picker__arrow {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   margin-left: auto;
-  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  transition: transform var(--transition-smooth);
 }
 
 .club-picker__arrow--open {
   transform: rotate(180deg);
 }
 
+/* Overlay */
 .club-picker__overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
+  background: rgba(0, 0, 0, 0.3);
+  animation: fade-in 0.2s ease;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Dropdown */
 .club-picker__dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
   z-index: 101;
-  background: #1a1a2e;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 1rem;
-  min-width: 280px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-elevated);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  min-width: 260px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.1);
+  animation: dropdown-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .club-picker__section {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .club-picker__section:last-child {
@@ -74,36 +105,37 @@
 
 .club-picker__section-title {
   display: block;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.15em;
+  margin-bottom: var(--space-sm);
 }
 
 .club-picker__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  gap: var(--space-xs);
 }
 
 .club-picker__option {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
+  padding: var(--space-sm);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(245, 240, 230, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--color-cream);
+  font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.15s ease;
-  /* Touch-friendly size */
-  min-height: 48px;
+  transition: all var(--transition-fast);
+  min-height: 44px;
 }
 
 .club-picker__option:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-bg-hover);
+  border-color: rgba(245, 240, 230, 0.15);
 }
 
 .club-picker__option:active {
@@ -111,12 +143,13 @@
 }
 
 .club-picker__option--selected {
-  background: rgba(0, 255, 136, 0.2);
-  border-color: #00ff88;
-  color: #00ff88;
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
 }
 
-/* Responsive for 7" screen */
+/* Responsive for 7" screen - bottom sheet style */
 @media (max-width: 800px) {
   .club-picker__dropdown {
     position: fixed;
@@ -124,18 +157,46 @@
     bottom: 0;
     left: 0;
     right: 0;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     min-width: auto;
-    padding: 1.5rem;
+    padding: var(--space-lg);
+    animation: slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .club-picker__grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
+    gap: var(--space-sm);
   }
 
   .club-picker__option {
-    min-height: 56px;
+    min-height: 52px;
     font-size: 1.125rem;
+  }
+}
+
+/* Small screens */
+@media (max-height: 500px) {
+  .club-picker__trigger {
+    padding: var(--space-xs) var(--space-sm);
+    min-width: 80px;
+    min-height: 36px;
+  }
+
+  .club-picker__label {
+    font-size: 0.5625rem;
+  }
+
+  .club-picker__value {
+    font-size: 1rem;
   }
 }

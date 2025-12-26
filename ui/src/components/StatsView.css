@@ -1,7 +1,8 @@
+/* Stats View */
 .stats-view {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   height: 100%;
 }
 
@@ -9,29 +10,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 1.125rem;
+  color: var(--text-muted);
+  font-size: 1rem;
 }
 
 /* Club Filter Tabs */
 .club-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 }
 
 .club-tabs__tab {
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.875rem;
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.2s ease;
-  /* Touch-friendly */
-  min-height: 44px;
+  transition: all var(--transition-smooth);
+  min-height: 40px;
   touch-action: manipulation;
 }
 
@@ -40,16 +41,16 @@
 }
 
 .club-tabs__tab--active {
-  background: rgba(0, 255, 136, 0.15);
-  border-color: rgba(0, 255, 136, 0.5);
-  color: #00ff88;
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.4);
+  color: var(--color-gold);
 }
 
 /* Stats Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  gap: var(--space-sm);
   flex: 1;
 }
 
@@ -58,67 +59,81 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(245, 240, 230, 0.06);
+  border-radius: var(--radius-md);
   text-align: center;
+  transition: all var(--transition-smooth);
 }
 
 .stat-card--primary {
-  background: rgba(0, 255, 136, 0.1);
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+  border-color: rgba(212, 175, 55, 0.2);
 }
 
 .stat-card__value {
+  font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 700;
-  color: white;
+  font-weight: 400;
+  color: var(--color-cream);
   line-height: 1;
 }
 
 .stat-card--primary .stat-card__value {
-  color: #00ff88;
+  color: var(--color-gold);
+  text-shadow: 0 0 20px var(--color-gold-glow);
 }
 
 .stat-card__label {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.5rem;
+  letter-spacing: 0.1em;
+  margin-top: var(--space-xs);
 }
 
 /* Clear Button */
 .clear-button {
   width: 100%;
-  padding: 1rem;
-  background: rgba(255, 68, 68, 0.2);
-  border: 1px solid rgba(255, 68, 68, 0.5);
-  border-radius: 8px;
-  color: #ff6b6b;
-  font-size: 1rem;
+  padding: var(--space-md);
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.2s ease;
-  /* Touch-friendly */
-  min-height: 52px;
+  transition: all var(--transition-smooth);
+  min-height: 48px;
   touch-action: manipulation;
 }
 
 .clear-button:active {
   transform: scale(0.98);
-  background: rgba(255, 68, 68, 0.3);
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* Responsive for 7" screen */
 @media (max-height: 500px) {
+  .stats-view {
+    gap: var(--space-sm);
+  }
+
+  .club-tabs__tab {
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 36px;
+    font-size: 0.75rem;
+  }
+
   .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+    gap: var(--space-xs);
   }
 
   .stat-card {
-    padding: 0.75rem;
+    padding: var(--space-sm);
   }
 
   .stat-card__value {
@@ -126,6 +141,12 @@
   }
 
   .stat-card__label {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
+  }
+
+  .clear-button {
+    padding: var(--space-sm);
+    min-height: 40px;
+    font-size: 0.8125rem;
   }
 }
