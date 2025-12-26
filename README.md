@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="OpenLaunch" width="400">
+  <img src="docs/logo2.png" alt="OpenLaunch" width="400">
 </p>
 
 <p align="center">
@@ -18,12 +18,12 @@ OpenLaunch is an open-source golf launch monitor that measures ball speed using 
 
 ### Hardware
 
-| Component | Description | Cost |
-|-----------|-------------|------|
-| OPS243-A | OmniPreSense Doppler Radar | ~$225 |
-| Raspberry Pi 5 | (or any computer with USB) | ~$80 |
-| USB Cable | Micro USB to connect radar | ~$5 |
-| **Total** | | **~$310** |
+| Component      | Description                | Cost      |
+| -------------- | -------------------------- | --------- |
+| OPS243-A       | OmniPreSense Doppler Radar | ~$225     |
+| Raspberry Pi 5 | (or any computer with USB) | ~$80      |
+| USB Cable      | Micro USB to connect radar | ~$5       |
+| **Total**      |                            | **~$310** |
 
 See [docs/PARTS.md](docs/PARTS.md) for the full parts list including optional camera module.
 
@@ -80,6 +80,7 @@ openlaunch-server --mock
 Then open http://localhost:8080 in a browser.
 
 For kiosk mode on Raspberry Pi (fullscreen):
+
 ```bash
 chromium-browser --kiosk http://localhost:8080
 ```
@@ -144,6 +145,7 @@ with OPS243Radar() as radar:
 ### 1. Connect the Radar
 
 Connect the OPS243-A to your computer via USB. The radar will appear as a serial device:
+
 - **Linux/Raspberry Pi**: `/dev/ttyACM0` or `/dev/ttyUSB0`
 - **macOS**: `/dev/tty.usbmodem*`
 - **Windows**: `COM3` (or similar)
@@ -178,6 +180,7 @@ The system will automatically detect the radar, configure it for golf ball detec
 The OPS243-A transmits a 24 GHz signal. When this signal bounces off a moving object (the golf ball), the frequency shifts proportionally to the object's speed - this is the Doppler effect.
 
 The relationship is:
+
 ```
 Speed = (Doppler_Frequency × c) / (2 × Transmit_Frequency)
 ```
@@ -187,12 +190,14 @@ At 24.125 GHz, each 1 mph of speed creates a ~71.7 Hz Doppler shift.
 ### Golf Ball Detection
 
 Golf balls are challenging targets for radar due to:
+
 - **Small size**: ~1.68" diameter
 - **Low RCS**: Radar cross-section of ~0.001 m²
 - **High speed**: 100-180+ mph for well-struck shots
 - **Brief detection window**: Ball is in range for < 100ms
 
 The OPS243-A handles this with:
+
 - High transmit power (11 dBm typical)
 - 15 dBi antenna gain
 - 24 GHz frequency (short wavelength suits small objects)
@@ -251,13 +256,13 @@ radar.save_config()
 
 ### Key Settings for Golf
 
-| Setting | Value | Why |
-|---------|-------|-----|
-| Sample Rate | 20 kHz | Supports up to ~139 mph |
-| Buffer Size | 512 | Faster updates (~10-15 Hz) |
-| Min Speed | 10 mph | Filter slow movements |
-| Direction | Outbound | Ball moving away from radar |
-| Power | Max (0) | Best detection range |
+| Setting     | Value    | Why                         |
+| ----------- | -------- | --------------------------- |
+| Sample Rate | 20 kHz   | Supports up to ~139 mph     |
+| Buffer Size | 512      | Faster updates (~10-15 Hz)  |
+| Min Speed   | 10 mph   | Filter slow movements       |
+| Direction   | Outbound | Ball moving away from radar |
+| Power       | Max (0)  | Best detection range        |
 
 ## Limitations
 
