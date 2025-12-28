@@ -249,8 +249,9 @@ class LaunchMonitor:
     MAX_CLUB_SPEED_MPH = 140     # Maximum realistic club speed (long drive pros)
     MIN_BALL_SPEED_MPH = 15      # Minimum ball speed (lowered for testing with foam balls)
     MAX_BALL_SPEED_MPH = 220     # Maximum realistic ball speed
+    MIN_MAGNITUDE = 50           # Minimum signal strength to filter noise
     SHOT_TIMEOUT_SEC = 0.5       # Gap between readings to consider shot complete
-    MIN_READINGS_FOR_SHOT = 2    # Minimum readings to validate a shot
+    MIN_READINGS_FOR_SHOT = 3    # Minimum readings to validate a shot
     CLUB_BALL_GAP_SEC = 0.05     # Min gap between club and ball detection (50ms)
     CLUB_BALL_WINDOW_SEC = 0.3   # Max time window for club+ball to be same shot
 
@@ -335,6 +336,11 @@ class LaunchMonitor:
         # Filter by realistic speeds
         if not min_speed <= reading.speed <= self.MAX_BALL_SPEED_MPH:
             print(f"[FILTER] Speed {reading.speed:.1f} outside range {min_speed}-{self.MAX_BALL_SPEED_MPH}")
+            return
+
+        # Filter weak signals (noise, distant objects)
+        if reading.magnitude is not None and reading.magnitude < self.MIN_MAGNITUDE:
+            print(f"[FILTER] Magnitude {reading.magnitude} below minimum {self.MIN_MAGNITUDE}")
             return
 
         # Only accept outbound readings (ball/club moving away from radar)
