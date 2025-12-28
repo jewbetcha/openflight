@@ -565,8 +565,16 @@ class OPS243Radar:
                 speed = float(data.get('speed', 0))
                 magnitude = data.get('magnitude')
 
-                # Per OPS243-A convention: negative = outbound (away), positive = inbound (toward)
-                direction = Direction.OUTBOUND if speed < 0 else Direction.INBOUND
+                # Use the direction field from JSON output if available
+                # JSON format: {"speed":0.58, "direction":"inbound", "time":105, "tick":135}
+                dir_str = data.get('direction', '')
+                if dir_str == 'outbound':
+                    direction = Direction.OUTBOUND
+                elif dir_str == 'inbound':
+                    direction = Direction.INBOUND
+                else:
+                    # Fallback to sign convention if direction field missing
+                    direction = Direction.OUTBOUND if speed < 0 else Direction.INBOUND
 
                 return SpeedReading(
                     speed=abs(speed),
