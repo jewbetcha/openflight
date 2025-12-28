@@ -338,9 +338,9 @@ class OPS243Radar:
             direction: Direction.INBOUND, Direction.OUTBOUND, or None for both
         """
         if direction == Direction.INBOUND:
-            self._send_command("R+")
+            self._send_command("R-")  # Negative speeds = inbound (toward radar)
         elif direction == Direction.OUTBOUND:
-            self._send_command("R-")
+            self._send_command("R+")  # Positive speeds = outbound (away from radar)
         else:
             self._send_command("R|")
 
