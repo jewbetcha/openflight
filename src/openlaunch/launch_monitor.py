@@ -247,7 +247,7 @@ class LaunchMonitor:
     # Detection parameters
     MIN_CLUB_SPEED_MPH = 40      # Minimum realistic club head speed
     MAX_CLUB_SPEED_MPH = 140     # Maximum realistic club speed (long drive pros)
-    MIN_BALL_SPEED_MPH = 60      # Minimum realistic golf ball speed
+    MIN_BALL_SPEED_MPH = 15      # Minimum ball speed (lowered for testing with foam balls)
     MAX_BALL_SPEED_MPH = 220     # Maximum realistic ball speed
     SHOT_TIMEOUT_SEC = 0.5       # Gap between readings to consider shot complete
     MIN_READINGS_FOR_SHOT = 2    # Minimum readings to validate a shot
