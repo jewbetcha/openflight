@@ -2,12 +2,12 @@
 """
 Test YOLO ball detection on camera feed.
 
-This script tests if YOLOv8n can detect golf balls using the
-pre-trained "sports ball" class from the COCO dataset.
+This script tests ball detection using a fine-tuned YOLOv11 model
+trained on golf ball datasets.
 
 Usage:
     # On Pi with display (max performance)
-    DISPLAY=:0 python scripts/test_yolo_detection.py --model models/golf_ball_yolo11n_ncnn.zip --imgsz 320 --half
+    DISPLAY=:0 python scripts/test_yolo_detection.py --imgsz 320 --half
 
     # Headless mode (saves frames)
     python scripts/test_yolo_detection.py --headless --num-frames 5
@@ -15,8 +15,10 @@ Usage:
     # Test with specific image file
     python scripts/test_yolo_detection.py --image frame_0000.png
 
+    # Use NCNN model (fastest on Pi ARM CPU)
+    python scripts/test_yolo_detection.py --model models/golf_ball_yolo11n_new_ncnn
+
     # Performance flags:
-    #   --model models/golf_ball_yolo11n_ncnn.zip  (NCNN is fastest on Pi)
     #   --imgsz 320        (smaller = faster, try 320, 416, 640)
     #   --half             (FP16 inference)
     #   --threaded         (separate capture/inference threads)
@@ -66,7 +68,7 @@ def main():
     parser.add_argument("--width", type=int, default=640, help="Camera capture width")
     parser.add_argument("--height", type=int, default=480, help="Camera capture height")
     parser.add_argument("--confidence", type=float, default=0.3, help="Minimum confidence threshold")
-    parser.add_argument("--model", type=str, default="yolov8n.pt", help="YOLO model to use (use NCNN for Pi)")
+    parser.add_argument("--model", type=str, default="models/golf_ball_yolo11n_new.onnx", help="YOLO model to use (use NCNN for Pi)")
     parser.add_argument("--iou", type=float, default=0.5, help="IoU threshold for NMS (lower = fewer overlapping boxes)")
     parser.add_argument("--max-det", type=int, default=1, help="Maximum detections per frame")
     # Performance options
