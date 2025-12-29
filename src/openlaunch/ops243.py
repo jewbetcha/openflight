@@ -376,16 +376,17 @@ class OPS243Radar:
 
     def enable_direction_report(self, enabled: bool = True):
         """
-        Enable/disable direction detection.
+        Enable/disable direction in output.
 
-        When disabled, all speeds are reported as positive.
+        When enabled, JSON output includes "direction": "inbound"/"outbound" field.
+        This is separate from direction filtering (R+/R-/R|).
 
         Args:
-            enabled: True to detect direction (inbound=positive, outbound=negative)
+            enabled: True to include direction in output
         """
-        # Direction is on by default, R| enables both directions
-        if enabled:
-            self._send_command("R|")
+        # OD enables direction field in JSON output
+        # Od disables it (speeds will still have sign convention)
+        self._send_command("OD" if enabled else "Od")
 
     def set_transmit_power(self, level: int):
         """
@@ -407,6 +408,7 @@ class OPS243Radar:
         - 50kHz sample rate (supports up to 347 mph - covers all golf balls)
         - 512 buffer for faster updates (~10-15 Hz report rate)
         - Magnitude reporting enabled
+        - Direction reporting enabled (for filtering inbound/outbound)
         - Min speed filter at 10 mph (ignore slow movements)
         - Direction filtering for outbound only (ball moving away)
         - Peak speed averaging enabled (filters multiple reports to primary speed)
@@ -426,6 +428,9 @@ class OPS243Radar:
 
         # Enable magnitude to help filter weak signals
         self.enable_magnitude_report(True)
+
+        # Enable direction field in JSON output (critical for filtering)
+        self.enable_direction_report(True)
 
         # Minimum speed 10 mph to filter noise/slow movements
         self.set_min_speed_filter(10)
