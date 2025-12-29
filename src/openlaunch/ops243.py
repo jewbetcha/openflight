@@ -427,8 +427,8 @@ class OPS243Radar:
         - Max transmit power for best detection range
 
         Direction filtering is done in software based on the sign of the speed:
-        - Positive speed = Inbound (toward radar) - ignored
-        - Negative speed = Outbound (away from radar) - recorded as shot
+        - Positive speed = Outbound (away from radar) - recorded as shot
+        - Negative speed = Inbound (toward radar) - ignored
         """
         # Set units to MPH
         self.set_units(SpeedUnit.MPH)
@@ -589,8 +589,8 @@ class OPS243Radar:
         Parse a reading from the radar output.
 
         Direction is determined by the SIGN of the speed value:
-        - Positive speed = Inbound (object moving toward radar)
-        - Negative speed = Outbound (object moving away from radar)
+        - Positive speed = Outbound (object moving away from radar)
+        - Negative speed = Inbound (object moving toward radar)
 
         This requires R| (both directions) mode to be set.
 
@@ -607,13 +607,13 @@ class OPS243Radar:
                 magnitude = data.get('magnitude')
 
                 # Direction is determined by the SIGN of the speed value
-                # Per OPS243-A API docs (AN-010-AD):
-                # - Positive speed = Inbound (toward radar)
-                # - Negative speed = Outbound (away from radar)
-                if speed >= 0:
-                    direction = Direction.INBOUND
-                else:
+                # Based on testing with radar behind ball:
+                # - Positive speed = Outbound (ball moving away from radar)
+                # - Negative speed = Inbound (movement toward radar)
+                if speed > 0:
                     direction = Direction.OUTBOUND
+                else:
+                    direction = Direction.INBOUND
 
                 # Log parsed reading for debugging
                 logger.debug(f"PARSED: raw_speed={speed:.2f} abs_speed={abs(speed):.2f} dir={direction.value} mag={magnitude}")
@@ -628,10 +628,10 @@ class OPS243Radar:
 
             # Plain number format - direction from sign
             speed = float(line)
-            if speed >= 0:
-                direction = Direction.INBOUND
-            else:
+            if speed > 0:
                 direction = Direction.OUTBOUND
+            else:
+                direction = Direction.INBOUND
 
             logger.debug(f"PARSED (plain): raw_speed={speed:.2f} abs_speed={abs(speed):.2f} dir={direction.value}")
 
