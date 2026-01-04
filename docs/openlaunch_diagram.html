@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200, height=630">
+  <title>How OpenLaunch Detects Club & Ball Speed</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --green-primary: #00D26A;
+      --green-glow: #00FF7F;
+      --green-dark: #0A2E1C;
+      --bg-dark: #0B1410;
+      --bg-card: #0F1F18;
+      --text-primary: #FFFFFF;
+      --text-secondary: #7A9E8C;
+      --orange-accent: #FF6B35;
+      --blue-accent: #00B4D8;
+    }
+
+    body {
+      width: 1200px;
+      height: 630px;
+      background: var(--bg-dark);
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle grid background */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 210, 106, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 210, 106, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Radar wave decorative element */
+    .radar-waves {
+      position: absolute;
+      left: -100px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.15;
+    }
+
+    .radar-wave {
+      position: absolute;
+      border: 2px solid var(--green-primary);
+      border-radius: 50%;
+      animation: pulse 3s ease-out infinite;
+    }
+
+    .radar-wave:nth-child(1) { width: 100px; height: 100px; left: 50px; top: -50px; animation-delay: 0s; }
+    .radar-wave:nth-child(2) { width: 180px; height: 180px; left: 10px; top: -90px; animation-delay: 0.5s; }
+    .radar-wave:nth-child(3) { width: 260px; height: 260px; left: -30px; top: -130px; animation-delay: 1s; }
+    .radar-wave:nth-child(4) { width: 340px; height: 340px; left: -70px; top: -170px; animation-delay: 1.5s; }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.8); }
+      100% { opacity: 0; transform: scale(1.2); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      padding: 40px 50px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+
+    .title-block h1 {
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--text-primary);
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .title-block h1 span {
+      color: var(--green-primary);
+    }
+
+    .subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--green-primary);
+      background: var(--green-dark);
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 210, 106, 0.3);
+    }
+
+    /* Main content area */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 40px;
+      flex: 1;
+    }
+
+    /* Timeline section */
+    .timeline-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--green-primary);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 16px;
+    }
+
+    .timeline-visual {
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 106, 0.15);
+      padding: 30px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Swing sequence visualization */
+    .swing-sequence {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .sequence-line {
+      position: absolute;
+      top: 50%;
+      left: 80px;
+      right: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange-accent), var(--green-primary), var(--blue-accent));
+      transform: translateY(-50%);
+      border-radius: 2px;
+    }
+
+    .sequence-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sequence-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .sequence-icon.club {
+      background: linear-gradient(135deg, var(--orange-accent), #FF8F5C);
+      box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
+    }
+
+    .sequence-icon.impact {
+      background: linear-gradient(135deg, var(--green-primary), var(--green-glow));
+      box-shadow: 0 0 30px rgba(0, 210, 106, 0.4);
+    }
+
+    .sequence-icon.ball {
+      background: linear-gradient(135deg, var(--blue-accent), #48CAE4);
+      box-shadow: 0 0 30px rgba(0, 180, 216, 0.4);
+    }
+
+    .sequence-label {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+      text-align: center;
+    }
+
+    .sequence-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Signal visualization */
+    .signal-viz {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      align-items: flex-end;
+    }
+
+    .signal-block {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .signal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .signal-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .signal-title.club { color: var(--orange-accent); }
+    .signal-title.ball { color: var(--blue-accent); }
+
+    .signal-speed {
+      font-family: 'Space Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .signal-speed span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 60px;
+      margin-top: auto;
+    }
+
+    .signal-bar {
+      flex: 1;
+      border-radius: 2px;
+      min-height: 8px;
+    }
+
+    .signal-block.club .signal-bar {
+      background: linear-gradient(to top, var(--orange-accent), #FF8F5C);
+    }
+
+    .signal-block.ball .signal-bar {
+      background: linear-gradient(to top, var(--blue-accent), #48CAE4);
+    }
+
+    .magnitude-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Criteria section */
+    .criteria-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .criteria-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .criteria-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 210, 106, 0.15);
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .criteria-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--green-dark);
+      border: 1px solid rgba(0, 210, 106, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .criteria-content h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .criteria-content p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .criteria-value {
+      font-family: 'Space Mono', monospace;
+      color: var(--green-primary);
+      font-weight: 700;
+    }
+
+    /* Smash factor highlight */
+    .smash-factor-box {
+      background: linear-gradient(135deg, var(--green-dark), rgba(0, 210, 106, 0.1));
+      border: 2px solid var(--green-primary);
+      border-radius: 12px;
+      padding: 16px 20px;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    .smash-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+
+    .smash-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--green-primary);
+    }
+
+    .smash-formula {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    /* Footer */
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      right: 50px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <div class="radar-waves">
+    <div class="radar-wave"></div>
+    <div class="radar-wave"></div>
+    <div class="radar-wave"></div>
+    <div class="radar-wave"></div>
+  </div>
+
+  <div class="container">
+    <header class="header">
+      <div class="title-block">
+        <h1>How <span>OpenLaunch</span> Detects<br>Club & Ball Speed</h1>
+        <p class="subtitle">Using OPS243-A Doppler Radar</p>
+      </div>
+      <div class="logo">OPENLAUNCH</div>
+    </header>
+
+    <div class="main-content">
+      <div class="timeline-section">
+        <span class="section-label">Swing Sequence Timeline</span>
+        <div class="timeline-visual">
+
+          <div class="swing-sequence">
+            <div class="sequence-line"></div>
+            <div class="sequence-item">
+              <div class="sequence-icon club">🏌️</div>
+              <span class="sequence-label">Club Detected</span>
+              <span class="sequence-time">t = 0ms</span>
+            </div>
+            <div class="sequence-item">
+              <div class="sequence-icon impact">⚡</div>
+              <span class="sequence-label">Impact</span>
+              <span class="sequence-time">t = ~150ms</span>
+            </div>
+            <div class="sequence-item">
+              <div class="sequence-icon ball">⚪</div>
+              <span class="sequence-label">Ball Detected</span>
+              <span class="sequence-time">t = 150-300ms</span>
+            </div>
+          </div>
+
+          <div class="signal-viz">
+            <div class="signal-block club">
+              <div class="signal-header">
+                <span class="signal-title club">Club Head</span>
+                <span class="signal-speed">95 <span>mph</span></span>
+              </div>
+              <div class="signal-bars">
+                <div class="signal-bar" style="height: 85%"></div>
+                <div class="signal-bar" style="height: 100%"></div>
+                <div class="signal-bar" style="height: 92%"></div>
+                <div class="signal-bar" style="height: 78%"></div>
+                <div class="signal-bar" style="height: 88%"></div>
+                <div class="signal-bar" style="height: 95%"></div>
+                <div class="signal-bar" style="height: 82%"></div>
+                <div class="signal-bar" style="height: 70%"></div>
+              </div>
+              <span class="magnitude-label">Higher Magnitude (Larger RCS)</span>
+            </div>
+
+            <div class="signal-block ball">
+              <div class="signal-header">
+                <span class="signal-title ball">Golf Ball</span>
+                <span class="signal-speed">140 <span>mph</span></span>
+              </div>
+              <div class="signal-bars">
+                <div class="signal-bar" style="height: 35%"></div>
+                <div class="signal-bar" style="height: 48%"></div>
+                <div class="signal-bar" style="height: 55%"></div>
+                <div class="signal-bar" style="height: 42%"></div>
+                <div class="signal-bar" style="height: 50%"></div>
+                <div class="signal-bar" style="height: 38%"></div>
+                <div class="signal-bar" style="height: 45%"></div>
+                <div class="signal-bar" style="height: 30%"></div>
+              </div>
+              <span class="magnitude-label">Lower Magnitude (Smaller RCS)</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="criteria-section">
+        <span class="section-label">Separation Criteria</span>
+        <div class="criteria-list">
+          <div class="criteria-card">
+            <div class="criteria-icon">⏱️</div>
+            <div class="criteria-content">
+              <h3>Temporal Ordering</h3>
+              <p>Club appears <span class="criteria-value">0-300ms</span> before ball detection</p>
+            </div>
+          </div>
+
+          <div class="criteria-card">
+            <div class="criteria-icon">📊</div>
+            <div class="criteria-content">
+              <h3>Speed Ratio</h3>
+              <p>Club speed is <span class="criteria-value">50-85%</span> of ball speed</p>
+            </div>
+          </div>
+
+          <div class="criteria-card">
+            <div class="criteria-icon">📡</div>
+            <div class="criteria-content">
+              <h3>Signal Magnitude</h3>
+              <p>Club has <span class="criteria-value">larger RCS</span> = stronger radar return</p>
+            </div>
+          </div>
+
+          <div class="smash-factor-box">
+            <div class="smash-label">Validated Smash Factor</div>
+            <div class="smash-value">1.47</div>
+            <div class="smash-formula">140 mph ÷ 95 mph</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">github.com/openlaunch</div>
+</body>
+</html>

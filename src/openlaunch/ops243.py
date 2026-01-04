@@ -434,7 +434,8 @@ class OPS243Radar:
         - Magnitude reporting enabled
         - Both directions enabled (direction determined by sign of speed)
         - Min speed filter at 10 mph (ignore slow movements)
-        - Peak speed averaging enabled (filters multiple reports to primary speed)
+        - Multi-object reporting (O4) to detect both club and ball
+        - Peak averaging DISABLED to see all objects
         - Max transmit power for best detection range
 
         Direction filtering is done in software based on the sign of the speed.
@@ -455,6 +456,7 @@ class OPS243Radar:
         self.set_buffer_size(512)
 
         # Enable magnitude to help filter weak signals
+        # Magnitude helps distinguish club (larger RCS, higher mag) from ball
         self.enable_magnitude_report(True)
 
         # Clear direction filter to get BOTH directions
@@ -473,8 +475,15 @@ class OPS243Radar:
         # Enable JSON for easier parsing
         self.enable_json_output(True)
 
-        # Enable peak speed averaging to get cleaner single-speed reports
-        self.enable_peak_averaging(True)
+        # Enable multi-object reporting to detect both club head AND ball
+        # O4 reports up to 4 objects per sample cycle, ordered by magnitude
+        self.set_num_reports(4)
+        print("[RADAR CONFIG] Multi-object reporting enabled (O4)")
+
+        # DISABLE peak speed averaging - we want to see all objects
+        # (club and ball) not just the averaged peak
+        self.enable_peak_averaging(False)
+        print("[RADAR CONFIG] Peak averaging disabled to see multiple objects")
 
         # Verify settings were applied
         print("[RADAR CONFIG] Verifying configuration...")
@@ -493,6 +502,24 @@ class OPS243Radar:
             enabled: True to enable averaging, False to disable
         """
         self._send_command("K+" if enabled else "K-")
+
+    def set_num_reports(self, num: int):
+        """
+        Set number of objects to report per sample cycle.
+
+        For golf, setting this to 4+ allows detecting both club head and ball
+        in the same sample window. The radar will report the N strongest
+        signals detected.
+
+        Args:
+            num: Number of reports per cycle (1-9 with On, up to 16 with O=n)
+        """
+        if num < 1:
+            num = 1
+        if num <= 9:
+            self._send_command(f"O{num}")
+        else:
+            self._send_command(f"O={num}")
 
     def set_decimal_precision(self, places: int):
         """

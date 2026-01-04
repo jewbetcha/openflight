@@ -227,34 +227,46 @@ class LaunchMonitor:
 
     Detects club head speed and ball speed, providing shot analysis.
 
-    The radar detects both club and ball as they move away (outbound direction).
-    Club speed is detected first (slower, 70-130 mph), followed by ball speed
-    (faster, 100-190+ mph). The system separates these based on timing and
-    speed characteristics.
+    The radar with multi-object reporting (O4) detects both club and ball
+    in the same sample window. Club speed is detected first during downswing
+    (slower, higher magnitude due to larger radar cross-section), followed
+    by ball speed after impact (faster, lower magnitude).
+
+    Separation uses three criteria:
+    1. Temporal: Club appears 0-300ms before ball
+    2. Speed ratio: Club is 50-85% of ball speed (smash factor 1.1-1.7)
+    3. Magnitude: Club head has larger RCS = stronger signal
 
     Example:
         monitor = LaunchMonitor()
         monitor.start()
 
-        # Wait for a shot
         shot = monitor.wait_for_shot(timeout=30)
         if shot:
             print(f"Club Speed: {shot.club_speed_mph:.1f} mph")
             print(f"Ball Speed: {shot.ball_speed_mph:.1f} mph")
             print(f"Smash Factor: {shot.smash_factor:.2f}")
-            print(f"Est. Carry: {shot.estimated_carry_yards:.0f} yards")
     """
 
-    # Detection parameters
-    MIN_CLUB_SPEED_MPH = 15      # Minimum speed (lowered for testing with foam balls)
-    MAX_CLUB_SPEED_MPH = 140     # Maximum realistic club speed (long drive pros)
-    MIN_BALL_SPEED_MPH = 15      # Minimum ball speed (lowered for testing with foam balls)
+    # Speed thresholds
+    MIN_CLUB_SPEED_MPH = 15      # Minimum club speed (lowered for foam balls)
+    MAX_CLUB_SPEED_MPH = 140     # Maximum realistic club speed
+    MIN_BALL_SPEED_MPH = 15      # Minimum ball speed (lowered for foam balls)
     MAX_BALL_SPEED_MPH = 220     # Maximum realistic ball speed
+
+    # Signal filtering
     MIN_MAGNITUDE = 50           # Minimum signal strength to filter noise
-    SHOT_TIMEOUT_SEC = 0.5       # Gap between readings to consider shot complete
-    MIN_READINGS_FOR_SHOT = 3    # Minimum readings to validate a shot
-    CLUB_BALL_GAP_SEC = 0.05     # Min gap between club and ball detection (50ms)
-    CLUB_BALL_WINDOW_SEC = 0.3   # Max time window for club+ball to be same shot
+
+    # Shot detection timing
+    SHOT_TIMEOUT_SEC = 0.5       # Gap to consider shot complete
+    MIN_READINGS_FOR_SHOT = 3    # Minimum readings for valid shot
+
+    # Club/ball separation parameters
+    CLUB_BALL_WINDOW_SEC = 0.3   # Max time window for club before ball
+    CLUB_SPEED_MIN_RATIO = 0.50  # Club must be >= 50% of ball speed
+    CLUB_SPEED_MAX_RATIO = 0.85  # Club must be <= 85% of ball speed
+    SMASH_FACTOR_MIN = 1.1       # Minimum valid smash factor
+    SMASH_FACTOR_MAX = 1.7       # Maximum valid smash factor
 
     def __init__(self, port: Optional[str] = None, detect_club_speed: bool = True):
         """
@@ -363,63 +375,114 @@ class LaunchMonitor:
         self._current_readings.append(reading)
         self._last_reading_time = now
 
+    def _find_club_speed(
+        self,
+        readings: List[SpeedReading],
+        ball_speed: float,
+        ball_time: float
+    ) -> Optional[SpeedReading]:
+        """
+        Find club head reading using temporal and magnitude analysis.
+
+        Args:
+            readings: Sorted list of readings (by timestamp)
+            ball_speed: Detected ball speed in mph
+            ball_time: Timestamp of ball reading
+
+        Returns:
+            Club SpeedReading if found, None otherwise
+        """
+        if len(readings) < 2:
+            return None
+
+        # Speed range: club should be 50-85% of ball speed
+        club_speed_min = max(self.MIN_CLUB_SPEED_MPH, ball_speed * self.CLUB_SPEED_MIN_RATIO)
+        club_speed_max = min(self.MAX_CLUB_SPEED_MPH, ball_speed * self.CLUB_SPEED_MAX_RATIO)
+
+        # Find candidate club readings (before ball, in speed range)
+        club_candidates = []
+        for r in readings:
+            r_time = r.timestamp or 0
+
+            # Must be before the ball reading
+            if r_time >= ball_time:
+                continue
+
+            # Must be within time window (not too early)
+            if ball_time - r_time > self.CLUB_BALL_WINDOW_SEC:
+                continue
+
+            # Must be in realistic club speed range
+            if not (club_speed_min <= r.speed <= club_speed_max):
+                continue
+
+            # Must be less than ball speed
+            if r.speed >= ball_speed:
+                continue
+
+            club_candidates.append(r)
+            print(f"[CLUB CANDIDATE] {r.speed:.1f} mph, mag={r.magnitude}, "
+                  f"dt={((ball_time - r_time) * 1000):.0f}ms before ball")
+
+        if not club_candidates:
+            return None
+
+        # Select best candidate: prefer highest magnitude (larger RCS = club head)
+        candidates_with_mag = [c for c in club_candidates if c.magnitude]
+
+        if candidates_with_mag:
+            club_reading = max(candidates_with_mag, key=lambda r: r.magnitude)
+            print(f"[CLUB DETECTED] {club_reading.speed:.1f} mph selected by magnitude "
+                  f"(mag={club_reading.magnitude})")
+        else:
+            # No magnitude data - use reading closest in time to ball
+            club_reading = max(club_candidates, key=lambda r: r.timestamp or 0)
+            print(f"[CLUB DETECTED] {club_reading.speed:.1f} mph selected by timing")
+
+        # Validate smash factor
+        smash = ball_speed / club_reading.speed
+        if not (self.SMASH_FACTOR_MIN <= smash <= self.SMASH_FACTOR_MAX):
+            print(f"[CLUB REJECTED] Smash factor {smash:.2f} outside range "
+                  f"{self.SMASH_FACTOR_MIN}-{self.SMASH_FACTOR_MAX}")
+            return None
+
+        return club_reading
+
     def _process_shot(self):
         """
         Process accumulated readings into a shot.
 
-        Separates club speed from ball speed based on:
-        1. Ball speed is always higher than club speed (smash factor ~1.5)
-        2. Club is detected first, ball immediately after
-        3. Typical club: 70-130 mph, ball: 100-190 mph
+        Uses temporal and magnitude-based analysis to separate club from ball:
+        1. Ball speed = peak (maximum) speed in the shot window
+        2. Club speed = detected BEFORE ball, lower speed, higher magnitude
         """
         if len(self._current_readings) < self.MIN_READINGS_FOR_SHOT:
-            print(f"[REJECTED] Only {len(self._current_readings)} readings (need {self.MIN_READINGS_FOR_SHOT})")
+            print(f"[REJECTED] Only {len(self._current_readings)} readings "
+                  f"(need {self.MIN_READINGS_FOR_SHOT})")
             self._current_readings = []
             return
 
-        speeds = [r.speed for r in self._current_readings]
-        peak_speed = max(speeds)
+        # Sort readings by timestamp for temporal analysis
+        sorted_readings = sorted(self._current_readings, key=lambda r: r.timestamp or 0)
 
-        # Get peak magnitude if available
-        magnitudes = [r.magnitude for r in self._current_readings if r.magnitude]
+        # Find ball: peak speed reading
+        ball_reading = max(sorted_readings, key=lambda r: r.speed)
+        ball_speed = ball_reading.speed
+        ball_time = ball_reading.timestamp or 0
+
+        # Get peak magnitude
+        magnitudes = [r.magnitude for r in sorted_readings if r.magnitude]
         peak_mag = max(magnitudes) if magnitudes else None
 
-        # Try to separate club speed from ball speed
+        # Find club speed
         club_speed = None
+        if self._detect_club_speed:
+            club_reading = self._find_club_speed(sorted_readings, ball_speed, ball_time)
+            if club_reading:
+                club_speed = club_reading.speed
 
-        if self._detect_club_speed and len(speeds) >= 2:
-            # Strategy: Ball speed is the max, club speed is likely in the
-            # lower range detected before the ball.
-            #
-            # Look for readings that could be club head:
-            # - Below typical ball speed threshold
-            # - Occurred before the peak ball speed reading
-            #
-            # Heuristic: Club speed should be roughly ball_speed / 1.45
-            # (smash factor), so we look for speeds in that range.
-
-            expected_club_speed = peak_speed / 1.45  # Expected based on smash factor
-            club_speed_tolerance = 20  # mph tolerance
-
-            # Find readings that could be club (within expected range)
-            club_speed_min = expected_club_speed - club_speed_tolerance
-            club_speed_max = expected_club_speed + club_speed_tolerance
-            potential_club_speeds = [
-                s for s in speeds
-                if club_speed_min <= s <= club_speed_max
-                and s < peak_speed * 0.85  # Must be significantly less than ball speed
-            ]
-
-            if potential_club_speeds:
-                # Use the highest reading in the club speed range
-                club_speed = max(potential_club_speeds)
-
-                # Validate: club speed should be realistic
-                if not self.MIN_CLUB_SPEED_MPH <= club_speed <= self.MAX_CLUB_SPEED_MPH:
-                    club_speed = None
-
-        # Ball speed is the peak
-        ball_speed = peak_speed
+        print(f"[SHOT ANALYSIS] Ball={ball_speed:.1f} mph, Club={club_speed or 'N/A'}, "
+              f"Readings={len(sorted_readings)}")
 
         shot = Shot(
             ball_speed_mph=ball_speed,
@@ -431,13 +494,19 @@ class LaunchMonitor:
         )
 
         self._shots.append(shot)
-        print(f"[SHOT CREATED] {ball_speed:.1f} mph from {len(self._current_readings)} readings")
+
+        if club_speed:
+            print(f"[SHOT CREATED] Ball: {ball_speed:.1f} mph, Club: {club_speed:.1f} mph, "
+                  f"Smash: {shot.smash_factor:.2f}")
+        else:
+            print(f"[SHOT CREATED] Ball: {ball_speed:.1f} mph (club not detected)")
 
         # Log shot to session logger
         logger = get_session_logger()
         if logger:
             readings_data = [
-                {"speed": r.speed, "direction": r.direction.value, "magnitude": r.magnitude}
+                {"speed": r.speed, "direction": r.direction.value, "magnitude": r.magnitude,
+                 "timestamp": r.timestamp}
                 for r in self._current_readings
             ]
             logger.log_shot(
@@ -453,10 +522,7 @@ class LaunchMonitor:
 
         # Callback
         if self._shot_callback:
-            print(f"[CALLBACK] Calling shot callback...")
             self._shot_callback(shot)
-        else:
-            print(f"[WARN] No shot callback registered!")
 
         # Clear for next shot
         self._current_readings = []

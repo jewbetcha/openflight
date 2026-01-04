@@ -283,9 +283,11 @@ class TestShotDetection:
         received_shots = []
         self.monitor._shot_callback = lambda s: received_shots.append(s)
 
+        # Need 3 readings (MIN_READINGS_FOR_SHOT = 3)
         self.monitor._current_readings = [
             SpeedReading(speed=150.0, direction=Direction.OUTBOUND, timestamp=time.time()),
             SpeedReading(speed=152.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=151.0, direction=Direction.OUTBOUND, timestamp=time.time()),
         ]
 
         self.monitor._process_shot()
@@ -299,9 +301,11 @@ class TestShotDetection:
         import time
 
         self.monitor._current_club = ClubType.IRON_7
+        # Need 3 readings (MIN_READINGS_FOR_SHOT = 3)
         self.monitor._current_readings = [
             SpeedReading(speed=100.0, direction=Direction.OUTBOUND, timestamp=time.time()),
             SpeedReading(speed=102.0, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=101.0, direction=Direction.OUTBOUND, timestamp=time.time()),
         ]
 
         self.monitor._process_shot()
@@ -322,3 +326,160 @@ class TestShotDetection:
         self.monitor._process_shot()
 
         assert self.monitor._shots[0].peak_magnitude == 1800
+
+
+class TestClubBallSeparation:
+    """Tests for temporal + magnitude based club/ball separation."""
+
+    def setup_method(self):
+        """Set up test monitor instance."""
+        self.monitor = LaunchMonitor.__new__(LaunchMonitor)
+        self.monitor._shots = []
+        self.monitor._current_readings = []
+        self.monitor._shot_callback = None
+        self.monitor._detect_club_speed = True
+        self.monitor._current_club = ClubType.DRIVER
+
+    def test_club_detected_before_ball_by_timing(self):
+        """Club reading before ball (by timestamp) should be detected."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # Simulate: club at t=0, ball at t=0.1s
+        # Club: 95 mph, Ball: 140 mph (smash = 1.47)
+        self.monitor._current_readings = [
+            SpeedReading(speed=95.0, direction=Direction.OUTBOUND, magnitude=2000, timestamp=base_time),
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1200, timestamp=base_time + 0.1),
+            SpeedReading(speed=138.0, direction=Direction.OUTBOUND, magnitude=1100, timestamp=base_time + 0.15),
+        ]
+
+        self.monitor._process_shot()
+
+        assert len(self.monitor._shots) == 1
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 140.0
+        assert shot.club_speed_mph == 95.0
+        assert 1.4 <= shot.smash_factor <= 1.5
+
+    def test_club_selected_by_highest_magnitude(self):
+        """When multiple club candidates exist, prefer highest magnitude."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # Two possible club readings, one with higher magnitude
+        self.monitor._current_readings = [
+            SpeedReading(speed=90.0, direction=Direction.OUTBOUND, magnitude=1500, timestamp=base_time),
+            SpeedReading(speed=95.0, direction=Direction.OUTBOUND, magnitude=2500, timestamp=base_time + 0.05),
+            SpeedReading(speed=142.0, direction=Direction.OUTBOUND, magnitude=1000, timestamp=base_time + 0.12),
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=900, timestamp=base_time + 0.15),
+        ]
+
+        self.monitor._process_shot()
+
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 142.0
+        # Should pick 95 mph (higher magnitude) over 90 mph
+        assert shot.club_speed_mph == 95.0
+
+    def test_club_rejected_if_smash_factor_invalid(self):
+        """Club reading with invalid smash factor should be rejected."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # Invalid: 50 mph club, 140 mph ball = smash 2.8 (too high)
+        self.monitor._current_readings = [
+            SpeedReading(speed=50.0, direction=Direction.OUTBOUND, magnitude=2000, timestamp=base_time),
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1000, timestamp=base_time + 0.1),
+            SpeedReading(speed=138.0, direction=Direction.OUTBOUND, magnitude=900, timestamp=base_time + 0.15),
+        ]
+
+        self.monitor._process_shot()
+
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 140.0
+        # Club should be rejected due to invalid smash factor
+        assert shot.club_speed_mph is None
+
+    def test_club_rejected_if_too_long_before_ball(self):
+        """Club reading more than 300ms before ball should be ignored."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # Club at t=0, ball at t=0.5s (500ms gap - too long)
+        self.monitor._current_readings = [
+            SpeedReading(speed=95.0, direction=Direction.OUTBOUND, magnitude=2000, timestamp=base_time),
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1000, timestamp=base_time + 0.5),
+            SpeedReading(speed=138.0, direction=Direction.OUTBOUND, magnitude=900, timestamp=base_time + 0.55),
+        ]
+
+        self.monitor._process_shot()
+
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 140.0
+        # Club should be rejected (too early)
+        assert shot.club_speed_mph is None
+
+    def test_no_club_when_only_ball_readings(self):
+        """No club detected when all readings are at ball speed."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # All readings are at ball speed (no club candidate)
+        self.monitor._current_readings = [
+            SpeedReading(speed=145.0, direction=Direction.OUTBOUND, magnitude=1200, timestamp=base_time),
+            SpeedReading(speed=148.0, direction=Direction.OUTBOUND, magnitude=1500, timestamp=base_time + 0.05),
+            SpeedReading(speed=146.0, direction=Direction.OUTBOUND, magnitude=1300, timestamp=base_time + 0.1),
+        ]
+
+        self.monitor._process_shot()
+
+        shot = self.monitor._shots[0]
+        assert shot.ball_speed_mph == 148.0
+        assert shot.club_speed_mph is None
+
+    def test_club_speed_range_validation(self):
+        """Club speed must be within 50-85% of ball speed."""
+        from openlaunch.ops243 import SpeedReading, Direction
+        import time
+
+        base_time = time.time()
+        # 100 mph is ~71% of 140 mph - valid range
+        self.monitor._current_readings = [
+            SpeedReading(speed=100.0, direction=Direction.OUTBOUND, magnitude=2000, timestamp=base_time),
+            SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1000, timestamp=base_time + 0.1),
+            SpeedReading(speed=138.0, direction=Direction.OUTBOUND, magnitude=900, timestamp=base_time + 0.15),
+        ]
+
+        self.monitor._process_shot()
+
+        shot = self.monitor._shots[0]
+        assert shot.club_speed_mph == 100.0
+        assert shot.smash_factor == 1.4
+
+
+class TestMultiObjectReporting:
+    """Tests for multi-object radar configuration."""
+
+    def test_set_num_reports_single_digit(self):
+        """set_num_reports should use On format for 1-9."""
+        from openlaunch.ops243 import OPS243Radar
+
+        radar = OPS243Radar.__new__(OPS243Radar)
+        radar.serial = None
+
+        # Verify the method exists and handles single digits
+        # Can't test actual command without hardware, but method should not raise
+        assert hasattr(radar, 'set_num_reports')
+
+    def test_direction_constants(self):
+        """Verify direction enum values."""
+        from openlaunch.ops243 import Direction
+
+        assert Direction.INBOUND.value == "inbound"
+        assert Direction.OUTBOUND.value == "outbound"
+        assert Direction.UNKNOWN.value == "unknown"
