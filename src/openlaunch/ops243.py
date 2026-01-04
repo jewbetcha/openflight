@@ -480,6 +480,10 @@ class OPS243Radar:
         self.set_num_reports(4)
         print("[RADAR CONFIG] Multi-object reporting enabled (O4)")
 
+        # Re-enable JSON output after O4 (in case it was reset)
+        self.enable_json_output(True)
+        print("[RADAR CONFIG] JSON output re-enabled after O4")
+
         # DISABLE peak speed averaging - we want to see all objects
         # (club and ball) not just the averaged peak
         self.enable_peak_averaging(False)
@@ -517,9 +521,14 @@ class OPS243Radar:
         if num < 1:
             num = 1
         if num <= 9:
-            self._send_command(f"O{num}")
+            cmd = f"O{num}"
         else:
-            self._send_command(f"O={num}")
+            cmd = f"O={num}"
+
+        print(f"[RADAR] Sending num_reports command: {cmd}")
+        response = self._send_command(cmd)
+        if response:
+            print(f"[RADAR] Response: {response}")
 
     def set_decimal_precision(self, places: int):
         """
@@ -611,7 +620,13 @@ class OPS243Radar:
             raise ConnectionError("Not connected to radar")
 
         try:
-            line = self.serial.readline().decode('ascii', errors='ignore').strip()
+            # Read raw bytes first to see exactly what's coming in
+            raw_bytes = self.serial.readline()
+
+            if _show_raw_readings and raw_bytes:
+                print(f"[BYTES] {raw_bytes!r}")
+
+            line = raw_bytes.decode('ascii', errors='ignore').strip()
             if not line:
                 return None
 
