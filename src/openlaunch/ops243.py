@@ -628,11 +628,11 @@ class OPS243Radar:
 
         Direction is determined by the SIGN of the speed value.
 
-        Per API documentation AN-010-AD (cosine error correction convention):
-        - Positive speed = INBOUND (object moving toward radar)
-        - Negative speed = OUTBOUND (object moving away from radar)
+        With R| (both directions) mode and R- (outbound reporting) configured:
+        - Positive speed = OUTBOUND (object moving away from radar)
+        - Negative speed = INBOUND (object moving toward radar)
 
-        This requires R| (both directions) mode to be set.
+        This matches how OmniPreSense reports with outbound-primary configuration.
 
         Args:
             line: Raw line from serial output
@@ -646,14 +646,13 @@ class OPS243Radar:
                 speed = float(data.get('speed', 0))
                 magnitude = data.get('magnitude')
 
-                # Direction is determined by the SIGN of the speed value
-                # Per API docs AN-010-AD cosine error correction naming:
-                # - Positive speed = INBOUND (toward radar)
-                # - Negative speed = OUTBOUND (away from radar)
-                if speed > 0:
-                    direction = Direction.INBOUND
-                else:
+                # Direction from sign of speed value
+                # Positive = OUTBOUND (away from radar - golf ball flight)
+                # Negative = INBOUND (toward radar - backswing)
+                if speed >= 0:
                     direction = Direction.OUTBOUND
+                else:
+                    direction = Direction.INBOUND
 
                 # Debug: print raw reading to console (sign indicates direction)
                 if _show_raw_readings:
@@ -671,12 +670,11 @@ class OPS243Radar:
                 )
 
             # Plain number format - direction from sign
-            # Per API docs: positive = inbound, negative = outbound
             speed = float(line)
-            if speed > 0:
-                direction = Direction.INBOUND
-            else:
+            if speed >= 0:
                 direction = Direction.OUTBOUND
+            else:
+                direction = Direction.INBOUND
 
             # Debug: print raw reading to console
             if _show_raw_readings:
