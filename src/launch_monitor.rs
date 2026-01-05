@@ -236,7 +236,7 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         let club_speed_max = self.max_club_speed_mph.min(ball_speed * self.club_speed_max_ratio);
 
         // Find candidate club readings (before ball, in speed range)
-        let mut club_candidates: Vec<&SpeedReading> = readings.iter()
+        let club_candidates: Vec<&SpeedReading> = readings.iter()
             .filter(|r| {
                 let r_time = r.timestamp;
 

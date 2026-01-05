@@ -1,13 +1,13 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Direction {
     Inbound,
     Outbound,
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SpeedReading {
     pub speed: f64,           // Speed in mph
     pub direction: Direction,
@@ -15,7 +15,7 @@ pub struct SpeedReading {
     pub timestamp: f64,       // Unix timestamp
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ClubType {
     Driver,
     Wood3,

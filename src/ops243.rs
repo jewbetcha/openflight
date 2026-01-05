@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use serialport::SerialPort;
 
 use crate::shot::{Direction, SpeedReading};
@@ -56,7 +56,7 @@ impl OPS243Radar {
     }
 
     fn disconnect_internal(&mut self) {
-        if let Some(mut port) = self.port.take() {
+        if let Some(port) = self.port.take() {
             let _ = port.clear(serialport::ClearBuffer::All);
         }
     }
