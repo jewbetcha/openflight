@@ -152,6 +152,33 @@ class TestConfigureForGolf:
         assert radar.DEFAULT_TIMEOUT == 1.0
 
 
+class TestFFTSize:
+    """Tests for FFT size configuration."""
+
+    def test_set_fft_size_valid_values(self):
+        """Valid FFT size values should be accepted."""
+        radar = OPS243Radar.__new__(OPS243Radar)
+        radar.serial = None
+        # Just verify method exists and accepts valid values
+        # (can't test actual command without hardware)
+        valid_sizes = [1, 2, 4, 8, 16, 32]
+        for size in valid_sizes:
+            # Should not raise
+            try:
+                radar.set_fft_size(size)
+            except ConnectionError:
+                pass  # Expected - no serial connection
+
+    def test_set_fft_size_invalid_value(self):
+        """Invalid FFT size should raise ValueError."""
+        radar = OPS243Radar.__new__(OPS243Radar)
+        radar.serial = None
+        with pytest.raises(ValueError):
+            radar.set_fft_size(3)
+        with pytest.raises(ValueError):
+            radar.set_fft_size(64)
+
+
 class TestSpeedReading:
     """Tests for SpeedReading dataclass."""
 

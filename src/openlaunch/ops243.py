@@ -7,14 +7,20 @@ short-range radar sensor via USB/serial connection.
 Key specs for golf application:
 - Speed accuracy: +/- 0.5%
 - Direction reporting (inbound/outbound)
-- Default update rate: ~5-6 Hz (can be increased with buffer size)
 - Detection range: 50-100m (RCS=10), ~4-5m for golf ball sized objects
 
-Speed limits by sample rate (per API docs):
+Recommended golf configuration (per OmniPreSense AN-027):
+- 30ksps sample rate (max ~208 mph, sufficient for all golf)
+- 128 buffer size
+- FFT 4096 (X=32) for ±0.1 mph resolution at ~56 Hz report rate
+- Positioning: 6-8 feet behind ball, 10° upward angle
+
+Speed limits by sample rate:
 - 10kHz (SX): max 69.5 mph  - too slow for golf
-- 20kHz (S2): max 139 mph   - good for most shots
-- 50kHz (SL): max 347 mph   - handles all golf balls
-- 100kHz (SC): max 695 mph  - overkill but works
+- 20kHz (S2): max 139 mph   - marginal for fast shots
+- 30kHz (S=30): max 208 mph - RECOMMENDED for golf
+- 50kHz (SL): max 347 mph   - overkill, lower resolution
+- 100kHz (SC): max 695 mph  - overkill
 """
 
 import json
@@ -268,13 +274,14 @@ class OPS243Radar:
         Higher rates allow detecting faster objects but reduce resolution.
         Max detectable speeds by rate:
         - 10kHz: 69.5 mph (too slow for golf)
-        - 20kHz: 139.1 mph (good for most shots)
-        - 50kHz: 347.7 mph (recommended for golf - handles all balls)
-        - 100kHz: 695.4 mph
+        - 20kHz: 139.1 mph (marginal for fast shots)
+        - 30kHz: 208.5 mph (RECOMMENDED for golf per OmniPreSense)
+        - 50kHz: 347.7 mph (overkill, lower resolution)
+        - 100kHz: 695.4 mph (overkill)
 
         Args:
             rate: Sample rate in samples/second
-                  Common values: 10000 (default), 20000, 50000, 100000
+                  Common values: 10000, 20000, 30000 (recommended), 50000, 100000
         """
         rate_commands = {
             1000: "SI",
@@ -289,7 +296,7 @@ class OPS243Radar:
             self._send_command(rate_commands[rate])
         else:
             # Use configurable rate command (S=nn where nn is in ksps)
-            # Requires carriage return
+            # 30ksps is recommended for golf (S=30)
             ksps = rate // 1000
             self._send_command(f"S={ksps}\r")
 
@@ -427,33 +434,39 @@ class OPS243Radar:
         """
         Configure radar with optimal settings for golf ball detection.
 
-        This sets up:
-        - MPH units
-        - 50kHz sample rate (supports up to 347 mph - covers all golf balls)
-        - 512 buffer for faster updates (~10-15 Hz report rate)
-        - Magnitude reporting enabled
-        - Both directions enabled (direction determined by sign of speed)
-        - Min speed filter at 10 mph (ignore slow movements)
+        Based on OmniPreSense AN-027 Rolling Buffer and Sports Ball Detection docs:
+        - 30ksps sample rate (max ~208 mph, sufficient for all golf shots)
+        - 128 buffer size
+        - FFT size 4096 (X=32) for ±0.1 mph resolution at ~56 Hz report rate
+        - Peak averaging enabled (K+) for cleaner speed readings
         - Multi-object reporting (O4) to detect both club and ball
-        - Peak averaging DISABLED to see all objects
-        - Max transmit power for best detection range
+        - MPH units, magnitude reporting, both directions
 
         Direction filtering is done in software based on the sign of the speed.
-        Per API docs AN-010-AD (cosine error correction naming convention):
+        Per API docs AN-010-AD:
         - Positive speed = INBOUND (toward radar) - ignored (backswing)
         - Negative speed = OUTBOUND (away from radar) - recorded as shot
+
+        Positioning: Place radar 6-8 feet behind ball, angled 10° upward.
         """
         # Set units to MPH
         self.set_units(SpeedUnit.MPH)
 
-        # 50kHz sample rate - max detectable speed ~347 mph
-        # This covers all golf balls (pros max out around 190 mph)
-        # 20kHz only goes to 139 mph which could miss fast shots
-        self.set_sample_rate(50000)
+        # 30ksps sample rate per OmniPreSense golf recommendation
+        # Max detectable speed ~208 mph (sufficient for golf, pros max ~190 mph)
+        # Lower than 50ksps but better resolution tradeoff
+        self.set_sample_rate(30000)
+        print("[RADAR CONFIG] Sample rate: 30ksps")
 
-        # 512 buffer for faster update rate (~10-15 Hz)
-        # Resolution at 50kHz with 512 buffer: ~0.68 mph
-        self.set_buffer_size(512)
+        # 128 buffer per OmniPreSense recommendation
+        # Combined with 30ksps gives good base for FFT
+        self.set_buffer_size(128)
+        print("[RADAR CONFIG] Buffer size: 128")
+
+        # FFT size 4096 (X=32 multiplier with 128 buffer)
+        # This gives: ~56 Hz report rate, ±0.1 mph resolution
+        self.set_fft_size(32)
+        print("[RADAR CONFIG] FFT size: 4096 (X=32) - ±0.1 mph resolution @ ~56 Hz")
 
         # Enable magnitude to help filter weak signals
         # Magnitude helps distinguish club (larger RCS, higher mag) from ball
@@ -482,12 +495,11 @@ class OPS243Radar:
 
         # Re-enable JSON output after O4 (in case it was reset)
         self.enable_json_output(True)
-        print("[RADAR CONFIG] JSON output re-enabled after O4")
 
-        # DISABLE peak speed averaging - we want to see all objects
-        # (club and ball) not just the averaged peak
-        self.enable_peak_averaging(False)
-        print("[RADAR CONFIG] Peak averaging disabled to see multiple objects")
+        # Enable peak speed averaging per OmniPreSense recommendation
+        # Helps provide cleaner speed readings
+        self.enable_peak_averaging(True)
+        print("[RADAR CONFIG] Peak averaging enabled (K+)")
 
         # Verify settings were applied
         print("[RADAR CONFIG] Verifying configuration...")
@@ -506,6 +518,29 @@ class OPS243Radar:
             enabled: True to enable averaging, False to disable
         """
         self._send_command("K+" if enabled else "K-")
+
+    def set_fft_size(self, size: int):
+        """
+        Set FFT size for frequency analysis.
+
+        FFT size affects speed resolution and report rate.
+        The X= command sets FFT size as a multiplier of buffer size:
+        - X=1: FFT = buffer size
+        - X=2: FFT = 2x buffer size
+        - X=32: FFT = 32x buffer size (4096 with 128 buffer)
+
+        With 30ksps and buffer 128:
+        - X=1 (128 FFT): ~234 Hz, ±1.6 mph resolution
+        - X=2 (256 FFT): ~117 Hz, ±0.8 mph resolution
+        - X=32 (4096 FFT): ~56 Hz, ±0.1 mph resolution (recommended for golf)
+
+        Args:
+            size: FFT multiplier (1, 2, 4, 8, 16, 32)
+        """
+        valid_sizes = [1, 2, 4, 8, 16, 32]
+        if size not in valid_sizes:
+            raise ValueError(f"FFT size must be one of {valid_sizes}")
+        self._send_command(f"X={size}")
 
     def set_num_reports(self, num: int):
         """
