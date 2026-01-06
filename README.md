@@ -1,3 +1,33 @@
+<p align="center">
+  <img src="docs/logo2.png" alt="OpenLaunch" width="400">
+</p>
+
+<p align="center">
+  DIY Golf Launch Monitor using the OPS243-A Doppler Radar.
+</p>
+
+## Overview
+
+OpenLaunch is an open-source golf launch monitor that measures ball speed using a commercial Doppler radar sensor. The OPS243-A from OmniPreSense provides professional-grade speed measurement (±0.5% accuracy) in a simple USB-connected package.
+
+### What It Measures
+
+- **Ball Speed**: 30-220 mph range with ±0.5% accuracy
+- **Estimated Carry Distance**: Based on ball speed (simplified model)
+- **Launch Angle** (optional): With Raspberry Pi camera module
+
+### Hardware
+
+| Component      | Description                | Cost      |
+| -------------- | -------------------------- | --------- |
+| OPS243-A       | OmniPreSense Doppler Radar | ~$225     |
+| Raspberry Pi 5 | (or any computer with USB) | ~$80      |
+| USB Cable      | Micro USB to connect radar | ~$5       |
+| **Total**      |                            | **~$310** |
+
+See [docs/PARTS.md](docs/PARTS.md) for the full parts list including optional camera module.
+
+
 # OpenLaunch Rust Implementation
 
 This is the Rust implementation of the OpenLaunch golf launch monitor, providing a faster alternative to the Python version.
