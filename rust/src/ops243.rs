@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 use serde_json::Value;
+use serialport::SerialPort;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serialport::SerialPort;
 
-use crate::shot::{Direction, SpeedReading};
 use crate::launch_monitor::RadarInterface;
+use crate::shot::{Direction, SpeedReading};
 
 pub struct OPS243Radar {
     port_name: Option<String>,
@@ -37,15 +37,16 @@ impl OPS243Radar {
                 .context("No OPS243 radar found. Check USB connection.")?
         };
 
-        let builder = serialport::new(&port_name, Self::DEFAULT_BAUD)
-            .timeout(Self::DEFAULT_TIMEOUT);
+        let builder =
+            serialport::new(&port_name, Self::DEFAULT_BAUD).timeout(Self::DEFAULT_TIMEOUT);
 
-        let port = builder.open()
+        let port = builder
+            .open()
             .with_context(|| format!("Failed to connect to {}", port_name))?;
 
         // Give sensor time to initialize
         std::thread::sleep(Duration::from_millis(500));
-        
+
         // Flush any startup data
         port.clear(serialport::ClearBuffer::Input)?;
 
@@ -75,7 +76,10 @@ impl OPS243Radar {
 
         // Check available ports
         for port_info in serialport::available_ports().unwrap_or_default() {
-            if common_ports.iter().any(|&p| port_info.port_name.contains(p.trim_start_matches("/dev/"))) {
+            if common_ports
+                .iter()
+                .any(|&p| port_info.port_name.contains(p.trim_start_matches("/dev/")))
+            {
                 return Some(port_info.port_name);
             }
         }
@@ -88,8 +92,7 @@ impl OPS243Radar {
     }
 
     fn send_command(&mut self, cmd: &str) -> Result<String> {
-        let port = self.port.as_mut()
-            .context("Not connected to radar")?;
+        let port = self.port.as_mut().context("Not connected to radar")?;
 
         // Clear input buffer
         port.clear(serialport::ClearBuffer::Input)?;
@@ -186,8 +189,7 @@ impl OPS243Radar {
     }
 
     fn read_speed_internal(&mut self) -> Result<Option<SpeedReading>> {
-        let port = self.port.as_mut()
-            .context("Not connected to radar")?;
+        let port = self.port.as_mut().context("Not connected to radar")?;
 
         // Try to read available bytes
         let mut buffer = vec![0u8; 1024];
@@ -196,7 +198,7 @@ impl OPS243Radar {
                 // Find first complete line (ending with \n or \r\n)
                 let data = &buffer[..n];
                 let mut line_end = None;
-                
+
                 for (i, &byte) in data.iter().enumerate() {
                     if byte == b'\n' {
                         line_end = Some(i);
@@ -228,8 +230,7 @@ impl OPS243Radar {
     fn parse_reading(&self, line: &str) -> Result<Option<SpeedReading>> {
         if self.json_mode && line.starts_with('{') {
             // Parse JSON format
-            let data: Value = serde_json::from_str(line)
-                .context("Failed to parse JSON reading")?;
+            let data: Value = serde_json::from_str(line).context("Failed to parse JSON reading")?;
 
             let speed_data = data.get("speed");
             let magnitude_data = data.get("magnitude");
@@ -271,8 +272,7 @@ impl OPS243Radar {
             }))
         } else {
             // Plain number format
-            let speed: f64 = line.parse()
-                .context("Failed to parse speed as number")?;
+            let speed: f64 = line.parse().context("Failed to parse speed as number")?;
 
             let direction = if speed > 0.0 {
                 Direction::Inbound
@@ -320,4 +320,3 @@ impl Drop for OPS243Radar {
         self.disconnect_internal();
     }
 }
-

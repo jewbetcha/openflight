@@ -1,9 +1,9 @@
 use anyhow::Result;
+use rand::Rng;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
-use rand::Rng;
 
 use crate::shot::{Direction, SpeedReading};
 
@@ -91,7 +91,7 @@ impl MockRadar {
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_secs_f64();
-                
+
                 let reading = SpeedReading {
                     speed: speed.max(15.0),
                     direction: Direction::Outbound,
@@ -125,7 +125,7 @@ impl MockRadar {
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_secs_f64();
-                
+
                 let reading = SpeedReading {
                     speed: speed.max(15.0),
                     direction: Direction::Outbound,
@@ -188,4 +188,3 @@ impl crate::launch_monitor::RadarInterface for MockRadar {
         }
     }
 }
-

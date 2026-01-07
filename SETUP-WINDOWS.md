@@ -100,8 +100,8 @@ cargo build --release
 Once both are installed:
 
 ```powershell
-# Navigate to project
-cd Z:\openlaunch
+# Navigate to Rust directory
+cd Z:\openlaunch\rust
 
 # Build release version
 cargo build --release
@@ -159,7 +159,7 @@ sudo apt install build-essential
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
 
-cd /mnt/z/openlaunch
+cd /mnt/z/openlaunch/rust
 cargo build --release
 cargo run --release -- --mock
 ```

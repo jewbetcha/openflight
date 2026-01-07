@@ -18,6 +18,9 @@ OpenLaunch can send shot data to OpenGolfSim running on the same PC via **persis
 ### Basic Integration (TCP - Recommended)
 
 ```bash
+# Navigate to Rust directory
+cd rust
+
 # Run with OpenGolfSim integration via TCP (default port 3111)
 cargo run --release -- --opengolfsim
 
@@ -32,6 +35,8 @@ cargo run --release -- --opengolfsim --opengolfsim-host localhost --opengolfsim-
 OpenGolfSim uses TCP by default. HTTP mode will automatically fall back to TCP if HTTP fails with version errors.
 
 ```bash
+cd rust
+
 # HTTP will auto-fallback to TCP if needed
 cargo run --release -- --opengolfsim --opengolfsim-http
 
@@ -44,6 +49,8 @@ cargo run --release -- --opengolfsim --opengolfsim-port 3111
 ### With Mock Mode (Testing)
 
 ```bash
+cd rust
+
 # Test integration without hardware (generates shots every 20 seconds by default)
 cargo run --release -- --mock --opengolfsim --live
 
@@ -150,6 +157,7 @@ If you see "invalid HTTP version parsed", OpenGolfSim is using TCP instead of HT
 
 1. **Use TCP mode directly** (recommended):
    ```bash
+   cd rust
    # Remove --opengolfsim-http to use TCP
    cargo run --release -- --mock --opengolfsim --opengolfsim-port 3111
    ```
@@ -194,6 +202,7 @@ If shots aren't appearing in OpenGolfSim:
 1. **Check connection status** - Look for `[OPENGOLFSIM] Connected to localhost:3111` in logs
 2. **Enable debug logging**:
    ```bash
+   cd rust
    $env:RUST_LOG="debug"; cargo run --release -- --mock --opengolfsim --live
    ```
 3. **Verify data format** - Check that shots are being sent: `[OPENGOLFSIM] Shot sent successfully`
@@ -212,6 +221,8 @@ If shots aren't appearing in OpenGolfSim:
 Use mock mode to test the integration:
 
 ```bash
+cd rust
+
 # Default: shots every 20 seconds
 cargo run --release -- --mock --opengolfsim --live
 
@@ -252,7 +263,7 @@ The current implementation follows the [OpenGolfSim Developer API specification]
 - Configurable via `--opengolfsim-port`
 
 **Future Enhancements:**
-If you need to add additional fields (launch angles, spin), modify the `format_shot_data()` function in `src/opengolfsim.rs`. The structure is ready for:
+If you need to add additional fields (launch angles, spin), modify the `format_shot_data()` function in `rust/src/opengolfsim.rs`. The structure is ready for:
 - `verticalLaunchAngle` - When camera integration is added
 - `horizontalLaunchAngle` - When camera integration is added
 - `spinSpeed` - When spin detection hardware is added

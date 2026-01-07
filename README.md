@@ -27,207 +27,174 @@ OpenLaunch is an open-source golf launch monitor that measures ball speed using 
 
 See [docs/PARTS.md](docs/PARTS.md) for the full parts list including optional camera module.
 
+## Quick Start
 
-# OpenLaunch Rust Implementation
+OpenLaunch is available in two implementations:
 
-This is the Rust implementation of the OpenLaunch golf launch monitor, providing a faster alternative to the Python version.
+- **Python** (default): Full-featured with web UI, camera support, and session logging
+- **Rust** (optional): High-performance CLI implementation for resource-constrained devices
 
-| Language | Relative Speed                                      |
-| -------- | --------------------------------------------------- |
-| **C++**  | 🚀 Fastest ([jinaldesai.com][1])                    |
-| **Rust** | ⚡ Near C++ (safe) ([president-xd][2])               |
-| **Go**   | 🐎 Moderate ([jinaldesai.com][1])                   |
-| **Lua**  | 🐢 Slowest (interpreted) ([gdt050579.github.io][3]) |
+### Python Implementation (Recommended)
 
-[1]: https://jinaldesai.com/performance-comparison-of-python-golang-rust-and-c/?utm_source=chatgpt.com "Performance Comparison of Python, Golang, Rust, and C++ – Jinal Desai"
-[2]: https://www.president-xd.com/blog/rust_vs_other_languages?utm_source=chatgpt.com "Rust vs Other Programming Languages: A Comprehensive Comparison 🦀 | president-xd"
-[3]: https://gdt050579.github.io/poo_course_fii/courses/cpp_to_rust.pdf?utm_source=chatgpt.com "From C++ to Rust"
+The Python implementation is the primary version with the most features:
 
+```bash
+# Clone the repository
+git clone https://github.com/jewbetcha/openlaunch.git
+cd openlaunch
 
-Using this, we decide to go with Rust. 
-| Area               | Python    | Rust      |
-| ------------------ | --------- | --------- |
-| Sample ingestion   | ~5–10k/s  | 100k+/s   |
-| Processing latency | ms spikes | stable μs |
-| CPU usage          | High      | Low       |
-| Memory usage       | High      | Very low  |
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-On a Raspberry Pi, this is night and day.
+# Create venv and install dependencies
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[ui]"
 
-## Phase 1 Status: ✅ Complete
+# Run the web UI server
+openlaunch-server
+```
 
-Phase 1 replaces the Python signal loop with a Rust binary that:
-- Connects to OPS243-A radar via serial port
-- Reads speed readings continuously
-- Detects shots (accumulates readings, processes when gap > 0.5s)
-- Calculates metrics (ball speed, club speed, smash factor, estimated carry)
-- Prints shot metrics to stdout
+Then open http://localhost:8080 in a browser.
 
-## Building
+For detailed Python setup instructions, see [README-Python.md](README-Python.md).
 
-### Linux/macOS
+### Rust Implementation (Optional)
+
+The Rust implementation provides better performance on resource-constrained devices:
 
 ```bash
 # Install Rust if you haven't already
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Build the project
+# Build and run
+cd rust
 cargo build --release
-
-# Run
-cargo run --release -- --help
-```
-
-### Windows
-
-**Important**: You need both Rust AND a C compiler (for native dependencies).
-
-1. **Install Rust**: Download and run [rustup-init.exe](https://rustup.rs/)
-
-2. **Install C++ Build Tools**: Download [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-   - Select "C++ build tools" workload during installation
-
-3. **Restart your terminal** after both installations
-
-4. **Build**:
-   ```powershell
-   cargo build --release
-   ```
-
-See [SETUP-WINDOWS.md](SETUP-WINDOWS.md) for detailed Windows setup instructions.
-
-**Alternative**: Use WSL (Windows Subsystem for Linux) to avoid Windows-specific build tool issues.
-
-## Usage
-
-### With Real Hardware
-
-```bash
-# Auto-detect radar port
 cargo run --release
-
-# Specify port manually
-cargo run --release -- --port /dev/ttyACM0
-
-# Show live readings
-cargo run --release -- --live
-
-# Show radar info and exit
-cargo run --release -- --info
 ```
 
-### Testing Without Hardware (Mock Mode)
+For detailed Rust setup instructions, see [rust/README.md](rust/README.md).
 
-```bash
-# Run in mock mode (auto-generates shots every 5 seconds)
-cargo run --release -- --mock
+## Choosing an Implementation
 
-# Custom shot interval (e.g., every 3 seconds)
-cargo run --release -- --mock --mock-interval 3.0
+| Feature | Python | Rust |
+|---------|--------|------|
+| **Web UI** | ✅ Yes | ❌ No (CLI only) |
+| **Camera Support** | ✅ Yes | ❌ No |
+| **Session Logging** | ✅ Yes | ❌ No |
+| **Performance** | Good | Excellent |
+| **CPU Usage** | Moderate | Low |
+| **Memory Usage** | Moderate | Very Low |
+| **Ease of Setup** | Easy | Requires Rust toolchain |
+| **Best For** | Most users | Raspberry Pi, embedded systems |
 
-# Show live readings in mock mode
-cargo run --release -- --mock --live
+**Recommendation**: Start with Python unless you need the performance benefits of Rust or are targeting resource-constrained hardware.
 
-# Show mock radar info
-cargo run --release -- --mock --info
-```
+## How It Works
 
-The mock radar simulates realistic golf shots with:
-- Club readings (60-120 mph, higher magnitude)
-- Ball readings (80-180 mph, lower magnitude)
-- Realistic timing and smash factors
-- Automatic shot generation at configurable intervals
+### Doppler Radar Basics
 
-See [TESTING.md](TESTING.md) for detailed testing guide.
+The OPS243-A transmits a 24 GHz signal. When this signal bounces off a moving object (the golf ball), the frequency shifts proportionally to the object's speed - this is the Doppler effect.
 
-## Example Output
-
-```
-==================================================
-  OpenLaunch - Golf Launch Monitor (Rust)
-  Using OPS243-A Doppler Radar
-==================================================
-
-Connected to: OPS243
-Firmware: 1.2.3
-
-Ready! Swing when ready...
-Press Ctrl+C to stop
-
-----------------------------------------
-  Club Speed:   95.2 mph
-  Ball Speed:   142.3 mph
-  Smash Factor: 1.50
-  Est. Carry:   234 yards
-  Range:        211-257 yards
-  Signal:       1250
-----------------------------------------
-```
-
-## Architecture
+The relationship is:
 
 ```
-src/
-├── main.rs           # CLI entry point
-├── ops243.rs         # OPS243 radar serial communication
-├── launch_monitor.rs # Shot detection and processing
-└── shot.rs           # Data structures and metrics calculation
+Speed = (Doppler_Frequency × c) / (2 × Transmit_Frequency)
 ```
 
-### Key Components
+At 24.125 GHz, each 1 mph of speed creates a ~71.7 Hz Doppler shift.
 
-1. **OPS243Radar** (`ops243.rs`)
-   - Serial port communication
-   - Radar configuration (sample rate, units, filters)
-   - JSON parsing of speed readings
-   - Direction detection (inbound/outbound from sign)
+### Golf Ball Detection
 
-2. **LaunchMonitor** (`launch_monitor.rs`)
-   - Continuous reading loop
-   - Shot detection (0.5s timeout between readings)
-   - Club/ball separation (temporal + magnitude analysis)
-   - Metrics calculation
+Golf balls are challenging targets for radar due to:
 
-3. **Shot** (`shot.rs`)
-   - Data structures for readings and shots
-   - Distance estimation (TrackMan-derived lookup table)
-   - Smash factor calculation
+- **Small size**: ~1.68" diameter
+- **Low RCS**: Radar cross-section of ~0.001 m²
+- **High speed**: 100-180+ mph for well-struck shots
+- **Brief detection window**: Ball is in range for < 100ms
 
-## Performance
+The OPS243-A handles this with:
 
-The Rust implementation provides:
-- **Lower latency**: Direct serial I/O without Python GIL
-- **Lower CPU usage**: More efficient memory management
-- **Better real-time performance**: No garbage collection pauses
+- High transmit power (11 dBm typical)
+- 15 dBi antenna gain
+- 24 GHz frequency (short wavelength suits small objects)
+- Fast sampling (up to 100k samples/sec)
 
-## OpenGolfSim Integration
+Based on link budget analysis, the OPS243-A should reliably detect golf balls at **4-5 meters (13-16 feet)**, making the 3-5 foot positioning ideal.
 
-OpenLaunch can send shot data to OpenGolfSim running on the same PC:
+### System Architecture
 
-```bash
-# TCP mode (default)
-cargo run --release -- --opengolfsim
+The data flows from radar to UI like this:
 
-# HTTP mode
-cargo run --release -- --opengolfsim --opengolfsim-http
-
-# Custom host/port
-cargo run --release -- --opengolfsim --opengolfsim-host localhost --opengolfsim-port 8080
+```
+┌─────────────┐  USB/Serial  ┌─────────────┐  Callback   ┌─────────────┐  WebSocket  ┌─────────────┐
+│  OPS243-A   │ ───────────▶ │   Launch    │ ──────────▶ │   Flask     │ ──────────▶ │   React     │
+│   Radar     │  Speed data  │   Monitor   │  on_shot()  │   Server    │   "shot"    │     UI      │
+└─────────────┘              └─────────────┘             └─────────────┘             └─────────────┘
 ```
 
-See [OPENGOLFSIM-INTEGRATION.md](OPENGOLFSIM-INTEGRATION.md) for details.
+1. **Radar streams data** - The OPS243-A continuously sends speed readings over USB serial whenever it detects motion
 
-## Next Steps (Phase 2)
+2. **LaunchMonitor processes readings** - A background thread reads serial data, accumulates readings, and when there's a gap (no readings for 0.5s), analyzes the data to create a `Shot` object with ball speed, club speed, and smash factor
 
-Phase 2 will add:
-- JSON output over stdout
-- TCP socket server
-- Python bindings (pyo3)
+3. **Callback fires** - When a shot is detected, the callback function registered via `monitor.start(shot_callback=...)` is called with the `Shot` object
 
-## Next Steps (Phase 3)
+4. **Server broadcasts to clients** - The Flask server's callback converts the shot to JSON and emits it to all connected browsers via WebSocket
 
-Phase 3 will add:
-- SIMD optimizations for signal processing
-- FFT using rustfft
-- Kalman filtering for smoother readings
+5. **React updates UI** - The `useSocket` hook receives the event and updates state, triggering a re-render with the new shot data
 
+## Project Structure
+
+```
+openlaunch/
+├── src/openlaunch/       # Python package (main implementation)
+│   ├── ops243.py         # OPS243-A radar driver
+│   ├── launch_monitor.py # Main launch monitor
+│   ├── server.py         # WebSocket server for UI
+│   └── camera_tracker.py # YOLO ball tracking
+├── rust/                 # Rust implementation (optional)
+│   ├── src/              # Rust source code
+│   └── README.md         # Rust-specific documentation
+├── ui/                   # React frontend
+│   └── src/
+│       ├── components/   # React components
+│       └── hooks/        # Custom hooks (WebSocket)
+├── scripts/              # Utility scripts
+├── models/               # YOLO models for ball detection
+├── docs/                 # Documentation
+├── pyproject.toml        # Python package config
+└── README.md             # This file
+```
+
+## Documentation
+
+- **[Python Implementation Guide](README-Python.md)** - Complete Python setup and usage
+- **[Rust Implementation Guide](rust/README.md)** - Rust setup and usage
+- **[Raspberry Pi Setup](docs/raspberry-pi-setup.md)** - Complete Pi 5 setup with touchscreen and camera
+- **[Parts List](docs/PARTS.md)** - Full hardware requirements
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Testing Guide](TESTING.md)** - Testing without hardware
+- **[OpenGolfSim Integration](OPENGOLFSIM-INTEGRATION.md)** - Integration with OpenGolfSim
+- **[Changelog](docs/CHANGELOG.md)** - Version history
+
+## Contributing
+
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Areas of interest:
+
+- **Better distance models**: Improve carry estimates with more physics
+- **Club detection**: Detect club head speed
+- **Spin detection**: Add high-speed camera for spin rate
+- **Mobile app**: Bluetooth connection to phone
+- **Hardware acceleration**: Optimize YOLO for Hailo/Coral accelerators
+- **Rust improvements**: Add web UI, camera support, session logging
+
+## License
+
+MIT License - see LICENSE file.
+
+## Acknowledgments
+
+- [OmniPreSense](https://omnipresense.com/) for the OPS243-A radar and documentation
+- The golf hacker community for inspiration

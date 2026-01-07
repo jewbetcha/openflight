@@ -9,10 +9,10 @@ pub enum Direction {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SpeedReading {
-    pub speed: f64,           // Speed in mph
+    pub speed: f64, // Speed in mph
     pub direction: Direction,
     pub magnitude: Option<f64>,
-    pub timestamp: f64,       // Unix timestamp
+    pub timestamp: f64, // Unix timestamp
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -85,7 +85,7 @@ fn estimate_carry_distance(ball_speed_mph: f64, club: ClubType) -> f64 {
         (140.0, 231.0, 249.0),
         (150.0, 254.0, 275.0),
         (160.0, 276.0, 301.0),
-        (167.0, 275.0, 285.0),  // PGA Tour average
+        (167.0, 275.0, 285.0), // PGA Tour average
         (170.0, 298.0, 325.0),
         (180.0, 320.0, 349.0),
         (190.0, 342.0, 372.0),
@@ -148,4 +148,3 @@ fn estimate_carry_distance(ball_speed_mph: f64, club: ClubType) -> f64 {
 
     carry * club_factor
 }
-

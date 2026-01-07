@@ -1,7 +1,7 @@
+use crate::shot::{ClubType, Direction, Shot, SpeedReading};
 use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use crate::shot::{ClubType, Direction, Shot, SpeedReading};
 
 // Trait for radar interface (real or mock)
 pub trait RadarInterface {
@@ -16,12 +16,12 @@ pub struct LaunchMonitor<R: RadarInterface> {
     radar: R,
     show_live: bool,
     opengolfsim_client: Option<Arc<std::sync::Mutex<crate::opengolfsim::OpenGolfSimClient>>>,
-    
+
     // Shot detection state
     current_readings: Vec<SpeedReading>,
     last_reading_time: Option<Instant>,
     shot_start_time: Option<Instant>,
-    
+
     // Configuration constants (matching Python version)
     min_club_speed_mph: f64,
     max_club_speed_mph: f64,
@@ -34,7 +34,7 @@ pub struct LaunchMonitor<R: RadarInterface> {
     club_speed_max_ratio: f64,
     smash_factor_min: f64,
     smash_factor_max: f64,
-    
+
     current_club: ClubType,
     detect_club_speed: bool,
 }
@@ -62,10 +62,10 @@ impl<R: RadarInterface> LaunchMonitor<R> {
                 }
             }
         }
-        
+
         // Wrap in Arc<Mutex<>> for thread-safe access
         let opengolfsim_client = opengolfsim_client.map(|c| Arc::new(std::sync::Mutex::new(c)));
-        
+
         Self {
             radar,
             show_live,
@@ -149,8 +149,12 @@ impl<R: RadarInterface> LaunchMonitor<R> {
 
         // Filter by realistic speeds
         if reading.speed < min_speed || reading.speed > self.max_ball_speed_mph {
-            log::debug!("[FILTER] Speed {:.1} outside range {}-{}", 
-                       reading.speed, min_speed, self.max_ball_speed_mph);
+            log::debug!(
+                "[FILTER] Speed {:.1} outside range {}-{}",
+                reading.speed,
+                min_speed,
+                self.max_ball_speed_mph
+            );
             return;
         }
 
@@ -160,15 +164,20 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             return;
         }
 
-        log::debug!("[ACCEPTED] {:.1} mph outbound - buffered: {}", 
-                   reading.speed, self.current_readings.len());
+        log::debug!(
+            "[ACCEPTED] {:.1} mph outbound - buffered: {}",
+            reading.speed,
+            self.current_readings.len()
+        );
 
         // Check if this is part of current shot or new shot
         if let Some(last_time) = self.last_reading_time {
             if now.duration_since(last_time).as_secs_f64() > self.shot_timeout_sec {
                 // Previous shot complete, process it
-                log::debug!("[TIMEOUT] Processing shot with {} readings", 
-                           self.current_readings.len());
+                log::debug!(
+                    "[TIMEOUT] Processing shot with {} readings",
+                    self.current_readings.len()
+                );
                 self.process_shot();
             }
         }
@@ -187,8 +196,10 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         if let Some(last_time) = self.last_reading_time {
             if last_time.elapsed().as_secs_f64() > self.shot_timeout_sec {
                 if !self.current_readings.is_empty() {
-                    log::debug!("[TIMEOUT] Processing shot with {} readings", 
-                               self.current_readings.len());
+                    log::debug!(
+                        "[TIMEOUT] Processing shot with {} readings",
+                        self.current_readings.len()
+                    );
                     self.process_shot();
                 }
             }
@@ -197,8 +208,11 @@ impl<R: RadarInterface> LaunchMonitor<R> {
 
     fn process_shot(&mut self) {
         if self.current_readings.len() < self.min_readings_for_shot {
-            log::debug!("[REJECTED] Only {} readings (need {})", 
-                       self.current_readings.len(), self.min_readings_for_shot);
+            log::debug!(
+                "[REJECTED] Only {} readings (need {})",
+                self.current_readings.len(),
+                self.min_readings_for_shot
+            );
             self.current_readings.clear();
             return;
         }
@@ -208,14 +222,16 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         sorted_readings.sort_by(|a, b| a.timestamp.partial_cmp(&b.timestamp).unwrap());
 
         // Find ball: peak speed reading
-        let ball_reading = sorted_readings.iter()
+        let ball_reading = sorted_readings
+            .iter()
             .max_by(|a, b| a.speed.partial_cmp(&b.speed).unwrap())
             .unwrap();
         let ball_speed = ball_reading.speed;
         let ball_time = ball_reading.timestamp;
 
         // Get peak magnitude
-        let peak_mag = sorted_readings.iter()
+        let peak_mag = sorted_readings
+            .iter()
             .filter_map(|r| r.magnitude)
             .fold(0.0, f64::max);
         let peak_mag = if peak_mag > 0.0 { Some(peak_mag) } else { None };
@@ -227,10 +243,14 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             None
         };
 
-        log::info!("[SHOT ANALYSIS] Ball={:.1} mph, Club={}, Readings={}", 
-                  ball_speed, 
-                  club_speed.map(|s| format!("{:.1} mph", s)).unwrap_or_else(|| "N/A".to_string()),
-                  sorted_readings.len());
+        log::info!(
+            "[SHOT ANALYSIS] Ball={:.1} mph, Club={}, Readings={}",
+            ball_speed,
+            club_speed
+                .map(|s| format!("{:.1} mph", s))
+                .unwrap_or_else(|| "N/A".to_string()),
+            sorted_readings.len()
+        );
 
         // Create shot
         let shot = Shot {
@@ -262,11 +282,16 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         }
 
         // Speed range: club should be 50-85% of ball speed
-        let club_speed_min = self.min_club_speed_mph.max(ball_speed * self.club_speed_min_ratio);
-        let club_speed_max = self.max_club_speed_mph.min(ball_speed * self.club_speed_max_ratio);
+        let club_speed_min = self
+            .min_club_speed_mph
+            .max(ball_speed * self.club_speed_min_ratio);
+        let club_speed_max = self
+            .max_club_speed_mph
+            .min(ball_speed * self.club_speed_max_ratio);
 
         // Find candidate club readings (before ball, in speed range)
-        let club_candidates: Vec<&SpeedReading> = readings.iter()
+        let club_candidates: Vec<&SpeedReading> = readings
+            .iter()
             .filter(|r| {
                 let r_time = r.timestamp;
 
@@ -299,34 +324,46 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         }
 
         // Select best candidate: prefer highest magnitude (larger RCS = club head)
-        let club_reading = club_candidates.iter()
+        let club_reading = club_candidates
+            .iter()
             .filter(|c| c.magnitude.is_some())
             .max_by(|a, b| {
-                a.magnitude.unwrap().partial_cmp(&b.magnitude.unwrap()).unwrap()
+                a.magnitude
+                    .unwrap()
+                    .partial_cmp(&b.magnitude.unwrap())
+                    .unwrap()
             })
             .or_else(|| {
                 // No magnitude data - use reading closest in time to ball
-                club_candidates.iter()
+                club_candidates
+                    .iter()
                     .max_by(|a, b| a.timestamp.partial_cmp(&b.timestamp).unwrap())
             })?;
 
         // Validate smash factor
         let smash = ball_speed / club_reading.speed;
         if !(self.smash_factor_min <= smash && smash <= self.smash_factor_max) {
-            log::debug!("[CLUB REJECTED] Smash factor {:.2} outside range {}-{}", 
-                       smash, self.smash_factor_min, self.smash_factor_max);
+            log::debug!(
+                "[CLUB REJECTED] Smash factor {:.2} outside range {}-{}",
+                smash,
+                self.smash_factor_min,
+                self.smash_factor_max
+            );
             return None;
         }
 
-        log::info!("[CLUB DETECTED] {:.1} mph (smash: {:.2})", 
-                  club_reading.speed, smash);
+        log::info!(
+            "[CLUB DETECTED] {:.1} mph (smash: {:.2})",
+            club_reading.speed,
+            smash
+        );
 
         Some(club_reading.speed)
     }
 
     fn print_shot(&self, shot: &Shot) {
         let (carry_low, carry_high) = shot.estimated_carry_range();
-        
+
         println!();
         println!("{}", "-".repeat(40));
         if let Some(club_speed) = shot.club_speed_mph {
@@ -377,4 +414,3 @@ impl<R: RadarInterface> LaunchMonitor<R> {
         }
     }
 }
-
