@@ -61,3 +61,5 @@ ui/dist/
 # Rust
 rust/target/
 rust/Cargo.lock
+
+session_logs/

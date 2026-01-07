@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=OpenLaunch
+Comment=Golf Launch Monitor Kiosk
+Exec=lxterminal -e /home/coleman/openlaunch/scripts/start-kiosk.sh
+Icon=applications-games
+Terminal=false
+Type=Application
+Categories=Game;Sports;

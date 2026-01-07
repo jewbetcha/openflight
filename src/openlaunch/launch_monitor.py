@@ -249,17 +249,19 @@ class LaunchMonitor:
     """
 
     # Speed thresholds
-    MIN_CLUB_SPEED_MPH = 15      # Minimum club speed (lowered for foam balls)
+    MIN_CLUB_SPEED_MPH = 30      # Minimum club speed (allows short game)
     MAX_CLUB_SPEED_MPH = 140     # Maximum realistic club speed
-    MIN_BALL_SPEED_MPH = 15      # Minimum ball speed (lowered for foam balls)
+    MIN_BALL_SPEED_MPH = 30      # Minimum ball speed (allows chips/pitches)
     MAX_BALL_SPEED_MPH = 220     # Maximum realistic ball speed
 
     # Signal filtering
-    MIN_MAGNITUDE = 50           # Minimum signal strength to filter noise
+    MIN_MAGNITUDE = 20           # Minimum signal strength to accept reading
+    MIN_SHOT_MAGNITUDE = 100     # Minimum peak magnitude for valid shot (filters walking)
 
     # Shot detection timing
     SHOT_TIMEOUT_SEC = 0.5       # Gap to consider shot complete
     MIN_READINGS_FOR_SHOT = 3    # Minimum readings for valid shot
+    MAX_SHOT_DURATION_SEC = 0.3  # Real shots complete within 300ms
 
     # Club/ball separation parameters
     CLUB_BALL_WINDOW_SEC = 0.3   # Max time window for club before ball
@@ -357,7 +359,12 @@ class LaunchMonitor:
             print(f"[FILTER] Direction {reading.direction.value} is not outbound")
             return
 
-        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} - buffered: {len(self._current_readings)}")
+        # Filter by minimum magnitude (signal strength)
+        if reading.magnitude is not None and reading.magnitude < self.MIN_MAGNITUDE:
+            print(f"[FILTER] Magnitude {reading.magnitude:.1f} below minimum {self.MIN_MAGNITUDE}")
+            return
+
+        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} mag={reading.magnitude:.1f} - buffered: {len(self._current_readings)}")
         if logger:
             logger.log_accepted_reading(reading)
 
@@ -455,6 +462,11 @@ class LaunchMonitor:
         Uses temporal and magnitude-based analysis to separate club from ball:
         1. Ball speed = peak (maximum) speed in the shot window
         2. Club speed = detected BEFORE ball, lower speed, higher magnitude
+
+        Validates that the readings represent a real golf shot:
+        - Sufficient readings clustered in time (<300ms)
+        - Peak magnitude above threshold (strong radar return)
+        - Ball speed above minimum for golf shots
         """
         if len(self._current_readings) < self.MIN_READINGS_FOR_SHOT:
             print(f"[REJECTED] Only {len(self._current_readings)} readings "
@@ -465,6 +477,17 @@ class LaunchMonitor:
         # Sort readings by timestamp for temporal analysis
         sorted_readings = sorted(self._current_readings, key=lambda r: r.timestamp or 0)
 
+        # Check shot duration - real shots happen fast (<300ms)
+        first_time = sorted_readings[0].timestamp or 0
+        last_time = sorted_readings[-1].timestamp or 0
+        shot_duration = last_time - first_time
+
+        if shot_duration > self.MAX_SHOT_DURATION_SEC:
+            print(f"[REJECTED] Shot duration {shot_duration*1000:.0f}ms exceeds "
+                  f"max {self.MAX_SHOT_DURATION_SEC*1000:.0f}ms (likely not a golf shot)")
+            self._current_readings = []
+            return
+
         # Find ball: peak speed reading
         ball_reading = max(sorted_readings, key=lambda r: r.speed)
         ball_speed = ball_reading.speed
@@ -473,6 +496,20 @@ class LaunchMonitor:
         # Get peak magnitude
         magnitudes = [r.magnitude for r in sorted_readings if r.magnitude]
         peak_mag = max(magnitudes) if magnitudes else None
+
+        # Validate peak magnitude - real shots have strong radar returns
+        if peak_mag is not None and peak_mag < self.MIN_SHOT_MAGNITUDE:
+            print(f"[REJECTED] Peak magnitude {peak_mag:.0f} below minimum "
+                  f"{self.MIN_SHOT_MAGNITUDE} (weak signal, likely not a golf shot)")
+            self._current_readings = []
+            return
+
+        # Validate ball speed - must be a real golf shot speed
+        if ball_speed < self.MIN_BALL_SPEED_MPH:
+            print(f"[REJECTED] Ball speed {ball_speed:.1f} mph below minimum "
+                  f"{self.MIN_BALL_SPEED_MPH} mph (too slow for golf shot)")
+            self._current_readings = []
+            return
 
         # Find club speed
         club_speed = None

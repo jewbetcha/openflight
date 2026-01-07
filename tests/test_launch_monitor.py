@@ -232,12 +232,14 @@ class TestShotDetection:
         from openlaunch.ops243 import SpeedReading, Direction
         import time
 
+        base_time = time.time()
         # Simulate: club at ~100 mph, ball at ~145 mph (smash ~1.45)
+        # Include magnitudes and proper timing (club before ball)
         self.monitor._current_readings = [
-            SpeedReading(speed=98.0, direction=Direction.OUTBOUND, timestamp=time.time()),
-            SpeedReading(speed=100.5, direction=Direction.OUTBOUND, timestamp=time.time()),
-            SpeedReading(speed=145.0, direction=Direction.OUTBOUND, timestamp=time.time()),
-            SpeedReading(speed=143.2, direction=Direction.OUTBOUND, timestamp=time.time()),
+            SpeedReading(speed=98.0, direction=Direction.OUTBOUND, magnitude=300, timestamp=base_time),
+            SpeedReading(speed=100.5, direction=Direction.OUTBOUND, magnitude=400, timestamp=base_time + 0.02),
+            SpeedReading(speed=145.0, direction=Direction.OUTBOUND, magnitude=200, timestamp=base_time + 0.05),
+            SpeedReading(speed=143.2, direction=Direction.OUTBOUND, magnitude=150, timestamp=base_time + 0.07),
         ]
 
         self.monitor._process_shot()
@@ -404,12 +406,13 @@ class TestClubBallSeparation:
         assert shot.club_speed_mph is None
 
     def test_club_rejected_if_too_long_before_ball(self):
-        """Club reading more than 300ms before ball should be ignored."""
+        """Readings spread over >300ms should be rejected as not a valid shot."""
         from openlaunch.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
-        # Club at t=0, ball at t=0.5s (500ms gap - too long)
+        # Club at t=0, ball at t=0.5s (550ms total duration - too spread out)
+        # Real golf shots complete within 300ms, so this is likely walking/noise
         self.monitor._current_readings = [
             SpeedReading(speed=95.0, direction=Direction.OUTBOUND, magnitude=2000, timestamp=base_time),
             SpeedReading(speed=140.0, direction=Direction.OUTBOUND, magnitude=1000, timestamp=base_time + 0.5),
@@ -418,10 +421,8 @@ class TestClubBallSeparation:
 
         self.monitor._process_shot()
 
-        shot = self.monitor._shots[0]
-        assert shot.ball_speed_mph == 140.0
-        # Club should be rejected (too early)
-        assert shot.club_speed_mph is None
+        # Entire shot should be rejected due to excessive duration
+        assert len(self.monitor._shots) == 0
 
     def test_no_club_when_only_ball_readings(self):
         """No club detected when all readings are at ball speed."""
