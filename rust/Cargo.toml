@@ -1,0 +1,37 @@
+[package]
+name = "openlaunch-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["OpenLaunch Contributors"]
+description = "Rust implementation of OpenLaunch golf launch monitor"
+license = "MIT"
+
+[[bin]]
+name = "openlaunch-rs"
+path = "src/main.rs"
+
+[dependencies]
+# Serial port communication
+serialport = "4.8"
+# JSON parsing for radar output
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+# Command line arguments
+clap = { version = "4.0", features = ["derive"] }
+# Logging
+log = "0.4"
+env_logger = "0.11"
+# Ctrl+C handling
+ctrlc = "3.4"
+# Random number generation for mock mode
+rand = "0.8"
+# HTTP client for OpenGolfSim integration
+reqwest = { version = "0.11", features = ["json"] }
+# Async runtime for HTTP requests
+tokio = { version = "1.0", features = ["full"] }
+

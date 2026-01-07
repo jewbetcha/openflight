@@ -58,4 +58,8 @@ htmlcov/
 ui/node_modules/
 ui/dist/
 
+# Rust
+rust/target/
+rust/Cargo.lock
+
 session_logs/

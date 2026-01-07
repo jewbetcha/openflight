@@ -6,10 +6,18 @@ Thank you for your interest in contributing to OpenLaunch! This document provide
 
 ### Prerequisites
 
+**For Python development:**
 - Python 3.9 or higher
 - Node.js 20+ (for UI development)
 - Git
 - [uv](https://github.com/astral-sh/uv) package manager (recommended)
+
+**For Rust development:**
+- Rust 1.70+ (install via [rustup](https://rustup.rs/))
+- C compiler (for native dependencies)
+  - Linux: `build-essential` package
+  - macOS: Xcode Command Line Tools
+  - Windows: Microsoft C++ Build Tools (see [SETUP-WINDOWS.md](SETUP-WINDOWS.md))
 
 ### Development Setup
 
@@ -48,6 +56,37 @@ Thank you for your interest in contributing to OpenLaunch! This document provide
    npm run dev  # Development server with hot reload
    ```
 
+### Rust Development Setup
+
+1. **Install Rust** (if not already installed)
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
+
+2. **Navigate to Rust directory**
+   ```bash
+   cd rust
+   ```
+
+3. **Build the project**
+   ```bash
+   cargo build
+   ```
+
+4. **Run tests**
+   ```bash
+   cargo test
+   ```
+
+5. **Run in development mode**
+   ```bash
+   # With real hardware
+   cargo run --release
+
+   # Without hardware (mock mode)
+   cargo run --release -- --mock
+   ```
+
 ### Running in Development
 
 ```bash
@@ -84,6 +123,15 @@ npm run lint      # ESLint
 npm run build     # Type check + build
 ```
 
+### Rust
+
+```bash
+cd rust
+cargo fmt         # Format code
+cargo clippy      # Lint and check for common issues
+cargo test        # Run tests
+```
+
 ### Running Tests
 
 ```bash
@@ -112,8 +160,17 @@ pytest tests/ --cov=src/openlaunch --cov-report=html
 
 3. **Ensure quality checks pass**
    ```bash
+   # Python
    pytest tests/ -v
    pylint src/openlaunch/
+   
+   # Rust (if contributing to Rust code)
+   cd rust
+   cargo fmt --check
+   cargo clippy
+   cargo test
+   
+   # UI
    cd ui && npm run build
    ```
 
@@ -152,21 +209,30 @@ Add ball detection indicator to UI header
 - Better carry distance models
 - Mobile app / Bluetooth support
 - Integration with golf simulation software
+- Rust: Add web UI, camera support, session logging
+- Rust: Python bindings (pyo3) for hybrid Python/Rust usage
 
 ## Project Structure
 
 ```
 openlaunch/
-├── src/openlaunch/       # Python package
+├── src/openlaunch/       # Python package (main implementation)
 │   ├── ops243.py         # Radar driver
 │   ├── launch_monitor.py # Shot detection
 │   ├── server.py         # WebSocket server
 │   └── camera_tracker.py # Ball tracking
+├── rust/                 # Rust implementation (optional)
+│   ├── src/              # Rust source code
+│   │   ├── main.rs       # CLI entry point
+│   │   ├── ops243.rs     # Radar driver
+│   │   ├── launch_monitor.rs # Shot detection
+│   │   └── shot.rs       # Data structures
+│   └── Cargo.toml        # Rust dependencies
 ├── ui/                   # React frontend
 │   └── src/
 │       ├── components/   # UI components
 │       └── hooks/        # React hooks
-├── tests/                # Test suite
+├── tests/                # Python test suite
 ├── scripts/              # Utility scripts
 ├── models/               # ML models
 └── docs/                 # Documentation
