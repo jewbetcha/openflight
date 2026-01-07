@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from openlaunch.launch_monitor import (
+from openflight.launch_monitor import (
     Shot,
     ClubType,
     estimate_carry_distance,
@@ -213,7 +213,7 @@ class TestShotDetection:
 
     def test_process_shot_extracts_ball_speed(self):
         """Ball speed should be the peak reading."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         self.monitor._current_readings = [
@@ -229,7 +229,7 @@ class TestShotDetection:
 
     def test_process_shot_extracts_club_speed(self):
         """Club speed should be detected from lower readings."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -252,7 +252,7 @@ class TestShotDetection:
 
     def test_process_shot_minimum_readings(self):
         """Less than MIN_READINGS_FOR_SHOT should not create a shot."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         self.monitor._current_readings = [
@@ -265,7 +265,7 @@ class TestShotDetection:
 
     def test_process_shot_clears_readings(self):
         """Processing a shot should clear current readings."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         self.monitor._current_readings = [
@@ -279,7 +279,7 @@ class TestShotDetection:
 
     def test_process_shot_callback_called(self):
         """Shot callback should be called with the shot."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         received_shots = []
@@ -299,7 +299,7 @@ class TestShotDetection:
 
     def test_process_shot_uses_current_club(self):
         """Shot should use the currently selected club."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         self.monitor._current_club = ClubType.IRON_7
@@ -316,7 +316,7 @@ class TestShotDetection:
 
     def test_process_shot_records_magnitude(self):
         """Peak magnitude should be recorded."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         self.monitor._current_readings = [
@@ -344,7 +344,7 @@ class TestClubBallSeparation:
 
     def test_club_detected_before_ball_by_timing(self):
         """Club reading before ball (by timestamp) should be detected."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -366,7 +366,7 @@ class TestClubBallSeparation:
 
     def test_club_selected_by_highest_magnitude(self):
         """When multiple club candidates exist, prefer highest magnitude."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -387,7 +387,7 @@ class TestClubBallSeparation:
 
     def test_club_rejected_if_smash_factor_invalid(self):
         """Club reading with invalid smash factor should be rejected."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -407,7 +407,7 @@ class TestClubBallSeparation:
 
     def test_club_rejected_if_too_long_before_ball(self):
         """Readings spread over >300ms should be rejected as not a valid shot."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -426,7 +426,7 @@ class TestClubBallSeparation:
 
     def test_no_club_when_only_ball_readings(self):
         """No club detected when all readings are at ball speed."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -445,7 +445,7 @@ class TestClubBallSeparation:
 
     def test_club_speed_range_validation(self):
         """Club speed must be within 50-85% of ball speed."""
-        from openlaunch.ops243 import SpeedReading, Direction
+        from openflight.ops243 import SpeedReading, Direction
         import time
 
         base_time = time.time()
@@ -468,7 +468,7 @@ class TestMultiObjectReporting:
 
     def test_set_num_reports_single_digit(self):
         """set_num_reports should use On format for 1-9."""
-        from openlaunch.ops243 import OPS243Radar
+        from openflight.ops243 import OPS243Radar
 
         radar = OPS243Radar.__new__(OPS243Radar)
         radar.serial = None
@@ -479,7 +479,7 @@ class TestMultiObjectReporting:
 
     def test_direction_constants(self):
         """Verify direction enum values."""
-        from openlaunch.ops243 import Direction
+        from openflight.ops243 import Direction
 
         assert Direction.INBOUND.value == "inbound"
         assert Direction.OUTBOUND.value == "outbound"

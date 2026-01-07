@@ -239,7 +239,7 @@ def main():
         camera.close()
         print()
         print("Done! Transfer frames to view:")
-        print("  scp pi@<ip>:~/openlaunch/yolo_frame_*.png .")
+        print("  scp pi@<ip>:~/openflight/yolo_frame_*.png .")
         return 0
 
     # Live display mode

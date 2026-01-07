@@ -1,6 +1,6 @@
-# OpenLaunch Parts List
+# OpenFlight Parts List
 
-Hardware components for building the OpenLaunch golf launch monitor.
+Hardware components for building the OpenFlight golf launch monitor.
 
 ## Core Components
 

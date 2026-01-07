@@ -1,12 +1,12 @@
 [project]
-name = "openlaunch"
+name = "openflight"
 version = "0.2.0"
 description = "DIY golf launch monitor using OPS243-A Doppler radar"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-    { name = "OpenLaunch Contributors" }
+    { name = "OpenFlight Contributors" }
 ]
 keywords = ["golf", "launch-monitor", "doppler", "radar", "ops243", "raspberry-pi"]
 classifiers = [
@@ -44,21 +44,21 @@ camera = [
 ]
 
 [project.scripts]
-openlaunch = "openlaunch.launch_monitor:main"
-openlaunch-server = "openlaunch.server:main"
+openflight = "openflight.launch_monitor:main"
+openflight-server = "openflight.server:main"
 
 [project.urls]
-Homepage = "https://github.com/jewbetcha/openlaunch"
-Repository = "https://github.com/jewbetcha/openlaunch"
-Issues = "https://github.com/jewbetcha/openlaunch/issues"
-Documentation = "https://github.com/jewbetcha/openlaunch#readme"
+Homepage = "https://github.com/jewbetcha/openflight"
+Repository = "https://github.com/jewbetcha/openflight"
+Issues = "https://github.com/jewbetcha/openflight/issues"
+Documentation = "https://github.com/jewbetcha/openflight#readme"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/openlaunch"]
+packages = ["src/openflight"]
 
 [dependency-groups]
 dev = [

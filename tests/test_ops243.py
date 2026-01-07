@@ -2,7 +2,7 @@
 
 import pytest
 
-from openlaunch.ops243 import OPS243Radar, SpeedReading, Direction
+from openflight.ops243 import OPS243Radar, SpeedReading, Direction
 
 
 class TestParseReading:

@@ -1,5 +1,5 @@
 """
-Session logging for OpenLaunch field testing.
+Session logging for OpenFlight field testing.
 
 Provides structured logging of all radar data, shots, and metrics
 for analysis and debugging.
@@ -46,7 +46,7 @@ class SessionLogger:
     - error: Any errors during processing
     """
 
-    DEFAULT_LOG_DIR = Path.home() / "openlaunch_sessions"
+    DEFAULT_LOG_DIR = Path.home() / "openflight_sessions"
 
     def __init__(
         self,
@@ -58,7 +58,7 @@ class SessionLogger:
         Initialize session logger.
 
         Args:
-            log_dir: Directory for log files (default: ~/openlaunch_sessions)
+            log_dir: Directory for log files (default: ~/openflight_sessions)
             location: Location identifier for file naming (e.g., "range", "course", "home")
             enabled: Whether logging is enabled
         """

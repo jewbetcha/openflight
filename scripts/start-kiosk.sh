@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# OpenLaunch Kiosk Startup Script
+# OpenFlight Kiosk Startup Script
 # Starts the radar server and launches Chromium in kiosk mode
 #
 
@@ -70,15 +70,15 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 log() {
-    echo -e "${GREEN}[OpenLaunch]${NC} $1"
+    echo -e "${GREEN}[OpenFlight]${NC} $1"
 }
 
 warn() {
-    echo -e "${YELLOW}[OpenLaunch]${NC} $1"
+    echo -e "${YELLOW}[OpenFlight]${NC} $1"
 }
 
 error() {
-    echo -e "${RED}[OpenLaunch]${NC} $1"
+    echo -e "${RED}[OpenFlight]${NC} $1"
 }
 
 cleanup() {
@@ -115,7 +115,7 @@ if [ ! -d "ui/dist" ]; then
 fi
 
 # Build server command
-SERVER_CMD="openlaunch-server --web-port $PORT"
+SERVER_CMD="openflight-server --web-port $PORT"
 
 if [ "$MOCK_MODE" = true ]; then
     SERVER_CMD="$SERVER_CMD --mock"
@@ -139,9 +139,9 @@ fi
 
 # Start the server
 if [ "$MOCK_MODE" = true ]; then
-    log "Starting OpenLaunch server on port $PORT (MOCK MODE)..."
+    log "Starting OpenFlight server on port $PORT (MOCK MODE)..."
 else
-    log "Starting OpenLaunch server on port $PORT..."
+    log "Starting OpenFlight server on port $PORT..."
 fi
 
 if [ "$CAMERA_MODE" = true ]; then
@@ -196,7 +196,7 @@ else
     warn "Supported browsers: chromium-browser, chromium, google-chrome, firefox"
 fi
 
-log "OpenLaunch is running! Press Ctrl+C to stop."
+log "OpenFlight is running! Press Ctrl+C to stop."
 
 # Wait for server process
 wait $SERVER_PID

@@ -657,7 +657,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 50)
-    print("  OpenLaunch - Golf Launch Monitor")
+    print("  OpenFlight - Golf Launch Monitor")
     print("  Using OPS243-A Doppler Radar")
     print("=" * 50)
     print()

@@ -75,7 +75,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 50)
-    print("  OpenLaunch Camera Calibration")
+    print("  OpenFlight Camera Calibration")
     print("=" * 50)
     print()
 
@@ -167,7 +167,7 @@ def main():
 
         print()
         print(f"Captured {args.num_frames} frames. Transfer to your computer to view:")
-        print(f"  scp pi@<ip>:~/openlaunch/frame_*.png .")
+        print(f"  scp pi@<ip>:~/openflight/frame_*.png .")
         print()
         print("Settings used:")
         print(f"  brightness_threshold={settings['threshold']}")

@@ -1,14 +1,10 @@
 <p align="center">
-  <img src="docs/logo2.png" alt="OpenLaunch" width="400">
-</p>
-
-<p align="center">
   DIY Golf Launch Monitor using the OPS243-A Doppler Radar.
 </p>
 
 ## Overview
 
-OpenLaunch is an open-source golf launch monitor that measures ball speed using a commercial Doppler radar sensor. The OPS243-A from OmniPreSense provides professional-grade speed measurement (±0.5% accuracy) in a simple USB-connected package.
+OpenFlight is an open-source golf launch monitor that measures ball speed using a commercial Doppler radar sensor. The OPS243-A from OmniPreSense provides professional-grade speed measurement (±0.5% accuracy) in a simple USB-connected package.
 
 ### What It Measures
 
@@ -33,48 +29,52 @@ See [docs/PARTS.md](docs/PARTS.md) for the full parts list including optional ca
 
 ```bash
 # Clone the repository
-git clone https://github.com/jewbetcha/openlaunch.git
-cd openlaunch
+git clone https://github.com/jewbetcha/openflight.git
+cd openflight
 
+# Run the setup script (installs Python + Node dependencies, builds UI)
+./scripts/setup.sh
+```
+
+Or manually:
+
+```bash
 # Install uv if you don't have it
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Create venv and install dependencies
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -e .
-
-# For UI support (web interface)
 uv pip install -e ".[ui]"
+
+# Build the UI
+cd ui && npm install && npm run build && cd ..
 ```
 
 ### Basic Usage (CLI)
 
 ```bash
 # Run the launch monitor
-openlaunch
+openflight
 
 # Specify serial port manually
-openlaunch --port /dev/ttyACM0
+openflight --port /dev/ttyACM0
 
 # Show live readings
-openlaunch --live
+openflight --live
 
 # Show radar info
-openlaunch --info
+openflight --info
 ```
 
 ### Web UI
 
 ```bash
-# Build the frontend (first time only)
-cd ui && npm install && npm run build && cd ..
-
 # Run the UI server with radar
-openlaunch-server
+openflight-server
 
 # Run in mock mode (no radar needed, for development)
-openlaunch-server --mock
+openflight-server --mock
 ```
 
 Then open http://localhost:8080 in a browser.
@@ -90,7 +90,7 @@ See [docs/raspberry-pi-setup.md](docs/raspberry-pi-setup.md) for complete Raspbe
 ### Python API
 
 ```python
-from openlaunch import LaunchMonitor
+from openflight import LaunchMonitor
 
 # Simple usage
 with LaunchMonitor() as monitor:
@@ -104,7 +104,7 @@ with LaunchMonitor() as monitor:
 
 ```python
 # Continuous monitoring with callbacks
-from openlaunch import LaunchMonitor
+from openflight import LaunchMonitor
 
 def on_shot(shot):
     print(f"Shot detected: {shot.ball_speed_mph:.1f} mph")
@@ -122,7 +122,7 @@ print(f"Average ball speed: {stats['avg_ball_speed']:.1f} mph")
 ### Low-Level Radar Access
 
 ```python
-from openlaunch import OPS243Radar
+from openflight import OPS243Radar
 
 # Direct radar control
 with OPS243Radar() as radar:
@@ -168,7 +168,7 @@ For best results, position the radar **3-5 feet behind the tee**, pointing at th
 ### 3. Run the Monitor
 
 ```bash
-openlaunch
+openflight
 ```
 
 The system will automatically detect the radar, configure it for golf ball detection, and start monitoring.
@@ -233,7 +233,7 @@ This callback pattern keeps the components decoupled - `LaunchMonitor` doesn't k
 The radar can be configured via API commands:
 
 ```python
-from openlaunch import OPS243Radar, SpeedUnit, Direction
+from openflight import OPS243Radar, SpeedUnit, Direction
 
 radar = OPS243Radar()
 radar.connect()
@@ -266,7 +266,7 @@ radar.save_config()
 
 ## Limitations
 
-### What OpenLaunch Does NOT Measure (Yet)
+### What OpenFlight Does NOT Measure (Yet)
 
 - **Spin Rate**: Requires high-speed camera
 - **Club Speed**: Could be added with timing/positioning changes
@@ -287,7 +287,7 @@ Note: **Launch Angle** is available with the optional camera module. See [Camera
 1. Check USB connection
 2. Try a different USB cable
 3. Check if device appears: `ls /dev/tty*` (Linux/Mac)
-4. Try specifying port manually: `openlaunch --port /dev/ttyACM0`
+4. Try specifying port manually: `openflight --port /dev/ttyACM0`
 
 ### Weak or No Detection
 
@@ -305,8 +305,8 @@ Note: **Launch Angle** is available with the optional camera module. See [Camera
 ## Project Structure
 
 ```
-openlaunch/
-├── src/openlaunch/
+openflight/
+├── src/openflight/
 │   ├── __init__.py
 │   ├── ops243.py          # OPS243-A radar driver
 │   ├── launch_monitor.py  # Main launch monitor
@@ -394,7 +394,7 @@ pytest tests/ -v
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines. Quick summary:
 
 - **Tests required**: Run `pytest tests/ -v` before submitting a PR
-- **Code quality**: Run `pylint src/openlaunch/` (score 9+)
+- **Code quality**: Run `pylint src/openflight/` (score 9+)
 - **UI changes**: Run `cd ui && npm run build` to verify
 
 ## Documentation

@@ -151,7 +151,7 @@ def main():
     print()
     print("Next steps:")
     print("  1. Transfer images to your computer:")
-    print(f"     scp -r pi@<ip>:~/openlaunch/{args.output} .")
+    print(f"     scp -r pi@<ip>:~/openflight/{args.output} .")
     print()
     print("  2. Label them at https://roboflow.com (free account)")
     print("     - Create new project > Object Detection")

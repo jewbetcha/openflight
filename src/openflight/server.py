@@ -1,5 +1,5 @@
 """
-WebSocket server for OpenLaunch UI.
+WebSocket server for OpenFlight UI.
 
 Provides real-time shot data to the web frontend via Flask-SocketIO.
 """
@@ -321,7 +321,7 @@ def start_debug_logging():
     global debug_log_file, debug_log_path  # pylint: disable=global-statement
 
     # Create logs directory
-    log_dir = Path.home() / "openlaunch_logs"
+    log_dir = Path.home() / "openflight_logs"
     log_dir.mkdir(exist_ok=True)
 
     # Create timestamped log file
@@ -804,7 +804,7 @@ def main():
     """Run the server."""
     import argparse  # pylint: disable=import-outside-toplevel
 
-    parser = argparse.ArgumentParser(description="OpenLaunch UI Server")
+    parser = argparse.ArgumentParser(description="OpenFlight UI Server")
     parser.add_argument("--port", "-p", help="Serial port for radar")
     parser.add_argument(
         "--mock", "-m", action="store_true", help="Run in mock mode without radar"
@@ -843,7 +843,7 @@ def main():
     )
     parser.add_argument(
         "--log-dir",
-        help="Directory for session logs (default: ~/openlaunch_sessions)"
+        help="Directory for session logs (default: ~/openflight_sessions)"
     )
     parser.add_argument(
         "--no-logging", action="store_true",
@@ -852,7 +852,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 50)
-    print("  OpenLaunch UI Server")
+    print("  OpenFlight UI Server")
     print("=" * 50)
     print()
 

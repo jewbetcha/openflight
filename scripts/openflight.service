@@ -1,14 +1,14 @@
 [Unit]
-Description=OpenLaunch Golf Launch Monitor
+Description=OpenFlight Golf Launch Monitor
 After=network.target graphical.target
 Wants=graphical.target
 
 [Service]
 Type=simple
 User=coleman
-WorkingDirectory=/home/coleman/openlaunch
+WorkingDirectory=/home/coleman/openflight
 Environment=DISPLAY=:0
-ExecStart=/home/coleman/openlaunch/scripts/start-kiosk.sh
+ExecStart=/home/coleman/openflight/scripts/start-kiosk.sh
 Restart=on-failure
 RestartSec=5
 

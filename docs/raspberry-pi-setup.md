@@ -1,6 +1,6 @@
 # Raspberry Pi Setup Guide
 
-Complete guide for setting up OpenLaunch on a Raspberry Pi 5 with the 7" touchscreen display.
+Complete guide for setting up OpenFlight on a Raspberry Pi 5 with the 7" touchscreen display.
 
 ## Hardware Requirements
 
@@ -19,15 +19,25 @@ See [PARTS.md](../PARTS.md) for the full parts list.
 
 Use Raspberry Pi Imager to flash Raspberry Pi OS (64-bit) to your SD card.
 
-### 2. Clone the Repository
+### 2. Clone and Setup
 
 ```bash
 cd ~
-git clone https://github.com/jewbetcha/openlaunch.git
-cd openlaunch
+git clone https://github.com/jewbetcha/openflight.git
+cd openflight
+
+# Run the setup script (handles everything)
+./scripts/setup.sh
 ```
 
-### 3. Create Virtual Environment
+The setup script will:
+- Create a Python virtual environment (with system-site-packages for picamera2)
+- Install all Python dependencies (including camera support on Pi)
+- Install Node.js dependencies
+- Build the UI
+- Run tests to verify installation
+
+Or manually:
 
 ```bash
 # Install uv if you don't have it
@@ -38,28 +48,22 @@ python -m venv .venv --system-site-packages
 source .venv/bin/activate
 
 # Install dependencies
-uv pip install -e ".[ui]"
+uv pip install -e ".[ui,camera]"
+
+# Build the UI
+cd ui && npm install && npm run build && cd ..
 ```
 
-### 4. Build the UI
-
-```bash
-cd ui
-npm install
-npm run build
-cd ..
-```
-
-## Running OpenLaunch
+## Running OpenFlight
 
 ### Manual Start
 
 ```bash
 # With radar connected
-openlaunch-server
+openflight-server
 
 # Mock mode (no radar needed)
-openlaunch-server --mock
+openflight-server --mock
 ```
 
 Then open `http://localhost:8080` in a browser.
@@ -101,46 +105,46 @@ DISPLAY=:0 ./scripts/start-kiosk.sh
 
 ```bash
 # Copy the service file
-sudo cp ~/openlaunch/scripts/openlaunch.service /etc/systemd/system/
+sudo cp ~/openflight/scripts/openflight.service /etc/systemd/system/
 
 # Reload systemd
 sudo systemctl daemon-reload
 
 # Enable auto-start
-sudo systemctl enable openlaunch
+sudo systemctl enable openflight
 
 # Start it now
-sudo systemctl start openlaunch
+sudo systemctl start openflight
 ```
 
 ### Service Management
 
 ```bash
 # Check status
-sudo systemctl status openlaunch --no-pager
+sudo systemctl status openflight --no-pager
 
 # View logs
-journalctl -u openlaunch -f
+journalctl -u openflight -f
 
 # Stop the service
-sudo systemctl stop openlaunch
+sudo systemctl stop openflight
 
 # Restart the service
-sudo systemctl restart openlaunch
+sudo systemctl restart openflight
 
 # Disable auto-start
-sudo systemctl disable openlaunch
+sudo systemctl disable openflight
 ```
 
 ### Editing the Service
 
-The service file is located at `/etc/systemd/system/openlaunch.service`.
+The service file is located at `/etc/systemd/system/openflight.service`.
 
 If you need to modify it:
 ```bash
-sudo nano /etc/systemd/system/openlaunch.service
+sudo nano /etc/systemd/system/openflight.service
 sudo systemctl daemon-reload
-sudo systemctl restart openlaunch
+sudo systemctl restart openflight
 ```
 
 ## Camera Setup (Ball Detection)
@@ -231,7 +235,7 @@ Point your phone camera at the LEDs - you should see a faint purple/white glow i
 ls /dev/ttyACM* /dev/ttyUSB*
 
 # Test with specific port
-openlaunch --port /dev/ttyACM0 --info
+openflight --port /dev/ttyACM0 --info
 ```
 
 ### Camera Black Screen
@@ -244,13 +248,13 @@ openlaunch --port /dev/ttyACM0 --info
 
 ```bash
 # Check logs for errors
-journalctl -u openlaunch --no-pager -n 50
+journalctl -u openflight --no-pager -n 50
 
 # If service is masked
-sudo systemctl unmask openlaunch
-sudo cp ~/openlaunch/scripts/openlaunch.service /etc/systemd/system/
+sudo systemctl unmask openflight
+sudo cp ~/openflight/scripts/openflight.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable openlaunch
+sudo systemctl enable openflight
 ```
 
 ### Slow UI Updates
@@ -259,7 +263,7 @@ If shots take several seconds to appear in the UI, the WebSocket may be unstable
 
 ```bash
 # View server logs
-journalctl -u openlaunch -f
+journalctl -u openflight -f
 ```
 
 Look for "Client disconnected/connected" messages which indicate WebSocket instability.
@@ -275,20 +279,20 @@ If you see Qt/display errors when running over SSH:
 ### Launch Monitor
 
 ```bash
-openlaunch              # Run with auto-detected radar
-openlaunch --port /dev/ttyACM0  # Specify port
-openlaunch --live       # Show live speed readings
-openlaunch --info       # Show radar configuration
+openflight              # Run with auto-detected radar
+openflight --port /dev/ttyACM0  # Specify port
+openflight --live       # Show live speed readings
+openflight --info       # Show radar configuration
 ```
 
 ### Server
 
 ```bash
-openlaunch-server                    # Start server with radar
-openlaunch-server --mock             # Mock mode (no radar)
-openlaunch-server --camera           # Enable camera for ball detection
-openlaunch-server --camera-model <path>  # Use custom YOLO model
-openlaunch-server --web-port 3000    # Custom port
+openflight-server                    # Start server with radar
+openflight-server --mock             # Mock mode (no radar)
+openflight-server --camera           # Enable camera for ball detection
+openflight-server --camera-model <path>  # Use custom YOLO model
+openflight-server --web-port 3000    # Custom port
 ```
 
 ### Kiosk

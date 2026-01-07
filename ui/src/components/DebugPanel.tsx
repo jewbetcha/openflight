@@ -253,7 +253,7 @@ export function DebugPanel({ enabled, readings, shotLogs, radarConfig, cameraSta
       {enabled && (
         <div className="debug-panel__section debug-panel__section--shots">
           <h4>Shot History (Radar + Camera)</h4>
-          <p className="debug-panel__log-info">Logging to ~/openlaunch_logs/</p>
+          <p className="debug-panel__log-info">Logging to ~/openflight_logs/</p>
           <div className="debug-panel__shot-logs">
             {shotLogs.length === 0 ? (
               <p className="debug-panel__empty">No shots recorded yet...</p>

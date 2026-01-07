@@ -47,6 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python API for integration
 - Carry distance estimation based on ball speed
 
-[Unreleased]: https://github.com/jewbetcha/openlaunch/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/jewbetcha/openlaunch/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/jewbetcha/openlaunch/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jewbetcha/openflight/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jewbetcha/openflight/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/jewbetcha/openflight/releases/tag/v0.1.0

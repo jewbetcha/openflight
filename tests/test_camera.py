@@ -10,7 +10,7 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
 
-from openlaunch.camera import (
+from openflight.camera import (
     CaptureConfig,
     CapturedFrame,
     CaptureResult,
@@ -261,7 +261,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_calculator_creation(self):
         """Calculator should be creatable."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
         assert calc.min_detections == 3
         assert calc.max_frames == 10
@@ -269,7 +269,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_insufficient_detections(self):
         """Should return None with too few detections."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         # Only 2 detections, need at least 3
@@ -284,7 +284,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_upward_trajectory(self):
         """Ball moving up should have positive vertical angle."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         # Ball moving upward (y decreasing in image coords)
@@ -303,7 +303,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_right_trajectory(self):
         """Ball moving right should have positive horizontal angle."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         # Ball moving right (x increasing)
@@ -321,7 +321,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_handles_none_detections(self):
         """Should handle None values in detection list."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         # Some frames have no detection
@@ -340,7 +340,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_with_radar_speed(self):
         """Calculate with radar-measured ball speed should work."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         detections = [
@@ -357,7 +357,7 @@ class TestLaunchAngleCalculation:
     @pytest.mark.skipif(not NUMPY_AVAILABLE, reason="NumPy not available")
     def test_ball_distance_estimation(self):
         """Ball distance estimation from apparent size."""
-        from openlaunch.camera import LaunchAngleCalculator
+        from openflight.camera import LaunchAngleCalculator
         calc = LaunchAngleCalculator()
 
         # Large ball (close)

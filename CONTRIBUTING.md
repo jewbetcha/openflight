@@ -1,6 +1,6 @@
-# Contributing to OpenLaunch
+# Contributing to OpenFlight
 
-Thank you for your interest in contributing to OpenLaunch! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to OpenFlight! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to OpenLaunch! This document provide
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/jewbetcha/openlaunch.git
-   cd openlaunch
+   git clone https://github.com/jewbetcha/openflight.git
+   cd openflight
    ```
 
 2. **Create a virtual environment**
@@ -52,10 +52,10 @@ Thank you for your interest in contributing to OpenLaunch! This document provide
 
 ```bash
 # Run server in mock mode (no hardware needed)
-openlaunch-server --mock
+openflight-server --mock
 
 # Run with debug logging
-openlaunch-server --mock --debug
+openflight-server --mock --debug
 
 # Run UI development server (separate terminal)
 cd ui && npm run dev
@@ -69,7 +69,7 @@ We use **pylint** for linting with a minimum score of **9.0**.
 
 ```bash
 # Check code quality
-pylint src/openlaunch/
+pylint src/openflight/
 
 # Auto-format with ruff
 ruff format src/
@@ -94,7 +94,7 @@ pytest tests/ -v
 pytest tests/test_launch_monitor.py -v
 
 # Run with coverage (if pytest-cov installed)
-pytest tests/ --cov=src/openlaunch --cov-report=html
+pytest tests/ --cov=src/openflight --cov-report=html
 ```
 
 **All tests must pass before submitting a PR.**
@@ -113,7 +113,7 @@ pytest tests/ --cov=src/openlaunch --cov-report=html
 3. **Ensure quality checks pass**
    ```bash
    pytest tests/ -v
-   pylint src/openlaunch/
+   pylint src/openflight/
    cd ui && npm run build
    ```
 
@@ -156,8 +156,8 @@ Add ball detection indicator to UI header
 ## Project Structure
 
 ```
-openlaunch/
-├── src/openlaunch/       # Python package
+openflight/
+├── src/openflight/       # Python package
 │   ├── ops243.py         # Radar driver
 │   ├── launch_monitor.py # Shot detection
 │   ├── server.py         # WebSocket server
@@ -174,11 +174,11 @@ openlaunch/
 
 ## Testing Without Hardware
 
-OpenLaunch supports **mock mode** for development without radar/camera:
+OpenFlight supports **mock mode** for development without radar/camera:
 
 ```bash
 # Server with simulated shots
-openlaunch-server --mock
+openflight-server --mock
 
 # Camera calibration with synthetic frames
 python scripts/calibrate_camera.py --mock

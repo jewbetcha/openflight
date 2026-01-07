@@ -1,4 +1,4 @@
-"""OpenLaunch - DIY Golf Launch Monitor using OPS243-A Radar."""
+"""OpenFlight - DIY Golf Launch Monitor using OPS243-A Radar."""
 
 __version__ = "0.2.0"
 

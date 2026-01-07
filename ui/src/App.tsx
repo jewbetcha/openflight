@@ -86,7 +86,6 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <img src="/logo2.png" alt="OpenLaunch" className="header__logo" />
         <div className="header__controls">
           <ClubPicker
             selectedClub={selectedClub}

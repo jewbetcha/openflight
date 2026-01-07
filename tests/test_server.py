@@ -3,8 +3,8 @@
 import pytest
 from datetime import datetime
 
-from openlaunch.launch_monitor import Shot, ClubType
-from openlaunch.server import MockLaunchMonitor, shot_to_dict
+from openflight.launch_monitor import Shot, ClubType
+from openflight.server import MockLaunchMonitor, shot_to_dict
 
 
 class TestShotToDict:
