@@ -156,6 +156,10 @@ impl OpenGolfSimClient {
         // Build the shot object
         let mut shot_obj = json!({
             "ballSpeed": shot.ball_speed_mph,
+            "verticalLaunchAngle": 0.0,
+            "horizontalLaunchAngle": 0.0,
+            "spinSpeed": 0.0,
+            "spinAxis": 0.0,
         });
 
         // Add launch angles if available (from camera)
