@@ -40,6 +40,9 @@ pub struct Shot {
     pub peak_magnitude: Option<f64>,
     pub readings: Vec<SpeedReading>,
     pub club: ClubType,
+    pub launch_angle_vertical: Option<f64>,
+    pub launch_angle_horizontal: Option<f64>,
+    pub launch_angle_confidence: Option<f64>,
 }
 
 impl Shot {
@@ -65,7 +68,16 @@ impl Shot {
     pub fn estimated_carry_range(&self) -> (f64, f64) {
         let base = self.estimated_carry_yards();
         // ±10% uncertainty without launch angle/spin data
-        (base * 0.90, base * 1.10)
+        // Reduce to ±5% if we have launch angle data
+        if self.has_launch_angle() {
+            (base * 0.95, base * 1.05)
+        } else {
+            (base * 0.90, base * 1.10)
+        }
+    }
+
+    pub fn has_launch_angle(&self) -> bool {
+        self.launch_angle_vertical.is_some()
     }
 }
 

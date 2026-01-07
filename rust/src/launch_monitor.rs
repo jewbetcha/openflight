@@ -32,6 +32,9 @@ pub struct LaunchMonitor<R: RadarInterface> {
     club_ball_window_sec: f64,
     club_speed_min_ratio: f64,
     club_speed_max_ratio: f64,
+    min_magnitude: f64,
+    max_magnitude: f64,
+    max_shot_duration_sec: f64,
     smash_factor_min: f64,
     smash_factor_max: f64,
 
@@ -73,15 +76,18 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             current_readings: Vec::new(),
             last_reading_time: None,
             shot_start_time: None,
-            min_club_speed_mph: 15.0,
+            min_club_speed_mph: 30.0,
             max_club_speed_mph: 140.0,
-            min_ball_speed_mph: 15.0,
+            min_ball_speed_mph: 30.0,
             max_ball_speed_mph: 220.0,
             shot_timeout_sec: 0.5,
             min_readings_for_shot: 3,
             club_ball_window_sec: 0.3,
             club_speed_min_ratio: 0.50,
             club_speed_max_ratio: 0.85,
+            min_magnitude: 20.0,
+            max_magnitude: 100.0,
+            max_shot_duration_sec: 0.3,
             smash_factor_min: 1.1,
             smash_factor_max: 1.7,
             current_club: ClubType::Driver,
@@ -164,6 +170,19 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             return;
         }
 
+        // Filter by magnitude (signal strength)
+        if let Some(magnitude) = reading.magnitude {
+            if magnitude < self.min_magnitude || magnitude > self.max_magnitude {
+                log::debug!(
+                    "[FILTER] Magnitude {:.1} outside range {}-{}",
+                    magnitude,
+                    self.min_magnitude,
+                    self.max_magnitude
+                );
+                return;
+            }
+        }
+
         log::debug!(
             "[ACCEPTED] {:.1} mph outbound - buffered: {}",
             reading.speed,
@@ -217,6 +236,20 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             return;
         }
 
+        // Check max shot duration
+        if let Some(start_time) = self.shot_start_time {
+            let duration = start_time.elapsed().as_secs_f64();
+            if duration > self.max_shot_duration_sec {
+                log::debug!(
+                    "[REJECTED] Shot duration {:.3}s exceeds max {:.3}s",
+                    duration,
+                    self.max_shot_duration_sec
+                );
+                self.current_readings.clear();
+                return;
+            }
+        }
+
         // Sort readings by timestamp for temporal analysis
         let mut sorted_readings = self.current_readings.clone();
         sorted_readings.sort_by(|a, b| a.timestamp.partial_cmp(&b.timestamp).unwrap());
@@ -260,6 +293,9 @@ impl<R: RadarInterface> LaunchMonitor<R> {
             peak_magnitude: peak_mag,
             readings: self.current_readings.clone(),
             club: self.current_club,
+            launch_angle_vertical: None,
+            launch_angle_horizontal: None,
+            launch_angle_confidence: None,
         };
 
         // Print shot metrics to stdout

@@ -159,13 +159,12 @@ impl OpenGolfSimClient {
         });
 
         // Add launch angles if available (from camera)
-        // For now, we don't have these, but structure is ready
-        // if let Some(vertical) = shot.launch_angle_vertical {
-        //     shot_obj["verticalLaunchAngle"] = json!(vertical);
-        // }
-        // if let Some(horizontal) = shot.launch_angle_horizontal {
-        //     shot_obj["horizontalLaunchAngle"] = json!(horizontal);
-        // }
+        if let Some(vertical) = shot.launch_angle_vertical {
+            shot_obj["verticalLaunchAngle"] = json!(vertical);
+        }
+        if let Some(horizontal) = shot.launch_angle_horizontal {
+            shot_obj["horizontalLaunchAngle"] = json!(horizontal);
+        }
 
         // Add spin data if available (we don't have this yet)
         // shot_obj["spinSpeed"] = json!(spin_rpm);
