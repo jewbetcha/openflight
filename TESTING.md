@@ -9,7 +9,9 @@ The Rust implementation includes a **mock radar** that simulates realistic golf 
 ### Basic Usage
 
 ```bash
-# Run in mock mode (auto-generates shots every 5 seconds)
+cd rust
+
+# Run in mock mode (auto-generates shots every 20 seconds by default)
 cargo run --release -- --mock
 
 # Custom shot interval (e.g., every 3 seconds)
@@ -108,6 +110,7 @@ The mock generates realistic timing:
 Enable debug logging to see detailed processing:
 
 ```bash
+cd rust
 RUST_LOG=debug cargo run --release -- --mock
 ```
 
