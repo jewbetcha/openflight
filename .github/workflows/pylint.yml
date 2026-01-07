@@ -24,4 +24,4 @@ jobs:
           pip install pylint pyserial flask flask-socketio flask-cors
       - name: Analysing the code with pylint
         run: |
-          pylint src/openlaunch/ --fail-under=9
+          pylint src/openflight/ --fail-under=9
