@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=OpenFlight Rolling Mode
 Comment=Golf Launch Monitor Kiosk
-Exec=lxterminal -e /home/coleman/openflight/scripts/start_kiosk.sh --mode rolling-buffer
+Exec=lxterminal -e /home/coleman/openflight/scripts/start-kiosk.sh --mode rolling-buffer
 Icon=applications-games
 Terminal=false
 Type=Application

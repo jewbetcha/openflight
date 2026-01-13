@@ -17,6 +17,7 @@ CAMERA_MODEL="models/golf_ball_yolo11n_new_256.onnx"
 CAMERA_IMGSZ=256
 ROBOFLOW_MODEL=""
 ROBOFLOW_API_KEY=""
+MODE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -51,6 +52,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --roboflow-api-key)
             ROBOFLOW_API_KEY="$2"
+            shift 2
+            ;;
+        --mode)
+            MODE="$2"
             shift 2
             ;;
         --port|-p)
@@ -175,24 +180,31 @@ log "Server is running!"
 # Launch browser in kiosk mode
 log "Launching kiosk browser..."
 
+# Build the URL with optional mode parameter
+KIOSK_URL="http://$HOST:$PORT"
+if [ -n "$MODE" ]; then
+    KIOSK_URL="$KIOSK_URL?mode=$MODE"
+    log "Mode: $MODE"
+fi
+
 # Try different browsers in order of preference
 # DISPLAY=:0 allows running on Pi's display when SSHed in
 # --password-store=basic disables the keyring unlock prompt
 CHROME_FLAGS="--kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic"
 if command -v chromium-browser &> /dev/null; then
-    DISPLAY=:0 chromium-browser $CHROME_FLAGS "http://$HOST:$PORT" &
+    DISPLAY=:0 chromium-browser $CHROME_FLAGS "$KIOSK_URL" &
     BROWSER_PID=$!
 elif command -v chromium &> /dev/null; then
-    DISPLAY=:0 chromium $CHROME_FLAGS "http://$HOST:$PORT" &
+    DISPLAY=:0 chromium $CHROME_FLAGS "$KIOSK_URL" &
     BROWSER_PID=$!
 elif command -v google-chrome &> /dev/null; then
-    DISPLAY=:0 google-chrome $CHROME_FLAGS "http://$HOST:$PORT" &
+    DISPLAY=:0 google-chrome $CHROME_FLAGS "$KIOSK_URL" &
     BROWSER_PID=$!
 elif command -v firefox &> /dev/null; then
-    DISPLAY=:0 firefox --kiosk "http://$HOST:$PORT" &
+    DISPLAY=:0 firefox --kiosk "$KIOSK_URL" &
     BROWSER_PID=$!
 else
-    warn "No supported browser found. Open http://$HOST:$PORT manually."
+    warn "No supported browser found. Open $KIOSK_URL manually."
     warn "Supported browsers: chromium-browser, chromium, google-chrome, firefox"
 fi
 
