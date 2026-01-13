@@ -820,26 +820,27 @@ class OPS243Radar:
         """
         Enable rolling buffer mode for raw I/Q capture.
 
-        Rolling buffer mode (G1) captures 4096 raw I/Q samples instead of
+        Rolling buffer mode (GC) captures 4096 raw I/Q samples instead of
         processing them internally. This allows post-capture FFT processing
         with overlapping windows for higher temporal resolution and spin detection.
 
         Commands:
-        - PI: Idle mode first (required before GC)
-        - K+: Enable peak detection
-        - GC: Enable rolling buffer (4096 samples) - replaced G1 in newer firmware
+        - GC: Enable rolling buffer (Continuous Sampling Mode)
+        - PA: Activate sampling (required to start data capture loop)
 
         After enabling, use trigger_capture() to dump the buffer.
         """
         print("[RADAR] Enabling rolling buffer mode...")
-        self._send_command("PI")  # Idle first
-        time.sleep(0.1)
-        self._send_command("K+")  # Peak detection
-        time.sleep(0.1)
-        response = self._send_command("GC")  # Enable rolling buffer (GC replaced G1)
+
+        # Enable rolling buffer mode
+        response = self._send_command("GC")
         time.sleep(0.1)
         print(f"[RADAR] GC response: {response if response else '(none)'}")
-        print("[RADAR] Rolling buffer mode enabled (GC)")
+
+        # Activate sampling - puts sensor into active data capture loop
+        self._send_command("PA")
+        time.sleep(0.1)
+        print("[RADAR] Rolling buffer mode enabled and sampling activated")
 
     def disable_rolling_buffer(self):
         """
@@ -871,7 +872,7 @@ class OPS243Radar:
         self._send_command(f"S#{segments}")
         print(f"[RADAR] Trigger split set to {segments} segments")
 
-    def trigger_capture(self, timeout: float = 2.0) -> str:
+    def trigger_capture(self, timeout: float = 10.0) -> str:
         """
         Trigger buffer capture and return raw I/Q data.
 
@@ -882,8 +883,11 @@ class OPS243Radar:
         - {"I": [4096 integers...]}
         - {"Q": [4096 integers...]}
 
+        Note: The I/Q data can be 20-30KB of JSON. At 57600 baud (~5.7KB/s),
+        this takes 4-5 seconds to transmit. Default timeout is 10 seconds.
+
         Args:
-            timeout: Maximum time to wait for response
+            timeout: Maximum time to wait for response (default 10s)
 
         Returns:
             Raw response string containing JSON lines
@@ -894,58 +898,103 @@ class OPS243Radar:
         # Clear input buffer
         self.serial.reset_input_buffer()
 
-        # Send trigger command (needs carriage return)
-        self.serial.write(b"S!\r")
+        print("[RADAR] Sending S! trigger...")
 
-        # Wait and collect response (large data transfer)
-        time.sleep(0.2)
+        # Send trigger command
+        self.serial.write(b"S!\r")
+        self.serial.flush()
 
         response_lines = []
         start_time = time.time()
+        last_data_time = start_time
+        bytes_received = 0
 
+        # Read data until timeout or complete response
         while (time.time() - start_time) < timeout:
             if self.serial.in_waiting:
                 chunk = self.serial.read(self.serial.in_waiting)
                 response_lines.append(chunk.decode('ascii', errors='ignore'))
-                time.sleep(0.05)
-            else:
-                # Check if we have complete data
+                bytes_received += len(chunk)
+                last_data_time = time.time()
+
+                # Check if we have complete data (Q array ends the response)
                 full_response = ''.join(response_lines)
-                if '"Q"' in full_response and full_response.rstrip().endswith(']'):
-                    break
-                time.sleep(0.05)
+                if '"Q"' in full_response:
+                    # Look for closing bracket of Q array followed by newline or EOF
+                    q_idx = full_response.rfind('"Q"')
+                    remaining = full_response[q_idx:]
+                    if ']}' in remaining or (remaining.rstrip().endswith(']') and remaining.count('[') == remaining.count(']')):
+                        print(f"[RADAR] Complete response received: {bytes_received} bytes")
+                        break
+
+                time.sleep(0.01)  # Short sleep to accumulate data
+            else:
+                # No data available
+                # If we've received some data and haven't gotten more in 0.5s, consider done
+                if bytes_received > 100 and (time.time() - last_data_time) > 0.5:
+                    full_response = ''.join(response_lines)
+                    if '"Q"' in full_response:
+                        print(f"[RADAR] Response complete (no more data): {bytes_received} bytes")
+                        break
+                time.sleep(0.02)
 
         full_response = ''.join(response_lines)
+        elapsed = time.time() - start_time
+
         if not full_response:
             print("[RADAR] S! returned empty response")
         elif len(full_response) < 1000:
             # Show hex representation for short responses to see control characters
             hex_repr = ' '.join(f'{ord(c):02x}' for c in full_response[:50])
-            print(f"[RADAR] S! response too short ({len(full_response)} bytes): {repr(full_response[:200])} hex: {hex_repr}")
+            print(f"[RADAR] S! response too short ({len(full_response)} bytes, {elapsed:.1f}s): {repr(full_response[:200])} hex: {hex_repr}")
+        else:
+            print(f"[RADAR] S! received {len(full_response)} bytes in {elapsed:.1f}s")
 
         return full_response
+
+    def rearm_rolling_buffer(self):
+        """
+        Re-arm rolling buffer for next capture.
+
+        After trigger_capture() outputs data, the sensor pauses in Idle mode.
+        This command restarts active sampling for the next capture.
+        """
+        self._send_command("PA")
+        time.sleep(0.05)
+        print("[RADAR] Rolling buffer re-armed")
 
     def configure_for_rolling_buffer(self):
         """
         Configure radar optimally for rolling buffer mode.
 
-        Similar to configure_for_golf() but sets up for G1 mode:
-        - 30ksps sample rate
-        - Rolling buffer enabled
+        Similar to configure_for_golf() but sets up for rolling buffer mode:
+        - 30ksps sample rate (max ~208 mph, required for golf)
+        - Rolling buffer enabled (GC command)
         - Trigger split for ~34ms pre-trigger data
-        """
-        # Set units to MPH
-        self.set_units(SpeedUnit.MPH)
 
-        # 30ksps sample rate
-        self.set_sample_rate(30000)
-        print("[RADAR CONFIG] Sample rate: 30ksps")
+        Note: Sample rate must be set AFTER enabling rolling buffer mode
+        as the GC command may reset to default 10ksps.
+        """
+        # Set units to MPH first
+        self.set_units(SpeedUnit.MPH)
+        print("[RADAR CONFIG] Units: MPH")
 
         # Max transmit power
         self.set_transmit_power(0)
+        print("[RADAR CONFIG] Transmit power: max")
 
-        # Enable rolling buffer
+        # Enable rolling buffer mode first
         self.enable_rolling_buffer()
+
+        # IMPORTANT: Set sample rate AFTER enabling rolling buffer
+        # GC mode defaults to 10ksps, we need 30ksps for golf
+        self.set_sample_rate(30000)
+        time.sleep(0.1)
+        print("[RADAR CONFIG] Sample rate set to 30ksps")
+
+        # Verify sample rate was set
+        response = self._send_command("S?")
+        print(f"[RADAR CONFIG] Sample rate check: {response}")
 
         # Set trigger split (8 segments = ~34ms pre-trigger)
         self.set_trigger_split(8)

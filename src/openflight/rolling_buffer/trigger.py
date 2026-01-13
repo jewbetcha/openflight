@@ -91,8 +91,11 @@ class PollingTrigger(TriggerStrategy):
 
         while (time.time() - start_time) < timeout:
             try:
-                # Trigger capture
-                response = radar.trigger_capture(timeout=2.0)
+                # Trigger capture (10s timeout for large I/Q data transfer)
+                response = radar.trigger_capture(timeout=10.0)
+
+                # Re-arm for next capture (sensor goes to idle after output)
+                radar.rearm_rolling_buffer()
 
                 # Parse response
                 capture = processor.parse_capture(response)
@@ -173,8 +176,12 @@ class ThresholdTrigger(TriggerStrategy):
 
         while (time.time() - start_time) < timeout:
             try:
-                # Capture and check for threshold
-                response = radar.trigger_capture(timeout=2.0)
+                # Capture and check for threshold (10s timeout for large I/Q data)
+                response = radar.trigger_capture(timeout=10.0)
+
+                # Re-arm for next capture
+                radar.rearm_rolling_buffer()
+
                 capture = processor.parse_capture(response)
 
                 if capture is None:
@@ -194,7 +201,8 @@ class ThresholdTrigger(TriggerStrategy):
                     time.sleep(self.settling_time)
 
                     # Capture again for complete swing data
-                    response = radar.trigger_capture(timeout=2.0)
+                    response = radar.trigger_capture(timeout=10.0)
+                    radar.rearm_rolling_buffer()
                     final_capture = processor.parse_capture(response)
 
                     return final_capture or capture
@@ -242,7 +250,8 @@ class ManualTrigger(TriggerStrategy):
                 self._trigger_requested = False
                 logger.info("Manual trigger activated")
 
-                response = radar.trigger_capture(timeout=2.0)
+                response = radar.trigger_capture(timeout=10.0)
+                radar.rearm_rolling_buffer()
                 return processor.parse_capture(response)
 
             time.sleep(0.1)
