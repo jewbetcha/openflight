@@ -919,7 +919,9 @@ class OPS243Radar:
         if not full_response:
             print("[RADAR] S! returned empty response")
         elif len(full_response) < 1000:
-            print(f"[RADAR] S! response too short ({len(full_response)} bytes): {full_response[:200]}")
+            # Show hex representation for short responses to see control characters
+            hex_repr = ' '.join(f'{ord(c):02x}' for c in full_response[:50])
+            print(f"[RADAR] S! response too short ({len(full_response)} bytes): {repr(full_response[:200])} hex: {hex_repr}")
 
         return full_response
 
