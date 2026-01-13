@@ -236,6 +236,7 @@ class RollingBufferProcessor:
 
         num_blocks = len(i_data) // self.STEP_SIZE_STANDARD
         readings = []
+        max_magnitude_seen = 0
 
         for block_idx in range(num_blocks):
             start = block_idx * self.STEP_SIZE_STANDARD
@@ -248,6 +249,7 @@ class RollingBufferProcessor:
             q_block = q_data[start:end]
 
             speed_mph, magnitude, direction = self._process_block(i_block, q_block)
+            max_magnitude_seen = max(max_magnitude_seen, magnitude)
 
             # Calculate timestamp relative to capture start
             timestamp_ms = (start / self.SAMPLE_RATE) * 1000
@@ -259,6 +261,10 @@ class RollingBufferProcessor:
                     timestamp_ms=timestamp_ms,
                     direction=direction,
                 ))
+
+        # Debug: show max magnitude seen vs threshold
+        if not readings:
+            print(f"[DEBUG] FFT: max magnitude={max_magnitude_seen:.1f}, threshold={self.MAGNITUDE_THRESHOLD} - no readings passed")
 
         sample_rate_hz = self.SAMPLE_RATE / self.STEP_SIZE_STANDARD
 
