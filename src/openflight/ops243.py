@@ -836,8 +836,9 @@ class OPS243Radar:
         time.sleep(0.1)
         self._send_command("K+")  # Peak detection
         time.sleep(0.1)
-        self._send_command("G1")  # Enable rolling buffer
+        response = self._send_command("G1")  # Enable rolling buffer
         time.sleep(0.1)
+        print(f"[RADAR] G1 response: {response if response else '(none)'}")
         print("[RADAR] Rolling buffer mode enabled (G1)")
 
     def disable_rolling_buffer(self):
@@ -893,8 +894,8 @@ class OPS243Radar:
         # Clear input buffer
         self.serial.reset_input_buffer()
 
-        # Send trigger command
-        self.serial.write(b"S!")
+        # Send trigger command (needs carriage return)
+        self.serial.write(b"S!\r")
 
         # Wait and collect response (large data transfer)
         time.sleep(0.2)
