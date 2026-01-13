@@ -914,7 +914,13 @@ class OPS243Radar:
                     break
                 time.sleep(0.05)
 
-        return ''.join(response_lines)
+        full_response = ''.join(response_lines)
+        if not full_response:
+            print("[RADAR] S! returned empty response")
+        elif len(full_response) < 1000:
+            print(f"[RADAR] S! response too short ({len(full_response)} bytes): {full_response[:200]}")
+
+        return full_response
 
     def configure_for_rolling_buffer(self):
         """

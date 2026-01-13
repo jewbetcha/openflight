@@ -116,7 +116,18 @@ class RollingBufferProcessor:
                     q_samples=q_samples,
                 )
 
-            logger.warning("Incomplete capture data in response")
+            # Debug: show what we got vs what's missing
+            missing = []
+            if sample_time is None:
+                missing.append("sample_time")
+            if trigger_time is None:
+                missing.append("trigger_time")
+            if i_samples is None:
+                missing.append("I")
+            if q_samples is None:
+                missing.append("Q")
+            logger.warning(f"Incomplete capture data in response (missing: {', '.join(missing)})")
+            logger.debug(f"Raw response preview: {response[:500] if response else '(empty)'}")
             return None
 
         except Exception as e:
