@@ -142,6 +142,10 @@ if [ "$CAMERA_MODE" = true ]; then
     fi
 fi
 
+if [ -n "$MODE" ]; then
+    SERVER_CMD="$SERVER_CMD --mode $MODE"
+fi
+
 # Start the server
 if [ "$MOCK_MODE" = true ]; then
     log "Starting OpenFlight server on port $PORT (MOCK MODE)..."
