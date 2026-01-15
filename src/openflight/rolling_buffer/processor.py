@@ -54,8 +54,8 @@ class RollingBufferProcessor:
     ADC_RANGE = 4096         # 12-bit ADC
     VOLTAGE_REF = 3.3        # Reference voltage
 
-    # Magnitude threshold for valid peaks
-    MAGNITUDE_THRESHOLD = 20
+    # Magnitude threshold for valid peaks (lowered for better detection)
+    MAGNITUDE_THRESHOLD = 10
 
     # Spin detection
     MIN_SPIN_RPM = 1000

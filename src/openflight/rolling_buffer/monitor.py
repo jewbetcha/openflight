@@ -367,9 +367,9 @@ class RollingBufferMonitor:
         Returns:
             Shot object or None if invalid
         """
-        # Validate ball speed (lowered for testing - real shots are 80+ mph)
-        if processed.ball_speed_mph < 20:
-            print(f"[DEBUG] Ball speed too low: {processed.ball_speed_mph:.1f} mph (need >=20)")
+        # Validate ball speed (lowered for field testing - real shots are 80+ mph)
+        if processed.ball_speed_mph < 15:
+            print(f"[DEBUG] Ball speed too low: {processed.ball_speed_mph:.1f} mph (need >=15)")
             return None
 
         # Calculate carry distance

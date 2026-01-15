@@ -452,9 +452,9 @@ class TestPollingTrigger:
     def test_default_parameters(self):
         """Polling trigger should have sensible defaults."""
         trigger = PollingTrigger()
-        assert trigger.poll_interval == 0.5
-        assert trigger.min_readings == 3
-        assert trigger.min_speed_mph == 25
+        assert trigger.poll_interval == 0.3
+        assert trigger.min_readings == 2
+        assert trigger.min_speed_mph == 15
 
     def test_custom_parameters(self):
         """Polling trigger should accept custom parameters."""

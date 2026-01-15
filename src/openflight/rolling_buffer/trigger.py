@@ -64,17 +64,17 @@ class PollingTrigger(TriggerStrategy):
 
     def __init__(
         self,
-        poll_interval: float = 0.5,
-        min_readings: int = 3,
-        min_speed_mph: float = 25,
+        poll_interval: float = 0.3,
+        min_readings: int = 2,
+        min_speed_mph: float = 15,
     ):
         """
         Initialize polling trigger.
 
         Args:
-            poll_interval: Seconds between poll attempts
-            min_readings: Minimum readings to consider valid (outbound, above min_speed)
-            min_speed_mph: Minimum speed to consider a golf shot (default 25 mph)
+            poll_interval: Seconds between poll attempts (default 0.3s for faster response)
+            min_readings: Minimum outbound readings above min_speed (default 2)
+            min_speed_mph: Minimum speed to consider activity (default 15 mph)
         """
         self.poll_interval = poll_interval
         self.min_readings = min_readings
