@@ -172,7 +172,9 @@ class RollingBufferProcessor:
         q_windowed = q_scaled * self.hanning_window
 
         # Create complex signal
-        complex_signal = i_windowed + 1j * q_windowed
+        # Note: Using Q + jI (swapped) to match radar's I/Q convention
+        # This ensures positive frequencies = outbound (away from radar)
+        complex_signal = q_windowed + 1j * i_windowed
 
         # FFT
         fft_result = np.fft.fft(complex_signal, self.FFT_SIZE)
@@ -181,9 +183,9 @@ class RollingBufferProcessor:
         # Find peak in positive frequencies and negative frequencies
         half = self.FFT_SIZE // 2
 
-        # Per OmniPreSense convention (consistent with streaming mode):
-        # - Positive frequencies (bins 1 to half-1) = INBOUND (toward radar, e.g., backswing)
-        # - Negative frequencies (bins half+1 to end) = OUTBOUND (away from radar, e.g., ball flight)
+        # After swapping I/Q (Q + jI instead of I + jQ), the spectrum is flipped:
+        # - Positive frequencies (bins 1 to half-1) = OUTBOUND (away from radar, e.g., ball flight)
+        # - Negative frequencies (bins half+1 to end) = INBOUND (toward radar, e.g., backswing)
         pos_peak_bin = np.argmax(magnitude[1:half]) + 1
         pos_peak_mag = magnitude[pos_peak_bin]
 
@@ -194,11 +196,11 @@ class RollingBufferProcessor:
         if pos_peak_mag >= neg_peak_mag:
             peak_bin = pos_peak_bin
             peak_mag = pos_peak_mag
-            direction = "inbound"  # Positive frequency = toward radar
+            direction = "outbound"  # Positive frequency = away from radar (ball/club)
         else:
             peak_bin = neg_peak_bin - self.FFT_SIZE  # Convert to negative bin
             peak_mag = neg_peak_mag
-            direction = "outbound"  # Negative frequency = away from radar
+            direction = "inbound"  # Negative frequency = toward radar (backswing)
 
         # Convert bin to speed
         # Frequency = bin * sample_rate / fft_size
