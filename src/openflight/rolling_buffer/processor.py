@@ -171,10 +171,8 @@ class RollingBufferProcessor:
         i_windowed = i_scaled * self.hanning_window
         q_windowed = q_scaled * self.hanning_window
 
-        # Create complex signal
-        # Note: Using Q + jI (swapped) to match radar's I/Q convention
-        # This ensures positive frequencies = outbound (away from radar)
-        complex_signal = q_windowed + 1j * i_windowed
+        # Create complex signal (standard I + jQ)
+        complex_signal = i_windowed + 1j * q_windowed
 
         # FFT
         fft_result = np.fft.fft(complex_signal, self.FFT_SIZE)
@@ -183,9 +181,9 @@ class RollingBufferProcessor:
         # Find peak in positive frequencies and negative frequencies
         half = self.FFT_SIZE // 2
 
-        # After swapping I/Q (Q + jI instead of I + jQ), the spectrum is flipped:
-        # - Positive frequencies (bins 1 to half-1) = OUTBOUND (away from radar, e.g., ball flight)
-        # - Negative frequencies (bins half+1 to end) = INBOUND (toward radar, e.g., backswing)
+        # OPS243 I/Q convention (empirically determined from diagnostic data):
+        # - Positive frequencies (bins 1 to half-1) = OUTBOUND (away from radar, ball/club flying away)
+        # - Negative frequencies (bins half+1 to end) = INBOUND (toward radar, backswing)
         pos_peak_bin = np.argmax(magnitude[1:half]) + 1
         pos_peak_mag = magnitude[pos_peak_bin]
 

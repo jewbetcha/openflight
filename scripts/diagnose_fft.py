@@ -48,11 +48,10 @@ def analyze_capture(response: str):
     print(f"I samples: {len(i_samples)}, range: {i_samples.min()}-{i_samples.max()}, mean: {i_samples.mean():.1f}, std: {np.std(i_samples):.1f}")
     print(f"Q samples: {len(q_samples)}, range: {q_samples.min()}-{q_samples.max()}, mean: {q_samples.mean():.1f}, std: {np.std(q_samples):.1f}")
 
-    # Full 4096-sample FFT
-    # Swap I/Q to match radar convention (Q + jI instead of I + jQ)
+    # Full 4096-sample FFT (standard I + jQ)
     i_centered = i_samples - np.mean(i_samples)
     q_centered = q_samples - np.mean(q_samples)
-    complex_signal = q_centered + 1j * i_centered  # SWAPPED
+    complex_signal = i_centered + 1j * q_centered
 
     fft_result = np.fft.fft(complex_signal)
     magnitude = np.abs(fft_result)
@@ -137,7 +136,7 @@ def analyze_capture(response: str):
         i_w = i_c * window * (3.3/4096)
         q_w = q_c * window * (3.3/4096)
 
-        sig = q_w + 1j * i_w  # SWAPPED to match radar convention
+        sig = i_w + 1j * q_w  # Standard I + jQ
         fft_w = np.fft.fft(sig, FFT_SIZE)
         mag_w = np.abs(fft_w)
 
