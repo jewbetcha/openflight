@@ -74,12 +74,14 @@ def parse_capture(response: str) -> dict | None:
 
 
 def main():
-    # Output file
+    # Output file - save to ~/openflight_sessions by default
     if len(sys.argv) > 1:
-        output_path = Path(sys.argv[1])
+        output_path = Path(sys.argv[1]).expanduser().resolve()
     else:
+        output_dir = Path.home() / "openflight_sessions"
+        output_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = Path(f"iq_captures_{timestamp}.pkl")
+        output_path = output_dir / f"iq_captures_{timestamp}.pkl"
 
     print(f"=== I/Q Capture Tool ===")
     print(f"Output file: {output_path}")
@@ -116,20 +118,21 @@ def main():
             response = radar.trigger_capture(timeout=10.0)
             radar.rearm_rolling_buffer()
 
-            if len(response) > 1000:  # Got actual data
-                capture = parse_capture(response)
-                if capture:
-                    capture_count += 1
-                    captures.append(capture)
+            # Capture ALL responses (including noise/baseline)
+            capture = parse_capture(response)
+            if capture:
+                capture_count += 1
+                captures.append(capture)
 
-                    # Show quick stats
-                    i_std = np.std(capture["i_raw"])
-                    q_std = np.std(capture["q_raw"])
-                    print(f"[{capture_count}] Captured: I std={i_std:.1f}, Q std={q_std:.1f}, "
-                          f"I range={capture['i_raw'].min()}-{capture['i_raw'].max()}, "
-                          f"Q range={capture['q_raw'].min()}-{capture['q_raw'].max()}")
+                # Show quick stats
+                i_std = np.std(capture["i_raw"])
+                q_std = np.std(capture["q_raw"])
+                print(f"[{capture_count}] Captured: I std={i_std:.1f}, Q std={q_std:.1f}, "
+                      f"I range={capture['i_raw'].min()}-{capture['i_raw'].max()}, "
+                      f"Q range={capture['q_raw'].min()}-{capture['q_raw'].max()}")
             else:
-                print(".", end="", flush=True)
+                # Failed to parse - show response length for debugging
+                print(f"x({len(response)})", end="", flush=True)
 
             time.sleep(0.3)
 
