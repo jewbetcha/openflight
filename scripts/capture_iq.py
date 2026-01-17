@@ -115,7 +115,17 @@ def main():
     try:
         while True:
             # Trigger capture
+            print(".", end="", flush=True)
             response = radar.trigger_capture(timeout=10.0)
+
+            # Debug: show response info
+            if not response:
+                print("(empty)", end="", flush=True)
+            elif len(response) < 100:
+                print(f"(short:{repr(response[:50])})", end="", flush=True)
+            else:
+                print(f"({len(response)}b)", end="", flush=True)
+
             radar.rearm_rolling_buffer()
 
             # Capture ALL responses (including noise/baseline)
@@ -127,12 +137,9 @@ def main():
                 # Show quick stats
                 i_std = np.std(capture["i_raw"])
                 q_std = np.std(capture["q_raw"])
-                print(f"[{capture_count}] Captured: I std={i_std:.1f}, Q std={q_std:.1f}, "
+                print(f"\n[{capture_count}] Captured: I std={i_std:.1f}, Q std={q_std:.1f}, "
                       f"I range={capture['i_raw'].min()}-{capture['i_raw'].max()}, "
                       f"Q range={capture['q_raw'].min()}-{capture['q_raw'].max()}")
-            else:
-                # Failed to parse - show response length for debugging
-                print(f"x({len(response)})", end="", flush=True)
 
             time.sleep(0.3)
 
