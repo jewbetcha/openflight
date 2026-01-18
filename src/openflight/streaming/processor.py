@@ -9,11 +9,12 @@ Uses a two-stage detection approach:
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import numpy as np
 
 from ..ops243 import Direction, IQBlock, SpeedReading
+from ..session_logger import get_session_logger
 from .cfar import CFAR2DDetector, CFARConfig
 
 
@@ -140,6 +141,9 @@ class StreamingIQProcessor:
         if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
             return None
 
+        # Track if CFAR validated
+        cfar_validated = False
+
         # Periodic CFAR validation (every 8 blocks when buffer full)
         if (len(self.spectrogram_buffer) >= cfg.cfar.spectrogram_length
                 and self._block_count % 8 == 0):
@@ -148,6 +152,8 @@ class StreamingIQProcessor:
 
             if not detections:
                 return None  # CFAR says no valid detection
+
+            cfar_validated = True
 
             # Use CFAR result
             t_idx, freq_bin, peak_mag, _ = detections[0]
@@ -167,6 +173,11 @@ class StreamingIQProcessor:
             if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
                 return None
 
+        # Store detection metadata for logging
+        self._last_snr = snr
+        self._last_peak_bin = peak_bin
+        self._last_cfar_validated = cfar_validated
+
         return SpeedReading(
             speed=speed_mph,
             direction=direction,
@@ -180,32 +191,104 @@ class StreamingSpeedDetector:
     """
     High-level wrapper for continuous I/Q streaming with callbacks.
 
-    Wraps StreamingIQProcessor and tracks statistics.
+    Wraps StreamingIQProcessor, tracks statistics, and maintains an I/Q buffer
+    for post-session analysis.
     """
+
+    # Keep 2 seconds of I/Q data at ~234 blocks/sec (30000 / 128)
+    IQ_BUFFER_SIZE = 500
 
     def __init__(
         self,
         callback: Callable[[SpeedReading], None],
-        config: Optional[StreamingConfig] = None
+        config: Optional[StreamingConfig] = None,
+        capture_iq: bool = True
     ):
+        """
+        Initialize the streaming speed detector.
+
+        Args:
+            callback: Called when a speed reading is detected
+            config: Streaming configuration
+            capture_iq: If True, maintain rolling buffer of I/Q blocks for logging
+        """
         self.callback = callback
         self.processor = StreamingIQProcessor(config)
         self.blocks_processed = 0
         self.readings_emitted = 0
 
+        # I/Q block capture for logging
+        self._capture_iq = capture_iq
+        self._iq_buffer: deque = deque(maxlen=self.IQ_BUFFER_SIZE) if capture_iq else None
+
     def on_block(self, block: IQBlock):
         """Process an incoming I/Q block."""
         self.blocks_processed += 1
 
+        # Capture I/Q data for logging
+        if self._capture_iq and self._iq_buffer is not None:
+            self._iq_buffer.append({
+                "timestamp": block.timestamp,
+                "i_samples": list(block.i_samples),
+                "q_samples": list(block.q_samples),
+            })
+
         reading = self.processor.process_block(block)
         if reading:
             self.readings_emitted += 1
+
+            # Log to session logger with detection metadata
+            logger = get_session_logger()
+            if logger:
+                logger.log_iq_reading(
+                    speed_mph=reading.speed,
+                    direction=reading.direction.value,
+                    magnitude=reading.magnitude,
+                    snr=getattr(self.processor, '_last_snr', 0.0),
+                    peak_bin=getattr(self.processor, '_last_peak_bin', 0),
+                    cfar_validated=getattr(self.processor, '_last_cfar_validated', False),
+                    block_count=self.blocks_processed,
+                )
+
             self.callback(reading)
+
+    def get_recent_iq_blocks(self, count: Optional[int] = None) -> List[dict]:
+        """
+        Get recent I/Q blocks from the buffer.
+
+        Args:
+            count: Number of blocks to return (default: all in buffer)
+
+        Returns:
+            List of I/Q block dicts with timestamp, i_samples, q_samples
+        """
+        if not self._capture_iq or self._iq_buffer is None:
+            return []
+
+        blocks = list(self._iq_buffer)
+        if count is not None:
+            blocks = blocks[-count:]
+        return blocks
+
+    def log_iq_for_shot(self, shot_number: int, blocks_before: int = 100):
+        """
+        Log I/Q blocks for a detected shot.
+
+        Args:
+            shot_number: Shot number to tag the data with
+            blocks_before: Number of blocks to save (captures pre-shot data)
+        """
+        logger = get_session_logger()
+        if logger and self._capture_iq:
+            blocks = self.get_recent_iq_blocks(blocks_before)
+            if blocks:
+                logger.log_iq_blocks(shot_number, blocks)
 
     def get_stats(self) -> dict:
         """Get processing statistics."""
         return {
             "blocks_processed": self.blocks_processed,
             "readings_emitted": self.readings_emitted,
-            "hit_rate": self.readings_emitted / max(1, self.blocks_processed)
+            "hit_rate": self.readings_emitted / max(1, self.blocks_processed),
+            "iq_buffer_size": len(self._iq_buffer) if self._iq_buffer else 0,
         }

@@ -7,13 +7,12 @@ for analysis and debugging.
 
 import json
 import logging
-import os
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional
 
-from .ops243 import SpeedReading, Direction
+from .ops243 import SpeedReading
 
 
 @dataclass
@@ -326,6 +325,62 @@ class SessionLogger:
         self._write_entry("config_change", {
             "config": config,
             "source": source,
+        })
+
+    def log_iq_reading(
+        self,
+        speed_mph: float,
+        direction: str,
+        magnitude: float,
+        snr: float,
+        peak_bin: int,
+        cfar_validated: bool,
+        block_count: int
+    ):
+        """
+        Log a speed reading detected from I/Q streaming mode.
+
+        Args:
+            speed_mph: Detected speed in mph
+            direction: "outbound" or "inbound"
+            magnitude: Peak FFT magnitude
+            snr: Signal-to-noise ratio
+            peak_bin: FFT bin of the peak
+            cfar_validated: Whether this was validated by CFAR
+            block_count: Number of I/Q blocks processed
+        """
+        if not self.enabled:
+            return
+
+        self._write_entry("iq_reading", {
+            "speed_mph": speed_mph,
+            "direction": direction,
+            "magnitude": magnitude,
+            "snr": snr,
+            "peak_bin": peak_bin,
+            "cfar_validated": cfar_validated,
+            "block_count": block_count,
+        })
+
+    def log_iq_blocks(
+        self,
+        shot_number: int,
+        blocks: List[Dict[str, Any]]
+    ):
+        """
+        Log raw I/Q blocks for a shot (for post-session analysis).
+
+        Args:
+            shot_number: Shot number this data belongs to
+            blocks: List of I/Q block data dicts with i_samples, q_samples, timestamp
+        """
+        if not self.enabled:
+            return
+
+        self._write_entry("iq_blocks", {
+            "shot_number": shot_number,
+            "block_count": len(blocks),
+            "blocks": blocks,
         })
 
     def log_error(self, error: str, context: Optional[Dict] = None):

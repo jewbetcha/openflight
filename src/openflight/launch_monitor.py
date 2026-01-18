@@ -620,6 +620,11 @@ class LaunchMonitor:
                 readings=readings_data
             )
 
+            # Log I/Q blocks for this shot (for post-session analysis)
+            if self._use_iq_streaming and self._iq_detector:
+                shot_number = logger.stats.get("shots_detected", len(self._shots))
+                self._iq_detector.log_iq_for_shot(shot_number)
+
         # Callback
         if self._shot_callback:
             self._shot_callback(shot)
