@@ -123,7 +123,7 @@ log "Activated virtual environment"
 # Install Python dependencies
 log "Installing Python dependencies..."
 if command -v uv &> /dev/null; then
-    uv pip install -e ".[ui]"
+    uv pip install -e ".[ui,analysis]"
 
     # Install camera dependencies on Pi or if requested
     if [ "$PLATFORM" == "pi" ]; then
@@ -136,7 +136,7 @@ if command -v uv &> /dev/null; then
         uv pip install -e ".[camera]"
     fi
 else
-    pip install -e ".[ui]"
+    pip install -e ".[ui,analysis]"
     if [ "$PLATFORM" == "pi" ]; then
         pip install -e ".[camera]"
     fi
