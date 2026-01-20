@@ -49,8 +49,9 @@ class StreamingIQProcessor:
     6. Convert to SpeedReading if valid
     """
 
-    def __init__(self, config: Optional[StreamingConfig] = None):
+    def __init__(self, config: Optional[StreamingConfig] = None, debug: bool = False):
         self.config = config or StreamingConfig()
+        self.debug = debug
         self.hanning_window = np.hanning(self.config.window_size)
 
         # Pre-compute bin-to-speed lookup
@@ -65,6 +66,7 @@ class StreamingIQProcessor:
         self.spectrogram_buffer: deque = deque(maxlen=cfg.cfar.spectrogram_length)
         self.timestamp_buffer: deque = deque(maxlen=cfg.cfar.spectrogram_length)
         self._block_count = 0
+        self._last_debug_time = 0
 
     def _compute_spectrum(self, block: IQBlock) -> Optional[np.ndarray]:
         """Compute FFT magnitude spectrum from I/Q block."""
@@ -89,6 +91,7 @@ class StreamingIQProcessor:
 
         Uses fast SNR-based detection with periodic CFAR validation.
         """
+        import time as _time
         cfg = self.config
 
         magnitude = self._compute_spectrum(block)
@@ -127,18 +130,36 @@ class StreamingIQProcessor:
         noise_floor = np.median(valid_bins)
         snr = peak_mag / max(noise_floor, 1e-10)
 
-        # Fast rejection if SNR too low
-        if snr < cfg.cfar.threshold_factor:
-            return None
-
-        # Convert bin to speed
+        # Convert bin to speed (for debug output)
         if peak_bin < half:
             speed_mph = self.bin_to_mph[peak_bin]
         else:
             speed_mph = self.bin_to_mph[abs(peak_bin - cfg.fft_size)]
 
+        # Debug output - show FFT analysis (throttled or when interesting)
+        if self.debug:
+            now = _time.time()
+            snr_status = "PASS" if snr >= cfg.cfar.threshold_factor else "fail"
+            speed_status = "PASS" if cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph else "fail"
+
+            # Print if: SNR passes threshold, OR every 100 blocks for status
+            interesting = snr >= cfg.cfar.threshold_factor
+            periodic = (self._block_count % 100 == 0)
+
+            if interesting or periodic:
+                marker = ">>>" if interesting else "   "
+                print(f"{marker}[FFT] blk={self._block_count} peak={peak_mag:.4f} noise={noise_floor:.4f} "
+                      f"SNR={snr:.1f}({snr_status}) speed={speed_mph:.1f}mph({speed_status}) "
+                      f"dir={direction.value} bin={peak_bin}")
+
+        # Fast rejection if SNR too low
+        if snr < cfg.cfar.threshold_factor:
+            return None
+
         # Speed filter
         if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
+            if self.debug:
+                print(f"[FFT] REJECTED: speed {speed_mph:.1f} outside {cfg.min_speed_mph}-{cfg.max_speed_mph}")
             return None
 
         # Track if CFAR validated
@@ -150,16 +171,26 @@ class StreamingIQProcessor:
             spectrogram = np.array(self.spectrogram_buffer)
             detections = self.cfar.detect(spectrogram)
 
+            if self.debug:
+                print(f"[CFAR] Running CFAR on {len(spectrogram)} frames, detections={len(detections)}")
+
             if not detections:
+                if self.debug:
+                    print(f"[CFAR] REJECTED: no CFAR detections")
                 return None  # CFAR says no valid detection
 
             cfar_validated = True
 
             # Use CFAR result
-            t_idx, freq_bin, peak_mag, _ = detections[0]
+            t_idx, freq_bin, cfar_mag, threshold = detections[0]
+
+            if self.debug:
+                print(f"[CFAR] Detection: t={t_idx} bin={freq_bin} mag={cfar_mag:.4f} thresh={threshold:.4f}")
 
             # Only report recent detections
             if t_idx < len(spectrogram) - 3:
+                if self.debug:
+                    print(f"[CFAR] REJECTED: detection too old (t={t_idx}, need >= {len(spectrogram)-3})")
                 return None
 
             # Update from CFAR
@@ -171,7 +202,12 @@ class StreamingIQProcessor:
                 speed_mph = self.bin_to_mph[abs(freq_bin - cfg.fft_size)]
 
             if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
+                if self.debug:
+                    print(f"[CFAR] REJECTED: CFAR speed {speed_mph:.1f} outside range")
                 return None
+
+            if self.debug:
+                print(f"[CFAR] ACCEPTED: {speed_mph:.1f} mph {direction.value}")
 
         # Store detection metadata for logging (convert numpy to native Python types)
         self._last_snr = float(snr)
@@ -202,7 +238,8 @@ class StreamingSpeedDetector:
         self,
         callback: Callable[[SpeedReading], None],
         config: Optional[StreamingConfig] = None,
-        capture_iq: bool = True
+        capture_iq: bool = True,
+        debug: bool = False
     ):
         """
         Initialize the streaming speed detector.
@@ -211,9 +248,11 @@ class StreamingSpeedDetector:
             callback: Called when a speed reading is detected
             config: Streaming configuration
             capture_iq: If True, maintain rolling buffer of I/Q blocks for logging
+            debug: If True, print verbose FFT/CFAR debug output
         """
         self.callback = callback
-        self.processor = StreamingIQProcessor(config)
+        self.processor = StreamingIQProcessor(config, debug=debug)
+        self.debug = debug
         self.blocks_processed = 0
         self.readings_emitted = 0
 

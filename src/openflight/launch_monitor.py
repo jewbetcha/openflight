@@ -302,7 +302,8 @@ class LaunchMonitor:
         self,
         port: Optional[str] = None,
         detect_club_speed: bool = True,
-        use_iq_streaming: bool = True
+        use_iq_streaming: bool = True,
+        debug: bool = False
     ):
         """
         Initialize launch monitor.
@@ -314,11 +315,13 @@ class LaunchMonitor:
             use_iq_streaming: If True (default), use continuous I/Q streaming
                              with local FFT processing. If False, use radar's
                              internal speed processing.
+            debug: If True, print verbose FFT/CFAR debug output.
         """
         self.radar = OPS243Radar(port=port)
         self._running = False
         self._detect_club_speed = detect_club_speed
         self._use_iq_streaming = use_iq_streaming
+        self._debug = debug
         self._current_readings: List[SpeedReading] = []
         self._last_reading_time: float = 0
         self._shot_start_time: float = 0
@@ -371,7 +374,8 @@ class LaunchMonitor:
             # Additional filtering happens in _on_reading based on shot context
             self._iq_detector = StreamingSpeedDetector(
                 callback=self._on_reading,
-                config=None  # Use CFAR-tuned defaults
+                config=None,  # Use CFAR-tuned defaults
+                debug=self._debug
             )
             self.radar.start_iq_streaming(
                 callback=self._iq_detector.on_block,

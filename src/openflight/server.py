@@ -650,6 +650,7 @@ def start_monitor(
     mock: bool = False,
     mode: str = "streaming",
     trigger_type: str = "polling",
+    debug: bool = False,
 ):
     """
     Start the launch monitor.
@@ -659,6 +660,7 @@ def start_monitor(
         mock: Run in mock mode without radar
         mode: "streaming" (default) or "rolling-buffer"
         trigger_type: Trigger strategy for rolling-buffer mode
+        debug: Enable verbose FFT/CFAR debug output
     """
     global monitor, mock_mode  # pylint: disable=global-statement
 
@@ -673,8 +675,8 @@ def start_monitor(
         print(f"[MODE] Rolling buffer mode enabled (trigger: {trigger_type})")
     else:
         # Default streaming mode
-        monitor = LaunchMonitor(port=port)
-        print("[MODE] Streaming mode enabled")
+        monitor = LaunchMonitor(port=port, debug=debug)
+        print(f"[MODE] Streaming mode enabled (debug={debug})")
 
     monitor.connect()
 
@@ -842,7 +844,7 @@ def main():
     parser.add_argument(
         "--web-port", type=int, default=8080, help="Web server port (default: 8080)"
     )
-    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug mode")
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose FFT/CFAR debug output")
     parser.add_argument("--radar-log", action="store_true", help="Log raw radar data to console (Python logging)")
     parser.add_argument("--show-raw", action="store_true", help="Show raw radar readings in console (signed values)")
     parser.add_argument(
@@ -933,6 +935,7 @@ def main():
         mock=args.mock,
         mode=args.mode,
         trigger_type=args.trigger,
+        debug=args.debug,
     )
 
     if args.mock:
