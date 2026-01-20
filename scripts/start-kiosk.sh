@@ -12,6 +12,7 @@ PORT=8080
 HOST="localhost"
 MOCK_MODE=false
 RADAR_LOG=false
+DEBUG_MODE=false
 CAMERA_MODE=true  # Camera enabled by default
 CAMERA_MODEL="models/golf_ball_yolo11n_new_256.onnx"
 CAMERA_IMGSZ=256
@@ -28,6 +29,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --radar-log)
             RADAR_LOG=true
+            shift
+            ;;
+        --debug|-d)
+            DEBUG_MODE=true
             shift
             ;;
         --camera|-c)
@@ -130,6 +135,10 @@ if [ "$RADAR_LOG" = true ]; then
     SERVER_CMD="$SERVER_CMD --radar-log"
 fi
 
+if [ "$DEBUG_MODE" = true ]; then
+    SERVER_CMD="$SERVER_CMD --debug"
+fi
+
 if [ "$CAMERA_MODE" = true ]; then
     SERVER_CMD="$SERVER_CMD --camera"
     if [ -n "$ROBOFLOW_MODEL" ]; then
@@ -151,6 +160,10 @@ if [ "$MOCK_MODE" = true ]; then
     log "Starting OpenFlight server on port $PORT (MOCK MODE)..."
 else
     log "Starting OpenFlight server on port $PORT..."
+fi
+
+if [ "$DEBUG_MODE" = true ]; then
+    log "Debug mode enabled (verbose FFT/CFAR output)"
 fi
 
 if [ "$CAMERA_MODE" = true ]; then
