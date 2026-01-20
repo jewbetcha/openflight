@@ -1221,6 +1221,12 @@ class OPS243Radar:
                                         timestamp=time.time()
                                     )
                                     if self._iq_callback:
+                                        # Debug: log thread calling callback (every 100 blocks)
+                                        if not hasattr(self, '_cb_count'):
+                                            self._cb_count = 0
+                                        self._cb_count += 1
+                                        if self._cb_count % 100 == 1:
+                                            print(f"[RADAR] Calling callback from thread {_threading.current_thread().ident}")
                                         self._iq_callback(block)
 
                                 pending_i = None
