@@ -428,19 +428,23 @@ class LaunchMonitor:
                 print(f"[FILTER] Magnitude {reading.magnitude:.1f} below minimum {self.MIN_MAGNITUDE}")
                 return
 
-        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} mag={reading.magnitude:.3f} - buffered: {len(self._current_readings)}")
+        # Show timing info for debugging
+        time_gap = (now - self._last_reading_time) if self._last_reading_time else 0
+        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} mag={reading.magnitude:.3f} "
+              f"- buffered: {len(self._current_readings)}, gap: {time_gap*1000:.0f}ms")
         if logger:
             logger.log_accepted_reading(reading)
 
         # Check if this is part of current shot or new shot
-        if self._current_readings and (now - self._last_reading_time) > self.SHOT_TIMEOUT_SEC:
+        if self._current_readings and time_gap > self.SHOT_TIMEOUT_SEC:
             # Previous shot complete, process it
-            print(f"[TIMEOUT] Processing shot with {len(self._current_readings)} readings")
+            print(f"[TIMEOUT] {time_gap*1000:.0f}ms gap > {self.SHOT_TIMEOUT_SEC*1000:.0f}ms - processing {len(self._current_readings)} readings")
             self._process_shot()
 
         # Track shot start time
         if not self._current_readings:
             self._shot_start_time = now
+            print(f"[SHOT START] Beginning new shot window")
 
         # Add to current readings
         self._current_readings.append(reading)
@@ -533,8 +537,9 @@ class LaunchMonitor:
         - Ball speed above minimum for golf shots
         """
         if len(self._current_readings) < self.MIN_READINGS_FOR_SHOT:
+            speeds = [f"{r.speed:.1f}" for r in self._current_readings]
             print(f"[REJECTED] Only {len(self._current_readings)} readings "
-                  f"(need {self.MIN_READINGS_FOR_SHOT})")
+                  f"(need {self.MIN_READINGS_FOR_SHOT}): {', '.join(speeds)} mph")
             self._current_readings = []
             return
 
