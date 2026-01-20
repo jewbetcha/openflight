@@ -89,7 +89,11 @@ class StreamingIQProcessor:
         """
         Process a single I/Q block into a speed reading.
 
-        Uses fast SNR-based detection with periodic CFAR validation.
+        Flow:
+        1. Compute FFT magnitude spectrum
+        2. Add to spectrogram buffer
+        3. Run CFAR on spectrogram (every 8 blocks)
+        4. Only emit reading if CFAR detects valid signal
         """
         import time as _time
         cfg = self.config
@@ -103,116 +107,67 @@ class StreamingIQProcessor:
         self.timestamp_buffer.append(block.timestamp)
         self._block_count += 1
 
-        # Fast path: find peak outside DC region
         half = cfg.fft_size // 2
         dc_mask = cfg.cfar.dc_mask_bins
 
-        # Positive frequencies (outbound)
-        pos_region = magnitude[dc_mask:half]
-        pos_peak_bin = np.argmax(pos_region) + dc_mask
-        pos_peak_mag = magnitude[pos_peak_bin]
+        # Debug: Show periodic status
+        if self.debug and self._block_count % 100 == 0:
+            # Quick peek at current FFT peak for status
+            pos_region = magnitude[dc_mask:half]
+            pos_peak_bin = np.argmax(pos_region) + dc_mask
+            pos_peak_mag = magnitude[pos_peak_bin]
+            noise_floor = np.median(magnitude[dc_mask:half])
+            snr = pos_peak_mag / max(noise_floor, 1e-10)
+            speed = self.bin_to_mph[pos_peak_bin]
+            print(f"   [IQ] blk={self._block_count} peak={pos_peak_mag:.4f} SNR={snr:.1f} "
+                  f"speed={speed:.1f}mph buf={len(self.spectrogram_buffer)}/{cfg.cfar.spectrogram_length}")
 
-        # Negative frequencies (inbound)
-        neg_region = magnitude[half:cfg.fft_size - dc_mask]
-        neg_peak_bin = np.argmax(neg_region) + half
-        neg_peak_mag = magnitude[neg_peak_bin]
+        # Only run CFAR detection when we have enough data (every 8 blocks)
+        if not (len(self.spectrogram_buffer) >= cfg.cfar.spectrogram_length
+                and self._block_count % 8 == 0):
+            return None  # Not time for CFAR yet
 
-        # Choose strongest peak
-        if pos_peak_mag >= neg_peak_mag:
-            peak_bin, peak_mag = pos_peak_bin, pos_peak_mag
-            direction = Direction.OUTBOUND
-        else:
-            peak_bin, peak_mag = neg_peak_bin, neg_peak_mag
-            direction = Direction.INBOUND
+        # Run CFAR detection on spectrogram
+        spectrogram = np.array(self.spectrogram_buffer)
+        detections = self.cfar.detect(spectrogram)
 
-        # Compute SNR (signal-to-noise ratio)
-        valid_bins = np.concatenate([magnitude[dc_mask:half], magnitude[half:-dc_mask]])
-        noise_floor = np.median(valid_bins)
-        snr = peak_mag / max(noise_floor, 1e-10)
-
-        # Convert bin to speed (for debug output)
-        if peak_bin < half:
-            speed_mph = self.bin_to_mph[peak_bin]
-        else:
-            speed_mph = self.bin_to_mph[abs(peak_bin - cfg.fft_size)]
-
-        # Debug output - show FFT analysis (throttled or when interesting)
         if self.debug:
-            now = _time.time()
-            snr_status = "PASS" if snr >= cfg.cfar.threshold_factor else "fail"
-            speed_status = "PASS" if cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph else "fail"
+            print(f">>>[CFAR] blk={self._block_count} frames={len(spectrogram)} detections={len(detections)}")
 
-            # Print if: SNR passes threshold, OR every 100 blocks for status
-            interesting = snr >= cfg.cfar.threshold_factor
-            periodic = (self._block_count % 100 == 0)
+        if not detections:
+            return None  # CFAR says no valid detection
 
-            if interesting or periodic:
-                marker = ">>>" if interesting else "   "
-                print(f"{marker}[FFT] blk={self._block_count} peak={peak_mag:.4f} noise={noise_floor:.4f} "
-                      f"SNR={snr:.1f}({snr_status}) speed={speed_mph:.1f}mph({speed_status}) "
-                      f"dir={direction.value} bin={peak_bin}")
+        # Use strongest CFAR detection
+        t_idx, freq_bin, peak_mag, threshold = detections[0]
 
-        # Fast rejection if SNR too low
-        if snr < cfg.cfar.threshold_factor:
+        # Only report recent detections (in last 3 frames)
+        if t_idx < len(spectrogram) - 3:
+            if self.debug:
+                print(f"   [CFAR] detection too old: t={t_idx}, need >= {len(spectrogram)-3}")
             return None
+
+        # Convert frequency bin to speed
+        if freq_bin < half:
+            direction = Direction.OUTBOUND
+            speed_mph = self.bin_to_mph[freq_bin]
+        else:
+            direction = Direction.INBOUND
+            speed_mph = self.bin_to_mph[abs(freq_bin - cfg.fft_size)]
 
         # Speed filter
         if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
             if self.debug:
-                print(f"[FFT] REJECTED: speed {speed_mph:.1f} outside {cfg.min_speed_mph}-{cfg.max_speed_mph}")
+                print(f"   [CFAR] speed {speed_mph:.1f} outside {cfg.min_speed_mph}-{cfg.max_speed_mph}")
             return None
 
-        # Track if CFAR validated
-        cfar_validated = False
+        if self.debug:
+            print(f">>>[DETECTED] {speed_mph:.1f} mph {direction.value} "
+                  f"bin={freq_bin} mag={peak_mag:.4f} thresh={threshold:.4f}")
 
-        # Periodic CFAR validation (every 8 blocks when buffer full)
-        if (len(self.spectrogram_buffer) >= cfg.cfar.spectrogram_length
-                and self._block_count % 8 == 0):
-            spectrogram = np.array(self.spectrogram_buffer)
-            detections = self.cfar.detect(spectrogram)
-
-            if self.debug:
-                print(f"[CFAR] Running CFAR on {len(spectrogram)} frames, detections={len(detections)}")
-
-            if not detections:
-                if self.debug:
-                    print(f"[CFAR] REJECTED: no CFAR detections")
-                return None  # CFAR says no valid detection
-
-            cfar_validated = True
-
-            # Use CFAR result
-            t_idx, freq_bin, cfar_mag, threshold = detections[0]
-
-            if self.debug:
-                print(f"[CFAR] Detection: t={t_idx} bin={freq_bin} mag={cfar_mag:.4f} thresh={threshold:.4f}")
-
-            # Only report recent detections
-            if t_idx < len(spectrogram) - 3:
-                if self.debug:
-                    print(f"[CFAR] REJECTED: detection too old (t={t_idx}, need >= {len(spectrogram)-3})")
-                return None
-
-            # Update from CFAR
-            if freq_bin < half:
-                direction = Direction.OUTBOUND
-                speed_mph = self.bin_to_mph[freq_bin]
-            else:
-                direction = Direction.INBOUND
-                speed_mph = self.bin_to_mph[abs(freq_bin - cfg.fft_size)]
-
-            if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
-                if self.debug:
-                    print(f"[CFAR] REJECTED: CFAR speed {speed_mph:.1f} outside range")
-                return None
-
-            if self.debug:
-                print(f"[CFAR] ACCEPTED: {speed_mph:.1f} mph {direction.value}")
-
-        # Store detection metadata for logging (convert numpy to native Python types)
-        self._last_snr = float(snr)
-        self._last_peak_bin = int(peak_bin)
-        self._last_cfar_validated = cfar_validated
+        # Store detection metadata for logging
+        self._last_snr = float(peak_mag / max(threshold, 1e-10))
+        self._last_peak_bin = int(freq_bin)
+        self._last_cfar_validated = True
 
         return SpeedReading(
             speed=float(speed_mph),

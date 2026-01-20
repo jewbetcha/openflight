@@ -210,6 +210,7 @@ class TestShotDetection:
         self.monitor._shot_callback = None
         self.monitor._detect_club_speed = True
         self.monitor._current_club = ClubType.DRIVER
+        self.monitor._use_iq_streaming = False
 
     def test_process_shot_extracts_ball_speed(self):
         """Ball speed should be the peak reading."""
@@ -341,6 +342,7 @@ class TestClubBallSeparation:
         self.monitor._shot_callback = None
         self.monitor._detect_club_speed = True
         self.monitor._current_club = ClubType.DRIVER
+        self.monitor._use_iq_streaming = False
 
     def test_club_detected_before_ball_by_timing(self):
         """Club reading before ball (by timestamp) should be detected."""
