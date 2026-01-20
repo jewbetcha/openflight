@@ -1126,11 +1126,9 @@ class OPS243Radar:
         self.set_buffer_size(128)
         print("[RADAR CONFIG] Buffer size: 128 samples")
 
-        # Enable raw I/Q output - this starts streaming immediately
-        # No need for PA command as OR already activates continuous output
-        self.enable_raw_iq_output()
-
-        print("[RADAR CONFIG] I/Q streaming mode configured")
+        # Note: Don't enable I/Q output here - do it in start_iq_streaming()
+        # This allows get_radar_info() to be called after connect() but before streaming
+        print("[RADAR CONFIG] I/Q streaming mode configured (call start_iq_streaming to begin)")
 
     def start_iq_streaming(
         self,
@@ -1149,6 +1147,9 @@ class OPS243Radar:
         """
         if self._streaming:
             return
+
+        # Enable raw I/Q output - this starts the radar streaming
+        self.enable_raw_iq_output()
 
         self._iq_callback = callback
         self._iq_error_callback = error_callback
