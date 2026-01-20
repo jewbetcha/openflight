@@ -404,30 +404,31 @@ class LaunchMonitor:
         if self._live_callback:
             self._live_callback(reading)
 
-        # Determine valid speed range based on detection mode
-        if self._detect_club_speed:
-            # Accept club speeds (40-140 mph) and ball speeds (60-220 mph)
-            min_speed = self.MIN_CLUB_SPEED_MPH
+        # In I/Q streaming mode, CFAR already filters by speed, SNR, and signal quality
+        # We only need to filter by direction here (outbound = moving away from radar)
+        if self._use_iq_streaming:
+            if reading.direction != Direction.OUTBOUND:
+                return
         else:
-            # Only accept ball speeds
-            min_speed = self.MIN_BALL_SPEED_MPH
+            # Legacy mode: apply old filters for radar's internal processing
+            if self._detect_club_speed:
+                min_speed = self.MIN_CLUB_SPEED_MPH
+            else:
+                min_speed = self.MIN_BALL_SPEED_MPH
 
-        # Filter by realistic speeds
-        if not min_speed <= reading.speed <= self.MAX_BALL_SPEED_MPH:
-            print(f"[FILTER] Speed {reading.speed:.1f} outside range {min_speed}-{self.MAX_BALL_SPEED_MPH}")
-            return
+            if not min_speed <= reading.speed <= self.MAX_BALL_SPEED_MPH:
+                print(f"[FILTER] Speed {reading.speed:.1f} outside range {min_speed}-{self.MAX_BALL_SPEED_MPH}")
+                return
 
-        # Only accept outbound readings (ball/club moving away from radar)
-        if reading.direction != Direction.OUTBOUND:
-            print(f"[FILTER] Direction {reading.direction.value} is not outbound")
-            return
+            if reading.direction != Direction.OUTBOUND:
+                print(f"[FILTER] Direction {reading.direction.value} is not outbound")
+                return
 
-        # Filter by minimum magnitude (signal strength)
-        if reading.magnitude is not None and reading.magnitude < self.MIN_MAGNITUDE:
-            print(f"[FILTER] Magnitude {reading.magnitude:.1f} below minimum {self.MIN_MAGNITUDE}")
-            return
+            if reading.magnitude is not None and reading.magnitude < self.MIN_MAGNITUDE:
+                print(f"[FILTER] Magnitude {reading.magnitude:.1f} below minimum {self.MIN_MAGNITUDE}")
+                return
 
-        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} mag={reading.magnitude:.1f} - buffered: {len(self._current_readings)}")
+        print(f"[ACCEPTED] {reading.speed:.1f} mph {reading.direction.value} mag={reading.magnitude:.3f} - buffered: {len(self._current_readings)}")
         if logger:
             logger.log_accepted_reading(reading)
 
@@ -560,19 +561,21 @@ class LaunchMonitor:
         magnitudes = [r.magnitude for r in sorted_readings if r.magnitude]
         peak_mag = max(magnitudes) if magnitudes else None
 
-        # Validate peak magnitude - real shots have strong radar returns
-        if peak_mag is not None and peak_mag < self.MIN_SHOT_MAGNITUDE:
-            print(f"[REJECTED] Peak magnitude {peak_mag:.0f} below minimum "
-                  f"{self.MIN_SHOT_MAGNITUDE} (weak signal, likely not a golf shot)")
-            self._current_readings = []
-            return
+        # In I/Q streaming mode, CFAR already validated signal quality - skip magnitude check
+        # In legacy mode, validate peak magnitude for strong radar returns
+        if not self._use_iq_streaming:
+            if peak_mag is not None and peak_mag < self.MIN_SHOT_MAGNITUDE:
+                print(f"[REJECTED] Peak magnitude {peak_mag:.0f} below minimum "
+                      f"{self.MIN_SHOT_MAGNITUDE} (weak signal, likely not a golf shot)")
+                self._current_readings = []
+                return
 
-        # Validate ball speed - must be a real golf shot speed
-        if ball_speed < self.MIN_BALL_SPEED_MPH:
-            print(f"[REJECTED] Ball speed {ball_speed:.1f} mph below minimum "
-                  f"{self.MIN_BALL_SPEED_MPH} mph (too slow for golf shot)")
-            self._current_readings = []
-            return
+            # Validate ball speed - must be a real golf shot speed
+            if ball_speed < self.MIN_BALL_SPEED_MPH:
+                print(f"[REJECTED] Ball speed {ball_speed:.1f} mph below minimum "
+                      f"{self.MIN_BALL_SPEED_MPH} mph (too slow for golf shot)")
+                self._current_readings = []
+                return
 
         # Find club speed
         club_speed = None
