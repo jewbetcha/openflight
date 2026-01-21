@@ -288,7 +288,7 @@ class LaunchMonitor:
 
     # Shot detection timing
     SHOT_TIMEOUT_SEC = 0.5       # Gap to consider shot complete
-    MIN_READINGS_FOR_SHOT = 3    # Minimum readings for valid shot
+    MIN_READINGS_FOR_SHOT = 1    # Lowered: high-speed ball readings are transient (1-2 blocks)
     MAX_SHOT_DURATION_SEC = 0.3  # Real shots complete within 300ms
 
     # Club/ball separation parameters

@@ -252,13 +252,8 @@ class TestShotDetection:
         assert 95 <= shot.club_speed_mph <= 105
 
     def test_process_shot_minimum_readings(self):
-        """Less than MIN_READINGS_FOR_SHOT should not create a shot."""
-        from openflight.ops243 import SpeedReading, Direction
-        import time
-
-        self.monitor._current_readings = [
-            SpeedReading(speed=150.0, direction=Direction.OUTBOUND, timestamp=time.time()),
-        ]
+        """Zero readings should not create a shot."""
+        self.monitor._current_readings = []
 
         self.monitor._process_shot()
 

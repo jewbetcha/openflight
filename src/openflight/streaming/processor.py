@@ -146,6 +146,10 @@ class StreamingIQProcessor:
         # Noise max SNR ~10, swing SNR can reach 600+
         snr_threshold = cfg.cfar.threshold_factor  # Reuse threshold_factor as SNR threshold
 
+        # Debug: Show near-misses (close to threshold)
+        if self.debug and snr > 8 and snr < snr_threshold:
+            print(f"   [NEAR-MISS] SNR={snr:.1f} < {snr_threshold} speed={speed_mph:.1f}mph")
+
         if snr < snr_threshold:
             return None  # Signal not strong enough
 
