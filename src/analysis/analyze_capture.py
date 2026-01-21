@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('TkAgg')
 
+import argparse
 import pickle
 import os
 import numpy as np
@@ -64,13 +65,14 @@ def parse_ops243_datastruct(data):
         tmp_sig.append(sig)
         t_start = capture.get("sample_time")
         t_start_tot.append(t_start)
-        t_end = t_start + (ts_s * len(sig))
-        tmp_time.append(np.arange(t_start, t_end, ts_s))
+        # Use linspace to guarantee matching length
+        t_end = t_start + (ts_s * (len(sig) - 1))
+        tmp_time.append(np.linspace(t_start, t_end, len(sig)))
 
     sig_tot = np.concatenate(tmp_sig)
     t_tot = np.concatenate(tmp_time)
     t_tot = t_tot - t_tot[0]
-    
+
     return sig_tot, t_tot, fs_hz
 
 def spectrogram(sig, fs_hz, window_size, overlap):
@@ -147,14 +149,38 @@ def boldify():
     })
 
 if __name__=="__main__":
-    # Relative pathing (run from this dir)
-    data_dir = "data"
-    dataset_h1 = "iq_captures_club_swinging.pkl"
-    dataset_h0 = "iq_captures_noise.pkl"
+    parser = argparse.ArgumentParser(description="Analyze I/Q capture files")
+    parser.add_argument("files", nargs="*", help="I/Q capture file(s) to analyze (.pkl)")
+    parser.add_argument("--data-dir", default="data", help="Data directory (default: data)")
+    args = parser.parse_args()
 
-    # Basic signal analysis
     boldify()
-    analyze(os.path.join(data_dir, dataset_h0))
-    analyze(os.path.join(data_dir, dataset_h1))
+
+    if args.files:
+        # Analyze specified files
+        for fname in args.files:
+            # Check if file exists as-is, otherwise try data_dir
+            if os.path.exists(fname):
+                print(f"Analyzing: {fname}")
+                analyze(fname)
+            elif os.path.exists(os.path.join(args.data_dir, fname)):
+                fpath = os.path.join(args.data_dir, fname)
+                print(f"Analyzing: {fpath}")
+                analyze(fpath)
+            else:
+                print(f"File not found: {fname}")
+    else:
+        # Default: analyze standard datasets
+        data_dir = args.data_dir
+        dataset_h1 = "iq_captures_club_swinging.pkl"
+        dataset_h0 = "iq_captures_noise.pkl"
+
+        for dataset in [dataset_h0, dataset_h1]:
+            fpath = os.path.join(data_dir, dataset)
+            if os.path.exists(fpath):
+                print(f"Analyzing: {fpath}")
+                analyze(fpath)
+            else:
+                print(f"Skipping (not found): {fpath}")
 
     plt.show()

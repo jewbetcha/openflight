@@ -22,10 +22,10 @@ class CFARConfig:
     training_cells_time: int = 8    # Training cells in time dimension
     training_cells_freq: int = 16   # Training cells in frequency dimension
 
-    # Detection threshold
-    # SNR must exceed this factor to be considered a detection
-    # Higher = fewer false alarms, but may miss weak signals
-    threshold_factor: float = 15.0  # Tuned to reject noise while detecting swings
+    # Detection threshold (SNR)
+    # Signal must exceed noise floor by this factor
+    # Tuned from data: noise max SNR ~10, swing SNR can reach 600+
+    threshold_factor: float = 12.0
 
     # Minimum absolute threshold (0 = pure SNR-based detection)
     # Note: FFT magnitudes are voltage-scaled (0-3.3V range), so this should be small

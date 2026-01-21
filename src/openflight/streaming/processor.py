@@ -25,7 +25,7 @@ class StreamingConfig:
     sample_rate: int = 30000        # Sample rate in Hz
     window_size: int = 128          # Samples per FFT window
     fft_size: int = 4096            # Zero-padded FFT size
-    min_speed_mph: float = 35       # Minimum speed to report (club speeds start ~40 mph)
+    min_speed_mph: float = 20       # Minimum speed to report (lowered for testing)
     max_speed_mph: float = 220      # Maximum speed to report
 
     # Radar constants
@@ -91,82 +91,76 @@ class StreamingIQProcessor:
 
         Flow:
         1. Compute FFT magnitude spectrum
-        2. Add to spectrogram buffer
-        3. Run CFAR on spectrogram (every 8 blocks)
-        4. Only emit reading if CFAR detects valid signal
+        2. Find peak in valid frequency range (above DC mask)
+        3. Compute SNR = peak / median(noise)
+        4. If SNR > threshold, emit reading
+
+        Uses simple per-frame SNR detection instead of 2D CFAR because
+        golf signals are transient (1-3 blocks) and 2D CFAR over-smooths them.
         """
-        import time as _time
         cfg = self.config
 
         magnitude = self._compute_spectrum(block)
         if magnitude is None:
             return None
 
-        # Add to spectrogram buffer
-        self.spectrogram_buffer.append(magnitude)
-        self.timestamp_buffer.append(block.timestamp)
         self._block_count += 1
 
         half = cfg.fft_size // 2
         dc_mask = cfg.cfar.dc_mask_bins
 
+        # Analyze positive frequencies (outbound) above DC mask
+        pos_region = magnitude[dc_mask:half]
+        pos_peak_idx = np.argmax(pos_region)
+        pos_peak_bin = pos_peak_idx + dc_mask
+        pos_peak_mag = magnitude[pos_peak_bin]
+
+        # Analyze negative frequencies (inbound) above DC mask
+        neg_start = half + dc_mask
+        neg_region = magnitude[neg_start:]
+        neg_peak_idx = np.argmax(neg_region)
+        neg_peak_bin = neg_peak_idx + neg_start
+        neg_peak_mag = magnitude[neg_peak_bin]
+
+        # Use whichever direction has stronger signal
+        if pos_peak_mag >= neg_peak_mag:
+            peak_bin = pos_peak_bin
+            peak_mag = pos_peak_mag
+            direction = Direction.OUTBOUND
+            noise_floor = np.median(pos_region)
+        else:
+            peak_bin = neg_peak_bin
+            peak_mag = neg_peak_mag
+            direction = Direction.INBOUND
+            noise_floor = np.median(neg_region)
+
+        # Compute SNR
+        snr = peak_mag / max(noise_floor, 1e-10)
+        speed_mph = self.bin_to_mph[peak_bin] if peak_bin < half else self.bin_to_mph[cfg.fft_size - peak_bin]
+
         # Debug: Show periodic status
         if self.debug and self._block_count % 100 == 0:
-            # Quick peek at current FFT peak for status
-            pos_region = magnitude[dc_mask:half]
-            pos_peak_bin = np.argmax(pos_region) + dc_mask
-            pos_peak_mag = magnitude[pos_peak_bin]
-            noise_floor = np.median(magnitude[dc_mask:half])
-            snr = pos_peak_mag / max(noise_floor, 1e-10)
-            speed = self.bin_to_mph[pos_peak_bin]
-            print(f"   [IQ] blk={self._block_count} peak={pos_peak_mag:.4f} SNR={snr:.1f} "
-                  f"speed={speed:.1f}mph buf={len(self.spectrogram_buffer)}/{cfg.cfar.spectrogram_length}")
+            print(f"   [IQ] blk={self._block_count} peak={peak_mag:.4f} SNR={snr:.1f} speed={speed_mph:.1f}mph")
 
-        # Only run CFAR detection when we have enough data (every 8 blocks)
-        if not (len(self.spectrogram_buffer) >= cfg.cfar.spectrogram_length
-                and self._block_count % 8 == 0):
-            return None  # Not time for CFAR yet
+        # SNR threshold (tuned from noise vs swing data analysis)
+        # Noise max SNR ~10, swing SNR can reach 600+
+        snr_threshold = cfg.cfar.threshold_factor  # Reuse threshold_factor as SNR threshold
 
-        # Run CFAR detection on spectrogram
-        spectrogram = np.array(self.spectrogram_buffer)
-        detections = self.cfar.detect(spectrogram)
-
-        if self.debug:
-            print(f">>>[CFAR] blk={self._block_count} frames={len(spectrogram)} detections={len(detections)}")
-
-        if not detections:
-            return None  # CFAR says no valid detection
-
-        # Use strongest CFAR detection
-        t_idx, freq_bin, peak_mag, threshold = detections[0]
-
-        # Only report recent detections (in last 3 frames)
-        if t_idx < len(spectrogram) - 3:
-            if self.debug:
-                print(f"   [CFAR] detection too old: t={t_idx}, need >= {len(spectrogram)-3}")
-            return None
-
-        # Convert frequency bin to speed
-        if freq_bin < half:
-            direction = Direction.OUTBOUND
-            speed_mph = self.bin_to_mph[freq_bin]
-        else:
-            direction = Direction.INBOUND
-            speed_mph = self.bin_to_mph[abs(freq_bin - cfg.fft_size)]
+        if snr < snr_threshold:
+            return None  # Signal not strong enough
 
         # Speed filter
         if not (cfg.min_speed_mph <= speed_mph <= cfg.max_speed_mph):
             if self.debug:
-                print(f"   [CFAR] speed {speed_mph:.1f} outside {cfg.min_speed_mph}-{cfg.max_speed_mph}")
+                print(f"   [FILTER] speed {speed_mph:.1f} outside {cfg.min_speed_mph}-{cfg.max_speed_mph}")
             return None
 
         if self.debug:
-            print(f">>>[DETECTED] {speed_mph:.1f} mph {direction.value} "
-                  f"bin={freq_bin} mag={peak_mag:.4f} thresh={threshold:.4f}")
+            print(f">>>[DETECTED] {speed_mph:.1f} mph {direction.value} SNR={snr:.1f}")
 
         # Store detection metadata for logging
-        self._last_snr = float(peak_mag / max(threshold, 1e-10))
-        self._last_peak_bin = int(freq_bin)
+        self._last_snr = float(snr)
+        self._last_peak_bin = int(peak_bin)
         self._last_cfar_validated = True
 
         return SpeedReading(
