@@ -1,0 +1,1 @@
+../../.agents/skills/senior-fullstack
