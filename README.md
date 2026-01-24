@@ -1,4 +1,5 @@
 <p align="center">
+<img src="./ui/public/openflightlogo.svg">
   DIY Golf Launch Monitor using the OPS243-A Doppler Radar.
 </p>
 
