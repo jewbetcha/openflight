@@ -23,7 +23,7 @@ class StreamingConfig:
     """Configuration for the streaming processor."""
 
     sample_rate: int = 30000        # Sample rate in Hz
-    window_size: int = 128          # Samples per FFT window
+    window_size: int = 128          # Samples per FFT window (matches radar buffer)
     fft_size: int = 4096            # Zero-padded FFT size
     min_speed_mph: float = 20       # Minimum speed to report (lowered for testing)
     max_speed_mph: float = 220      # Maximum speed to report
@@ -41,7 +41,7 @@ class StreamingIQProcessor:
     Processes raw I/Q blocks into speed readings using FFT with CFAR detection.
 
     Processing pipeline:
-    1. Receive I/Q block (128 samples)
+    1. Receive I/Q block (1024 samples)
     2. Remove DC offset, scale to voltage, apply window
     3. Compute FFT magnitude spectrum
     4. Fast path: SNR-based peak detection
@@ -198,8 +198,8 @@ class StreamingSpeedDetector:
     for post-session analysis.
     """
 
-    # Keep 2 seconds of I/Q data at ~234 blocks/sec (30000 / 128)
-    IQ_BUFFER_SIZE = 500
+    # Keep 2 seconds of I/Q data at ~29 blocks/sec (30000 / 1024)
+    IQ_BUFFER_SIZE = 60
 
     def __init__(
         self,

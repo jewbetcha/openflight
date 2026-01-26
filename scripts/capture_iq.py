@@ -24,7 +24,7 @@ from openflight.ops243 import IQBlock, OPS243Radar
 
 # Capture settings
 SAMPLE_RATE = 30000  # Hz
-WINDOW_SIZE = 128    # Samples per block
+WINDOW_SIZE = 128    # Samples per block (matches radar buffer size)
 
 
 def block_to_capture(block: IQBlock, start_time: float) -> dict:
@@ -86,13 +86,17 @@ def main():
     radar = OPS243Radar()
     radar.connect()
 
-    # Get radar info
-    info = radar.get_info()
-    print(f"Radar: {info.get('Product', 'unknown')} v{info.get('Version', 'unknown')}")
-
-    # Configure for I/Q streaming
+    # Configure for I/Q streaming FIRST
     print("Configuring for continuous I/Q streaming...")
     radar.configure_for_iq_streaming()
+
+    # Get radar info AFTER configuration to verify settings
+    info = radar.get_info()
+    print(f"\nRadar: {info.get('Product', 'unknown')} v{info.get('Version', 'unknown')}")
+    print(f"Sample Rate: {info.get('SamplingRate', 'unknown')}")
+    print(f"Buffer Size: {info.get('SampleSize', 'unknown')}")
+    print(f"FFT Size: {info.get('FFTSize', 'unknown')}")
+    print(f"FFT Scale: {info.get('FFTScale', 'unknown')}")
 
     captures: List[dict] = []
     start_time: float = 0

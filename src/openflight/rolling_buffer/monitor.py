@@ -200,10 +200,16 @@ class RollingBufferMonitor:
     Provides higher temporal resolution (~937 Hz vs ~56 Hz) and optional spin
     detection.
 
+    Recommended configuration uses "speed" trigger (default):
+    - Fast speed detection mode (~150-200Hz) watches for club swing
+    - Automatically switches to rolling buffer when speed detected
+    - Captures ball impact with high temporal resolution
+    - Per OmniPreSense manufacturer recommendation
+
     Interface matches LaunchMonitor for compatibility with existing code.
 
     Example:
-        monitor = RollingBufferMonitor()
+        monitor = RollingBufferMonitor()  # Uses speed trigger by default
         monitor.connect()
         monitor.start(shot_callback=on_shot)
 
@@ -216,7 +222,7 @@ class RollingBufferMonitor:
     def __init__(
         self,
         port: Optional[str] = None,
-        trigger_type: str = "polling",
+        trigger_type: str = "speed",
         **trigger_kwargs,
     ):
         """
@@ -224,11 +230,16 @@ class RollingBufferMonitor:
 
         Args:
             port: Serial port for radar. Auto-detect if None.
-            trigger_type: Trigger strategy ("polling", "threshold", "manual")
+            trigger_type: Trigger strategy:
+                - "speed" (default, recommended): Fast speed trigger per manufacturer
+                - "polling": Continuous capture polling (slower, simpler)
+                - "threshold": Speed threshold trigger
+                - "manual": External trigger for testing
             **trigger_kwargs: Arguments for trigger strategy
         """
         self.radar = OPS243Radar(port=port)
         self.processor = RollingBufferProcessor()
+        self.trigger_type = trigger_type
         self.trigger = create_trigger(trigger_type, **trigger_kwargs)
 
         self._running = False
@@ -240,13 +251,23 @@ class RollingBufferMonitor:
 
     def connect(self) -> bool:
         """
-        Connect to radar and configure for rolling buffer mode.
+        Connect to radar and configure based on trigger type.
+
+        For "speed" trigger: Configuration is handled by the trigger strategy
+        For other triggers: Configure for rolling buffer mode
 
         Returns:
             True if successful
         """
         self.radar.connect()
-        self.radar.configure_for_rolling_buffer()
+
+        # Speed trigger handles its own configuration (starts in speed mode)
+        # Other triggers need rolling buffer mode configured upfront
+        if self.trigger_type != "speed":
+            self.radar.configure_for_rolling_buffer()
+        else:
+            print("[MONITOR] Using speed trigger - configuration deferred to trigger")
+
         return True
 
     def disconnect(self):
@@ -309,20 +330,30 @@ class RollingBufferMonitor:
                 processed = self.processor.process_capture(capture)
 
                 if processed is None:
-                    print("[DEBUG] process_capture returned None")
                     logger.warning("Failed to process capture")
                     continue
 
-                print(f"[DEBUG] Processed: ball_speed={processed.ball_speed_mph:.1f} mph, "
-                      f"club_speed={processed.club_speed_mph}")
+                # For speed trigger, use the trigger speed as club speed if not found in capture
+                if (self.trigger_type == "speed" and
+                    processed.club_speed_mph is None and
+                    hasattr(self.trigger, 'last_trigger_speed')):
+                    trigger_speed = self.trigger.last_trigger_speed
+                    if trigger_speed > 0:
+                        processed.club_speed_mph = trigger_speed
+                        logger.info(f"Using trigger speed as club speed: {trigger_speed:.1f} mph")
+
+                logger.debug(f"Processed: ball={processed.ball_speed_mph:.1f} mph, "
+                            f"club={processed.club_speed_mph}")
 
                 # Create shot
                 shot = self._create_shot(processed)
 
                 if shot:
                     self._shots.append(shot)
-                    print(f"[SHOT CREATED] {shot.ball_speed_mph:.1f} mph ball, "
-                          f"club: {shot.club_speed_mph}, spin: {shot.spin_rpm}")
+                    logger.info(
+                        f"Shot created: ball={shot.ball_speed_mph:.1f} mph, "
+                        f"club={shot.club_speed_mph}, spin={shot.spin_rpm}"
+                    )
                     logger.info(
                         f"Shot detected: {shot.ball_speed_mph:.1f} mph, "
                         f"spin: {shot.spin_rpm if shot.spin_rpm else 'N/A'}"
@@ -348,7 +379,7 @@ class RollingBufferMonitor:
                     if self._shot_callback:
                         self._shot_callback(shot)
                 else:
-                    print("[DEBUG] _create_shot returned None")
+                    logger.debug("Shot validation failed")
 
                 # Reset trigger for next capture
                 self.trigger.reset()
@@ -367,9 +398,9 @@ class RollingBufferMonitor:
         Returns:
             Shot object or None if invalid
         """
-        # Validate ball speed (lowered for field testing - real shots are 80+ mph)
+        # Validate ball speed
         if processed.ball_speed_mph < 15:
-            print(f"[DEBUG] Ball speed too low: {processed.ball_speed_mph:.1f} mph (need >=15)")
+            logger.debug(f"Ball speed too low: {processed.ball_speed_mph:.1f} mph")
             return None
 
         # Calculate carry distance

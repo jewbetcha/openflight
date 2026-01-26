@@ -107,25 +107,12 @@ class PollingTrigger(TriggerStrategy):
                 # Quick check for activity using standard processing
                 timeline = processor.process_standard(capture)
 
-                # Debug: show timeline stats
-                if timeline.readings:
-                    speeds = [r.speed_mph for r in timeline.readings]
-                    outbound_speeds = [r.speed_mph for r in timeline.readings if r.is_outbound]
-                    peak_outbound = max(outbound_speeds) if outbound_speeds else 0
-                    print(f"[DEBUG] Timeline: {len(timeline.readings)} readings, "
-                          f"speeds {min(speeds):.1f}-{max(speeds):.1f} mph, "
-                          f"peak outbound: {peak_outbound:.1f} mph (need >={self.min_speed_mph})")
-                else:
-                    print("[DEBUG] Timeline: 0 readings (no signal detected)")
-
                 # Check for significant activity
                 outbound = [r for r in timeline.readings
                             if r.is_outbound and r.speed_mph >= self.min_speed_mph]
 
                 if len(outbound) >= self.min_readings:
                     peak = max(r.speed_mph for r in outbound)
-                    print(f"[SHOT DETECTED] {len(outbound)} readings >= {self.min_speed_mph} mph, "
-                          f"peak {peak:.1f} mph")
                     logger.info(f"Activity detected: {len(outbound)} readings, peak {peak:.1f} mph")
                     return capture
 
@@ -277,18 +264,171 @@ class ManualTrigger(TriggerStrategy):
         self._trigger_requested = False
 
 
-def create_trigger(trigger_type: str = "polling", **kwargs) -> TriggerStrategy:
+class SpeedTriggeredCapture(TriggerStrategy):
+    """
+    Speed-triggered rolling buffer capture per OmniPreSense recommendation.
+
+    This implements the manufacturer's recommended approach for golf:
+    1. Run in fast speed detection mode (~150-200Hz report rate)
+    2. When outbound speed >20mph detected, immediately switch to rolling buffer
+    3. Capture ball impact and flight with S#0 (no pre-trigger history)
+
+    Advantages over polling:
+    - Much faster trigger response (~5-6ms vs 300ms+ polling)
+    - Captures club speed in speed mode, ball in rolling buffer
+    - Minimal data loss during mode switch
+
+    Per manufacturer:
+    "You'll lose a little data (~5-6ms) from the initial club speed detection
+    time while the sensor determines there's probably a golf swing event to
+    capture with the Rolling Buffer. But assuming the club speed detected to
+    ball impact is around 20-40ms, that should be ok."
+    """
+
+    def __init__(
+        self,
+        min_trigger_speed_mph: float = 20.0,
+        min_ball_speed_mph: float = 35.0,
+        trigger_to_capture_delay_ms: float = 15.0,
+    ):
+        """
+        Initialize speed-triggered capture.
+
+        Args:
+            min_trigger_speed_mph: Minimum speed to trigger capture (default 20mph)
+            min_ball_speed_mph: Minimum ball speed to consider valid shot (default 35mph)
+            trigger_to_capture_delay_ms: Delay after trigger before capture (default 15ms)
+                This allows ball impact to happen before we dump the buffer.
+        """
+        self.min_trigger_speed_mph = min_trigger_speed_mph
+        self.min_ball_speed_mph = min_ball_speed_mph
+        self.trigger_to_capture_delay_ms = trigger_to_capture_delay_ms
+        self._last_trigger_speed: float = 0
+        self._needs_reconfigure = True
+
+    def wait_for_trigger(
+        self,
+        radar: "OPS243Radar",
+        processor: RollingBufferProcessor,
+        timeout: float = 30.0,
+    ) -> Optional[IQCapture]:
+        """
+        Wait for speed trigger, switch to rolling buffer, and capture.
+
+        Flow:
+        1. Configure radar for fast speed detection (if needed)
+        2. Poll for speed readings at ~150-200Hz
+        3. When speed >= threshold detected:
+           a. Record club speed
+           b. Switch to rolling buffer mode (GC + S#0)
+           c. Wait for ball impact (~15-25ms)
+           d. Trigger capture (S!)
+        4. Return to speed detection mode for next shot
+        """
+        # Configure for speed trigger mode if needed
+        if self._needs_reconfigure:
+            radar.configure_for_speed_trigger()
+            self._needs_reconfigure = False
+            # Clear any buffered data from mode switch
+            if radar.serial:
+                radar.serial.reset_input_buffer()
+            time.sleep(0.1)
+
+        start_time = time.time()
+        logger.info(f"Waiting for speed trigger >= {self.min_trigger_speed_mph} mph...")
+
+        while (time.time() - start_time) < timeout:
+            # Non-blocking speed read
+            reading = radar.read_speed_nonblocking()
+
+            if reading and reading.speed >= self.min_trigger_speed_mph:
+                # Speed detected - this is likely the club
+                self._last_trigger_speed = reading.speed
+                trigger_time = time.time()
+
+                logger.info(f"Trigger: {reading.speed:.1f} mph detected, "
+                           f"switching to rolling buffer...")
+                print(f"[TRIGGER] {reading.speed:.1f} mph {reading.direction.value} - "
+                      f"switching to rolling buffer")
+
+                # Immediately switch to rolling buffer mode
+                radar.switch_to_rolling_buffer()
+
+                # Wait for ball impact
+                # Club to ball is typically 20-40ms, we wait a portion of that
+                delay_sec = self.trigger_to_capture_delay_ms / 1000.0
+                time.sleep(delay_sec)
+
+                # Capture the rolling buffer
+                response = radar.trigger_capture(timeout=5.0)
+                capture = processor.parse_capture(response)
+
+                # Calculate timing
+                capture_time = time.time()
+                total_delay_ms = (capture_time - trigger_time) * 1000
+                print(f"[CAPTURE] Buffer captured {total_delay_ms:.1f}ms after trigger")
+
+                if capture:
+                    # Validate capture has ball speed
+                    timeline = processor.process_standard(capture)
+                    outbound = [r for r in timeline.readings
+                               if r.is_outbound and r.speed_mph >= self.min_ball_speed_mph]
+
+                    if outbound:
+                        peak = max(r.speed_mph for r in outbound)
+                        print(f"[BALL DETECTED] {peak:.1f} mph in capture")
+                        logger.info(f"Ball detected: {peak:.1f} mph")
+
+                        # Mark for reconfigure on next call
+                        self._needs_reconfigure = True
+                        return capture
+                    else:
+                        print(f"[NO BALL] No speed >= {self.min_ball_speed_mph} mph in capture")
+                        logger.warning("No ball speed found in capture")
+
+                # Reconfigure for speed mode and continue
+                self._needs_reconfigure = True
+                radar.configure_for_speed_trigger()
+                if radar.serial:
+                    radar.serial.reset_input_buffer()
+
+            # Brief sleep to avoid busy-waiting but stay responsive
+            time.sleep(0.002)  # 2ms = 500Hz poll rate
+
+        logger.info("Speed trigger timeout")
+        return None
+
+    def reset(self):
+        """Reset trigger state and mark for reconfiguration."""
+        self._last_trigger_speed = 0
+        self._needs_reconfigure = True
+
+    @property
+    def last_trigger_speed(self) -> float:
+        """Get the speed that triggered the last capture (likely club speed)."""
+        return self._last_trigger_speed
+
+
+def create_trigger(trigger_type: str = "speed", **kwargs) -> TriggerStrategy:
     """
     Factory function to create trigger strategy.
 
     Args:
-        trigger_type: "polling", "threshold", or "manual"
+        trigger_type: "speed" (recommended), "polling", "threshold", or "manual"
         **kwargs: Arguments passed to trigger constructor
 
     Returns:
         Configured TriggerStrategy instance
+
+    Trigger types:
+        - "speed": Fast speed detection triggers rolling buffer capture.
+                   Recommended by OmniPreSense for golf. ~5-6ms response time.
+        - "polling": Continuously capture and check for activity. Simple but slow.
+        - "threshold": Speed threshold triggers capture. Less efficient than "speed".
+        - "manual": External trigger for testing.
     """
     triggers = {
+        "speed": SpeedTriggeredCapture,
         "polling": PollingTrigger,
         "threshold": ThresholdTrigger,
         "manual": ManualTrigger,

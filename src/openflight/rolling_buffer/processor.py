@@ -116,7 +116,7 @@ class RollingBufferProcessor:
                     q_samples=q_samples,
                 )
 
-            # Debug: show what we got vs what's missing
+            # Log what's missing
             missing = []
             if sample_time is None:
                 missing.append("sample_time")
@@ -126,9 +126,7 @@ class RollingBufferProcessor:
                 missing.append("I")
             if q_samples is None:
                 missing.append("Q")
-            logger.warning(f"Incomplete capture data in response (missing: {', '.join(missing)})")
-            # Always show preview when parsing fails to debug format issues
-            print(f"[DEBUG] Response preview (first 800 chars): {response[:800] if response else '(empty)'}")
+            logger.warning(f"Incomplete capture (missing: {', '.join(missing)})")
             return None
 
         except Exception as e:
