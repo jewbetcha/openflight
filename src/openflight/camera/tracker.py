@@ -109,10 +109,10 @@ class BallTrajectory:
 @dataclass
 class TrackerConfig:
     """Configuration for ball tracking."""
-    # ByteTrack parameters
-    track_thresh: float = 0.25      # Detection confidence threshold for new tracks
-    track_buffer: int = 30          # Frames to keep lost tracks (at 120fps = 250ms)
-    match_thresh: float = 0.8       # IoU threshold for matching
+    # ByteTrack parameters (v2.1.0+ API)
+    lost_track_buffer: int = 30              # Frames to keep lost tracks (at 120fps = 250ms)
+    track_activation_threshold: float = 0.7  # Confidence threshold for track activation
+    minimum_iou_threshold: float = 0.1       # Minimum IoU for matching
 
     # Trajectory filtering
     min_trajectory_frames: int = 3  # Minimum frames for valid trajectory
@@ -148,9 +148,9 @@ class BallTracker:
 
         # Initialize ByteTrack
         self._tracker = ByteTrackTracker(
-            track_thresh=self.config.track_thresh,
-            track_buffer=self.config.track_buffer,
-            match_thresh=self.config.match_thresh,
+            lost_track_buffer=self.config.lost_track_buffer,
+            track_activation_threshold=self.config.track_activation_threshold,
+            minimum_iou_threshold=self.config.minimum_iou_threshold,
         )
         logger.info("Using ByteTrack for ball tracking")
 
@@ -160,9 +160,9 @@ class BallTracker:
     def reset(self):
         """Reset tracker state for new capture sequence."""
         self._tracker = ByteTrackTracker(
-            track_thresh=self.config.track_thresh,
-            track_buffer=self.config.track_buffer,
-            match_thresh=self.config.match_thresh,
+            lost_track_buffer=self.config.lost_track_buffer,
+            track_activation_threshold=self.config.track_activation_threshold,
+            minimum_iou_threshold=self.config.minimum_iou_threshold,
         )
         self._trajectories = {}
 
