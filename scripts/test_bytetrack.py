@@ -89,7 +89,7 @@ class HoughDetector:
         min_radius: int = 5,
         max_radius: int = 50,
         param1: int = 50,
-        param2: int = 30,
+        param2: int = 20,  # Lower = more sensitive (was 30)
         min_dist: int = 50
     ):
         self.min_radius = min_radius
