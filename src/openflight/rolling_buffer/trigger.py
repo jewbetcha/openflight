@@ -9,8 +9,8 @@ import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
-from .types import IQCapture
 from .processor import RollingBufferProcessor
+from .types import IQCapture
 
 if TYPE_CHECKING:
     from ..ops243 import OPS243Radar
@@ -348,8 +348,8 @@ class SpeedTriggeredCapture(TriggerStrategy):
 
                 logger.info(f"Trigger: {reading.speed:.1f} mph detected, "
                            f"switching to rolling buffer...")
-                print(f"[TRIGGER] {reading.speed:.1f} mph {reading.direction.value} - "
-                      f"switching to rolling buffer")
+                logger.info(f"{reading.speed:.1f} mph {reading.direction.value} - "
+                            f"switching to rolling buffer")
 
                 # Immediately switch to rolling buffer mode
                 radar.switch_to_rolling_buffer()
@@ -366,7 +366,7 @@ class SpeedTriggeredCapture(TriggerStrategy):
                 # Calculate timing
                 capture_time = time.time()
                 total_delay_ms = (capture_time - trigger_time) * 1000
-                print(f"[CAPTURE] Buffer captured {total_delay_ms:.1f}ms after trigger")
+                logger.info("Buffer captured %.1fms after trigger", total_delay_ms)
 
                 if capture:
                     # Validate capture has ball speed
@@ -376,14 +376,14 @@ class SpeedTriggeredCapture(TriggerStrategy):
 
                     if outbound:
                         peak = max(r.speed_mph for r in outbound)
-                        print(f"[BALL DETECTED] {peak:.1f} mph in capture")
+                        logger.info("Ball detected: %.1f mph in capture", peak)
                         logger.info(f"Ball detected: {peak:.1f} mph")
 
                         # Mark for reconfigure on next call
                         self._needs_reconfigure = True
                         return capture
                     else:
-                        print(f"[NO BALL] No speed >= {self.min_ball_speed_mph} mph in capture")
+                        logger.info("No speed >= %.1f mph in capture", self.min_ball_speed_mph)
                         logger.warning("No ball speed found in capture")
 
                 # Reconfigure for speed mode and continue

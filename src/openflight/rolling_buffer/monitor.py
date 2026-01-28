@@ -12,12 +12,12 @@ import time
 from datetime import datetime
 from typing import Callable, List, Optional
 
-from ..ops243 import OPS243Radar, SpeedReading, Direction
-from ..launch_monitor import Shot, ClubType, estimate_carry_distance
+from ..launch_monitor import ClubType, Shot, estimate_carry_distance
+from ..ops243 import OPS243Radar, SpeedReading
 from ..session_logger import get_session_logger
-from .types import IQCapture, ProcessedCapture
 from .processor import RollingBufferProcessor
-from .trigger import TriggerStrategy, create_trigger
+from .trigger import create_trigger
+from .types import ProcessedCapture
 
 logger = logging.getLogger("openflight.rolling_buffer.monitor")
 
@@ -43,27 +43,22 @@ def get_optimal_spin_for_ball_speed(ball_speed_mph: float, club: ClubType = Club
     Returns:
         Optimal spin rate in RPM
     """
-    # Driver optimal spin (baseline)
-    if ball_speed_mph >= 180:
-        optimal = 2050
-    elif ball_speed_mph >= 170:
-        # 2050 at 180, 2300 at 170 → 25 rpm per mph
-        optimal = 2050 + (180 - ball_speed_mph) * 25
-    elif ball_speed_mph >= 160:
-        # 2300 at 170, 2550 at 160 → 25 rpm per mph
-        optimal = 2300 + (170 - ball_speed_mph) * 25
-    elif ball_speed_mph >= 140:
-        # 2550 at 160, 2700 at 140 → 7.5 rpm per mph
-        optimal = 2550 + (160 - ball_speed_mph) * 7.5
-    elif ball_speed_mph >= 120:
-        # 2700 at 140, 2900 at 120 → 10 rpm per mph
-        optimal = 2700 + (140 - ball_speed_mph) * 10
-    elif ball_speed_mph >= 100:
-        # 2900 at 120, 3100 at 100 → 10 rpm per mph
-        optimal = 2900 + (120 - ball_speed_mph) * 10
-    else:
-        # Below 100 mph, keep at 3200 rpm
-        optimal = 3200
+    # Driver optimal spin (baseline) - interpolated from TrackMan/PING data
+    # Table: (min_speed, base_rpm_at_upper_bound, rpm_per_mph_below_upper, upper_bound)
+    _spin_table = [
+        (180, 2050, 0, 999),
+        (170, 2050, 25, 180),
+        (160, 2300, 25, 170),
+        (140, 2550, 7.5, 160),
+        (120, 2700, 10, 140),
+        (100, 2900, 10, 120),
+    ]
+
+    optimal = 3200  # Default for speeds below 100 mph
+    for min_speed, base_rpm, rpm_per_mph, upper in _spin_table:
+        if ball_speed_mph >= min_speed:
+            optimal = base_rpm + (upper - ball_speed_mph) * rpm_per_mph
+            break
 
     # Adjust for club type - irons need more spin
     club_spin_multipliers = {
@@ -266,7 +261,7 @@ class RollingBufferMonitor:
         if self.trigger_type != "speed":
             self.radar.configure_for_rolling_buffer()
         else:
-            print("[MONITOR] Using speed trigger - configuration deferred to trigger")
+            logger.info("Using speed trigger - configuration deferred to trigger")
 
         return True
 
@@ -351,12 +346,9 @@ class RollingBufferMonitor:
                 if shot:
                     self._shots.append(shot)
                     logger.info(
-                        f"Shot created: ball={shot.ball_speed_mph:.1f} mph, "
-                        f"club={shot.club_speed_mph}, spin={shot.spin_rpm}"
-                    )
-                    logger.info(
-                        f"Shot detected: {shot.ball_speed_mph:.1f} mph, "
-                        f"spin: {shot.spin_rpm if shot.spin_rpm else 'N/A'}"
+                        f"Shot detected: ball={shot.ball_speed_mph:.1f} mph, "
+                        f"club={shot.club_speed_mph}, "
+                        f"spin={shot.spin_rpm if shot.spin_rpm else 'N/A'}"
                     )
 
                     # Log to session logger

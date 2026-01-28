@@ -13,10 +13,10 @@ import numpy as np
 
 from .types import (
     IQCapture,
+    ProcessedCapture,
     SpeedReading,
     SpeedTimeline,
     SpinResult,
-    ProcessedCapture,
 )
 
 logger = logging.getLogger("openflight.rolling_buffer.processor")
@@ -207,35 +207,29 @@ class RollingBufferProcessor:
 
         return speed_mph, peak_mag, direction
 
-    def process_standard(self, capture: IQCapture) -> SpeedTimeline:
+    def _process_capture(self, capture: IQCapture, step_size: int) -> SpeedTimeline:
         """
-        Process capture with standard non-overlapping blocks (~56 Hz).
+        Process capture with given step size.
 
         Args:
             capture: Raw I/Q capture from radar
+            step_size: Samples between FFT windows (128=standard, 32=overlapping)
 
         Returns:
-            SpeedTimeline with ~32 readings (one per 128-sample block)
+            SpeedTimeline with extracted speed readings
         """
         i_data = np.array(capture.i_samples)
         q_data = np.array(capture.q_samples)
 
-        num_blocks = len(i_data) // self.STEP_SIZE_STANDARD
         readings = []
+        start = 0
 
-        for block_idx in range(num_blocks):
-            start = block_idx * self.STEP_SIZE_STANDARD
-            end = start + self.WINDOW_SIZE
-
-            if end > len(i_data):
-                break
-
-            i_block = i_data[start:end]
-            q_block = q_data[start:end]
+        while start + self.WINDOW_SIZE <= len(i_data):
+            i_block = i_data[start:start + self.WINDOW_SIZE]
+            q_block = q_data[start:start + self.WINDOW_SIZE]
 
             speed_mph, magnitude, direction = self._process_block(i_block, q_block)
 
-            # Calculate timestamp relative to capture start
             timestamp_ms = (start / self.SAMPLE_RATE) * 1000
 
             if magnitude >= self.MAGNITUDE_THRESHOLD:
@@ -246,14 +240,27 @@ class RollingBufferProcessor:
                     direction=direction,
                 ))
 
+            start += step_size
 
-        sample_rate_hz = self.SAMPLE_RATE / self.STEP_SIZE_STANDARD
+        sample_rate_hz = self.SAMPLE_RATE / step_size
 
         return SpeedTimeline(
             readings=readings,
             sample_rate_hz=sample_rate_hz,
             capture=capture,
         )
+
+    def process_standard(self, capture: IQCapture) -> SpeedTimeline:
+        """
+        Process capture with standard non-overlapping blocks (~56 Hz).
+
+        Args:
+            capture: Raw I/Q capture from radar
+
+        Returns:
+            SpeedTimeline with ~32 readings (one per 128-sample block)
+        """
+        return self._process_capture(capture, self.STEP_SIZE_STANDARD)
 
     def process_overlapping(self, capture: IQCapture) -> SpeedTimeline:
         """
@@ -268,38 +275,7 @@ class RollingBufferProcessor:
         Returns:
             SpeedTimeline with ~124 readings (32-sample stepping)
         """
-        i_data = np.array(capture.i_samples)
-        q_data = np.array(capture.q_samples)
-
-        readings = []
-        start = 0
-
-        while start + self.WINDOW_SIZE <= len(i_data):
-            i_block = i_data[start:start + self.WINDOW_SIZE]
-            q_block = q_data[start:start + self.WINDOW_SIZE]
-
-            speed_mph, magnitude, direction = self._process_block(i_block, q_block)
-
-            # Calculate timestamp relative to capture start
-            timestamp_ms = (start / self.SAMPLE_RATE) * 1000
-
-            if magnitude >= self.MAGNITUDE_THRESHOLD:
-                readings.append(SpeedReading(
-                    speed_mph=speed_mph,
-                    magnitude=magnitude,
-                    timestamp_ms=timestamp_ms,
-                    direction=direction,
-                ))
-
-            start += self.STEP_SIZE_OVERLAP
-
-        sample_rate_hz = self.SAMPLE_RATE / self.STEP_SIZE_OVERLAP
-
-        return SpeedTimeline(
-            readings=readings,
-            sample_rate_hz=sample_rate_hz,
-            capture=capture,
-        )
+        return self._process_capture(capture, self.STEP_SIZE_OVERLAP)
 
     def extract_ball_speeds(
         self,

@@ -315,7 +315,7 @@ class OPS243Radar:
             # Use configurable rate command (S=nn where nn is in ksps)
             # 30ksps is recommended for golf (S=30)
             ksps = rate // 1000
-            self._send_command(f"S={ksps}\r")
+            self._send_command(f"S={ksps}")
 
     def set_buffer_size(self, size: int):
         """
@@ -387,16 +387,8 @@ class OPS243Radar:
         else:
             cmd = "R|"
 
-        # Send command and log
-        print(f"[RADAR CONFIG] Setting direction filter: {cmd}")
-        response = self._send_command(cmd)
-        if response:
-            print(f"[RADAR CONFIG] Direction filter response: {response}")
-
-        # Also try with explicit newline in case that's needed
-        if self.serial and self.serial.is_open:
-            self.serial.write(b'\r\n')
-            time.sleep(0.05)
+        logger.info("Setting direction filter: %s", cmd)
+        self._send_command(cmd)
 
     def enable_json_output(self, enabled: bool = True):
         """
@@ -417,24 +409,6 @@ class OPS243Radar:
         """
         self._send_command("OM" if enabled else "Om")
         self._magnitude_enabled = enabled
-
-    def clear_direction_filter(self):
-        """
-        Clear direction filter to allow both directions.
-
-        When the filter is cleared (R|), the sign of the speed value indicates direction.
-
-        Per API documentation AN-010-AD (cosine error correction naming convention):
-        - Positive speed = INBOUND (toward radar)
-        - Negative speed = OUTBOUND (away from radar)
-
-        This is required to determine direction in software.
-        """
-        cmd = "R|"
-        print(f"[RADAR CONFIG] Clearing direction filter: {cmd} (both directions)")
-        response = self._send_command(cmd)
-        if response:
-            print(f"[RADAR CONFIG] Direction filter response: {response}")
 
     def set_transmit_power(self, level: int):
         """
@@ -473,17 +447,17 @@ class OPS243Radar:
         # Max detectable speed ~208 mph (sufficient for golf, pros max ~190 mph)
         # Lower than 50ksps but better resolution tradeoff
         self.set_sample_rate(30000)
-        print("[RADAR CONFIG] Sample rate: 30ksps")
+        logger.info("Sample rate: 30ksps")
 
         # 128 buffer per OmniPreSense recommendation
         # Combined with 30ksps gives good base for FFT
         self.set_buffer_size(128)
-        print("[RADAR CONFIG] Buffer size: 128")
+        logger.info("Buffer size: 128")
 
         # FFT size 4096 (X=32 multiplier with 128 buffer)
         # This gives: ~56 Hz report rate, ±0.1 mph resolution
         self.set_fft_size(32)
-        print("[RADAR CONFIG] FFT size: 4096 (X=32) - ±0.1 mph resolution @ ~56 Hz")
+        logger.info("FFT size: 4096 (X=32) - ±0.1 mph resolution @ ~56 Hz")
 
         # Enable magnitude to help filter weak signals
         # Magnitude helps distinguish club (larger RCS, higher mag) from ball
@@ -493,7 +467,7 @@ class OPS243Radar:
         # Direction is determined by the SIGN of the speed value.
         # Per API docs: positive = inbound, negative = outbound
         # This allows us to filter inbound readings (backswing) in software
-        self.clear_direction_filter()
+        self.set_direction_filter(None)
 
         # Minimum speed 10 mph to filter very slow movements
         # We filter higher speeds (backswing) in software based on direction
@@ -502,7 +476,7 @@ class OPS243Radar:
         # Minimum magnitude filter to reject weak signals (walking, noise)
         # Real golf shots have magnitude 100+, walking is typically 20-30
         self.set_magnitude_filter(min_mag=50)
-        print("[RADAR CONFIG] Minimum magnitude filter: 50")
+        logger.info("Minimum magnitude filter: 50")
 
         # Max transmit power for best range
         self.set_transmit_power(0)
@@ -513,7 +487,7 @@ class OPS243Radar:
         # Enable multi-object reporting to detect both club head AND ball
         # O4 reports up to 4 objects per sample cycle, ordered by magnitude
         self.set_num_reports(4)
-        print("[RADAR CONFIG] Multi-object reporting enabled (O4)")
+        logger.info("Multi-object reporting enabled (O4)")
 
         # Re-enable JSON output after O4 (in case it was reset)
         self.enable_json_output(True)
@@ -521,12 +495,12 @@ class OPS243Radar:
         # Enable peak speed averaging per OmniPreSense recommendation
         # Helps provide cleaner speed readings
         self.enable_peak_averaging(True)
-        print("[RADAR CONFIG] Peak averaging enabled (K+)")
+        logger.info("Peak averaging enabled (K+)")
 
         # Verify settings were applied
-        print("[RADAR CONFIG] Verifying configuration...")
+        logger.info("Verifying configuration...")
         filter_settings = self.get_speed_filter()
-        print(f"[RADAR CONFIG] Current filter settings: {filter_settings}")
+        logger.info("Current filter settings: %s", filter_settings)
 
     def enable_peak_averaging(self, enabled: bool = True):
         """
@@ -582,10 +556,8 @@ class OPS243Radar:
         else:
             cmd = f"O={num}"
 
-        print(f"[RADAR] Sending num_reports command: {cmd}")
-        response = self._send_command(cmd)
-        if response:
-            print(f"[RADAR] Response: {response}")
+        logger.debug("Sending num_reports command: %s", cmd)
+        self._send_command(cmd)
 
     def set_decimal_precision(self, places: int):
         """
@@ -855,17 +827,17 @@ class OPS243Radar:
 
         After enabling, use trigger_capture() to dump the buffer.
         """
-        print("[RADAR] Enabling rolling buffer mode...")
+        logger.info("Enabling rolling buffer mode...")
 
         # Enable rolling buffer mode
         response = self._send_command("GC")
         time.sleep(0.1)
-        print(f"[RADAR] GC response: {response if response else '(none)'}")
+        logger.info("GC response: %s", response if response else '(none)')
 
         # Activate sampling - puts sensor into active data capture loop
         self._send_command("PA")
         time.sleep(0.1)
-        print("[RADAR] Rolling buffer mode enabled and sampling activated")
+        logger.info("Rolling buffer mode enabled and sampling activated")
 
     def disable_rolling_buffer(self):
         """
@@ -873,10 +845,10 @@ class OPS243Radar:
 
         After disabling, call configure_for_golf() to restore streaming settings.
         """
-        print("[RADAR] Disabling rolling buffer mode...")
+        logger.info("Disabling rolling buffer mode...")
         self._send_command("GS")  # Return to standard CW mode
         time.sleep(0.1)
-        print("[RADAR] Rolling buffer mode disabled (returned to CW mode)")
+        logger.info("Rolling buffer mode disabled (returned to CW mode)")
 
     def set_trigger_split(self, segments: int = 8):
         """
@@ -895,7 +867,7 @@ class OPS243Radar:
         """
         segments = max(0, min(32, segments))
         self._send_command(f"S#{segments}")
-        print(f"[RADAR] Trigger split set to {segments} segments")
+        logger.info("Trigger split set to %s segments", segments)
 
     def trigger_capture(self, timeout: float = 10.0) -> str:
         """
@@ -963,10 +935,10 @@ class OPS243Radar:
 
         # Only log issues, not normal operation
         if not full_response:
-            print("[RADAR] S! returned empty response")
+            logger.info("S! returned empty response")
         elif len(full_response) < 1000:
             # Short response usually means mode not configured correctly
-            print(f"[RADAR] S! response too short ({len(full_response)} bytes): {repr(full_response[:100])}")
+            logger.info("S! response too short (%s bytes): %s", len(full_response), repr(full_response[:100]))
 
         return full_response
 
@@ -999,17 +971,17 @@ class OPS243Radar:
         """
         # Set units to MPH first
         self.set_units(SpeedUnit.MPH)
-        print("[RADAR CONFIG] Units: MPH")
+        logger.info("Units: MPH")
 
         # Reduced transmit power to avoid ADC clipping on close targets
         # Level 0=max, 7=min. Level 3 is a good balance.
         self.set_transmit_power(3)
-        print("[RADAR CONFIG] Transmit power: level 3 (reduced to avoid clipping)")
+        logger.info("Transmit power: level 3 (reduced to avoid clipping)")
 
         # Per OmniPreSense reference: deactivate first to reset state
         self._send_command("PI")
         time.sleep(0.1)
-        print("[RADAR CONFIG] Deactivated (PI) to reset state")
+        logger.info("Deactivated (PI) to reset state")
 
         # Enable rolling buffer mode
         self.enable_rolling_buffer()
@@ -1018,11 +990,11 @@ class OPS243Radar:
         # GC mode defaults to 10ksps, we need 30ksps for golf
         self.set_sample_rate(30000)
         time.sleep(0.1)
-        print("[RADAR CONFIG] Sample rate set to 30ksps")
+        logger.info("Sample rate set to 30ksps")
 
         # Verify sample rate was set correctly
         response = self._send_command("S?")
-        print(f"[RADAR CONFIG] Sample rate check: {response}")
+        logger.info("Sample rate check: %s", response)
 
         # Parse and warn if not 30ksps
         try:
@@ -1030,14 +1002,14 @@ class OPS243Radar:
                 data = json.loads(response)
                 rate = data.get("SampleRate", data.get("Sampling Rate", 0))
                 if rate and rate != 30000:
-                    print(f"[RADAR WARNING] Sample rate is {rate}, expected 30000!")
+                    logger.warning("Sample rate is %s, expected 30000!", rate)
         except (json.JSONDecodeError, ValueError):
             pass
 
         # Set trigger split (8 segments = ~34ms pre-trigger)
         self.set_trigger_split(8)
 
-        print("[RADAR CONFIG] Rolling buffer mode configured")
+        logger.info("Rolling buffer mode configured")
 
     def configure_for_speed_trigger(self):
         """
@@ -1058,7 +1030,7 @@ class OPS243Radar:
         - ~5-6ms to switch to rolling buffer
         - Club to ball impact is 20-40ms, so we capture the ball
         """
-        print("[RADAR CONFIG] Configuring for fast speed trigger mode...")
+        logger.info("Configuring for fast speed trigger mode...")
 
         # Start from clean state
         self._send_command("GS")  # Ensure CW mode (not rolling buffer)
@@ -1069,37 +1041,37 @@ class OPS243Radar:
 
         # Set units to MPH
         self.set_units(SpeedUnit.MPH)
-        print("[RADAR CONFIG] Units: MPH")
+        logger.info("Units: MPH")
 
         # Max transmit power for best detection range
         self.set_transmit_power(0)
-        print("[RADAR CONFIG] Transmit power: max (P0)")
+        logger.info("Transmit power: max (P0)")
 
         # 30ksps sample rate
         self.set_sample_rate(30000)
         time.sleep(0.1)
-        print("[RADAR CONFIG] Sample rate: 30ksps")
+        logger.info("Sample rate: 30ksps")
 
         # 128 buffer size for fast report rate
         self.set_buffer_size(128)
         time.sleep(0.1)
-        print("[RADAR CONFIG] Buffer size: 128")
+        logger.info("Buffer size: 128")
 
         # 256 FFT size (X=2) for ~150-200Hz report rate
         # Report rate = 30000 / 128 / 2 ≈ 117 Hz per spec, but empirically faster
-        self.serial.write(b"X=2\r")
+        self.set_fft_size(2)
         time.sleep(0.1)
-        print("[RADAR CONFIG] FFT size: 256 (X=2) for fast reports")
+        logger.info("FFT size: 256 (X=2) for fast reports")
 
         # Outbound only - ignore backswing (R-)
         self._send_command("R-")
         time.sleep(0.05)
-        print("[RADAR CONFIG] Direction filter: outbound only (R-)")
+        logger.info("Direction filter: outbound only (R-)")
 
         # Minimum speed 20mph - ignore leg movement and slow movements
         self._send_command("R>20")
         time.sleep(0.05)
-        print("[RADAR CONFIG] Min speed filter: 20 mph (R>20)")
+        logger.info("Min speed filter: 20 mph (R>20)")
 
         # Enable JSON output for parsing
         self.enable_json_output(True)
@@ -1114,11 +1086,11 @@ class OPS243Radar:
         # Activate
         self._send_command("PA")
         time.sleep(0.1)
-        print("[RADAR CONFIG] Speed trigger mode ready (PA)")
+        logger.info("Speed trigger mode ready (PA)")
 
         # Verify settings
         response = self._send_command("S?")
-        print(f"[RADAR CONFIG] Settings: {response}")
+        logger.info("Settings: %s", response)
 
     def switch_to_rolling_buffer(self):
         """
@@ -1197,7 +1169,7 @@ class OPS243Radar:
         Note: After OR command, radar immediately starts streaming.
         We don't wait for a response as the output buffer fills with I/Q data.
         """
-        print("[RADAR] Enabling raw I/Q output (OR command)...")
+        logger.info("Enabling raw I/Q output (OR command)...")
         if not self.serial or not self.serial.is_open:
             raise ConnectionError("Not connected to radar")
 
@@ -1248,7 +1220,7 @@ class OPS243Radar:
         128-sample blocks give best temporal resolution (~32 blocks/sec).
         We do our own 4096-point FFT in software with zero-padding.
         """
-        print("[RADAR CONFIG] Configuring for continuous I/Q streaming...")
+        logger.info("Configuring for continuous I/Q streaming...")
 
         # First, stop any existing I/Q streaming (from previous run or crash)
         # This ensures _send_command won't hang on buffered I/Q data
@@ -1258,39 +1230,39 @@ class OPS243Radar:
         # This is critical - GC mode has different output behavior
         self._send_command("GS")
         time.sleep(0.1)
-        print("[RADAR CONFIG] CW mode enabled (GS)")
+        logger.info("CW mode enabled (GS)")
 
         # Put radar in idle mode first to ensure clean state for settings
         self._send_command("PI")
         time.sleep(0.1)
-        print("[RADAR CONFIG] Idle mode (PI) - preparing for configuration")
+        logger.info("Idle mode (PI) - preparing for configuration")
 
         # Set maximum baud rate for fastest data transfer
         self._send_command("I5")
-        print("[RADAR CONFIG] Baud rate: maximum (I5)")
+        logger.info("Baud rate: maximum (I5)")
 
         # Set units to MPH (for any fallback modes)
         self.set_units(SpeedUnit.MPH)
-        print("[RADAR CONFIG] Units: MPH")
+        logger.info("Units: MPH")
 
         # Reduced transmit power to avoid ADC clipping on close targets
         self.set_transmit_power(3)
-        print("[RADAR CONFIG] Transmit power: level 3 (reduced to avoid clipping)")
+        logger.info("Transmit power: level 3 (reduced to avoid clipping)")
 
         # 30ksps sample rate - critical for golf speeds
         self.set_sample_rate(30000)
         time.sleep(0.1)  # Allow setting to apply
-        print("[RADAR CONFIG] Sample rate: 30ksps")
+        logger.info("Sample rate: 30ksps")
 
         # Verify sample rate was set correctly
         response = self._send_command("S?")
-        print(f"[RADAR CONFIG] Sample rate check: {response}")
+        logger.info("Sample rate check: %s", response)
         try:
             if response:
                 data = json.loads(response)
                 rate = data.get("SampleRate", data.get("Sampling Rate", 0))
                 if rate and rate != 30000:
-                    print(f"[RADAR WARNING] Sample rate is {rate}, expected 30000!")
+                    logger.warning("Sample rate is %s, expected 30000!", rate)
         except (json.JSONDecodeError, ValueError):
             pass
 
@@ -1302,38 +1274,38 @@ class OPS243Radar:
 
         # Verify buffer size was set
         response = self._send_command("S?")
-        print(f"[RADAR CONFIG] Buffer size check: {response}")
+        logger.info("Buffer size check: %s", response)
 
         # For raw I/Q mode (OR command), use X=1 to maximize output rate
         # We do our own 4096-point FFT with zero-padding in software
         # X=32 would slow OR output to 136ms per block (4096/30000)
         # X=1 with 128 buffer gives ~4.3ms per block
-        self.serial.write(b"X=1\r")
+        self.set_fft_size(1)
         time.sleep(0.1)
 
         # Verify FFT size
         response = self._send_command("X?")
-        print(f"[RADAR CONFIG] FFT size check: {response}")
+        logger.info("FFT size check: %s", response)
 
         # Disable inter-report delay (W0 = 0ms delay between reports)
         # This is critical for continuous I/Q streaming - default may have delay
         self._send_command("W0")
         time.sleep(0.05)
-        print("[RADAR CONFIG] Report delay disabled (W0)")
+        logger.info("Report delay disabled (W0)")
 
         # Verify delay setting
         response = self._send_command("W?")
-        print(f"[RADAR CONFIG] Delay setting check: {response}")
+        logger.info("Delay setting check: %s", response)
 
         # Activate continuous sampling mode (PA = Power Active)
         # This puts the radar into active data capture loop AFTER all settings
         self._send_command("PA")
         time.sleep(0.1)
-        print("[RADAR CONFIG] Power Active mode enabled (PA)")
+        logger.info("Power Active mode enabled (PA)")
 
         # Note: Don't enable I/Q output here - do it in start_iq_streaming()
         # This allows get_radar_info() to be called after connect() but before streaming
-        print("[RADAR CONFIG] I/Q streaming mode configured (call start_iq_streaming to begin)")
+        logger.info("I/Q streaming mode configured (call start_iq_streaming to begin)")
 
     def start_iq_streaming(
         self,
@@ -1440,7 +1412,7 @@ class OPS243Radar:
                 time.sleep(0.01)
             except Exception as e:
                 error_count += 1
-                print(f"[IQ ERROR] {e}")
+                logger.error("%s", e)
 
     def __enter__(self):
         """Context manager entry."""
