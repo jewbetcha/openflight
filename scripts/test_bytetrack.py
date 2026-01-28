@@ -89,10 +89,11 @@ class HoughDetector:
         min_radius: int = 5,
         max_radius: int = 50,
         param1: int = 50,
-        param2: int = 30,
-        min_dist: int = 50,
-        min_brightness: int = 150,
+        param2: int = 20,  # Lower = more sensitive (was 30)
+        min_dist: int = 30,  # Lower = detect closer circles (was 50)
+        min_brightness: int = 100,
         brightness_filter: bool = True,
+        enhance_contrast: bool = True,
     ):
         self.min_radius = min_radius
         self.max_radius = max_radius
@@ -101,6 +102,7 @@ class HoughDetector:
         self.min_dist = min_dist
         self.min_brightness = min_brightness
         self.brightness_filter = brightness_filter
+        self.enhance_contrast = enhance_contrast
 
     def detect(self, frame: np.ndarray) -> List[Detection]:
         """Detect circles in frame, filtering for bright golf ball candidates."""
@@ -111,6 +113,12 @@ class HoughDetector:
             gray = frame
 
         h, w = gray.shape[:2]
+
+        # Enhance contrast to help detect ball against similar backgrounds
+        if self.enhance_contrast:
+            # CLAHE (Contrast Limited Adaptive Histogram Equalization)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            gray = clahe.apply(gray)
 
         # Apply blur to reduce noise
         blurred = cv2.GaussianBlur(gray, (9, 9), 2)
@@ -407,10 +415,14 @@ def main():
     # Hough settings
     parser.add_argument("--min-radius", type=int, default=5, help="Min circle radius")
     parser.add_argument("--max-radius", type=int, default=50, help="Max circle radius")
+    parser.add_argument("--param2", type=int, default=20,
+                       help="Hough sensitivity (lower=more detections, default 20)")
     parser.add_argument("--min-brightness", type=int, default=100,
                        help="Min brightness for golf ball (0-255, golf balls are bright/white)")
     parser.add_argument("--no-brightness-filter", action="store_true",
                        help="Disable brightness filtering")
+    parser.add_argument("--no-contrast-enhance", action="store_true",
+                       help="Disable contrast enhancement (CLAHE)")
 
     # ByteTrack settings
     parser.add_argument("--track-buffer", type=int, default=30,
@@ -454,12 +466,16 @@ def main():
         detector = YOLODetector(args.model, args.imgsz, args.confidence)
     else:
         print("Using Hough Circle detector")
+        print(f"  Contrast enhancement: {'OFF' if args.no_contrast_enhance else 'ON (CLAHE)'}")
+        print(f"  Sensitivity (param2): {args.param2} (lower=more sensitive)")
         print(f"  Brightness filter: {'OFF' if args.no_brightness_filter else f'ON (min={args.min_brightness})'}")
         detector = HoughDetector(
             min_radius=args.min_radius,
             max_radius=args.max_radius,
+            param2=args.param2,
             min_brightness=args.min_brightness,
             brightness_filter=not args.no_brightness_filter,
+            enhance_contrast=not args.no_contrast_enhance,
         )
 
     # Initialize ByteTrack
