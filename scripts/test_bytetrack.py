@@ -18,11 +18,17 @@ Usage:
     # Test with image sequence (simulates tracking)
     python scripts/test_bytetrack.py --images frame_*.png
 
+    # Use white blob detection (better for carpet/grass)
+    python scripts/test_bytetrack.py --white-detect
+
     # Use YOLO detection instead of Hough circles
     python scripts/test_bytetrack.py --detector yolo --model models/golf_ball_yolo11n_new_256.onnx
 
     # Adjust tracking parameters
     python scripts/test_bytetrack.py --track-thresh 0.3 --track-buffer 30
+
+    # Fix camera colors (white balance)
+    python scripts/test_bytetrack.py --awb auto
 """
 
 import argparse
@@ -95,6 +101,7 @@ class HoughDetector:
         min_uniformity: float = 0.7,  # How uniform the circle brightness is
         brightness_filter: bool = True,
         enhance_contrast: bool = True,
+        use_white_detection: bool = False,  # Color-based white detection
     ):
         self.min_radius = min_radius
         self.max_radius = max_radius
@@ -105,12 +112,102 @@ class HoughDetector:
         self.min_uniformity = min_uniformity
         self.brightness_filter = brightness_filter
         self.enhance_contrast = enhance_contrast
+        self.use_white_detection = use_white_detection
 
-    def detect(self, frame: np.ndarray) -> List[Detection]:
+    def _detect_white_blobs(self, frame: np.ndarray, is_rgb: bool = False) -> List[Detection]:
+        """
+        Detect white circular objects using color-based detection.
+
+        Better for low-contrast situations (ball on carpet, grass, etc.)
+        where edge-based Hough detection struggles.
+        """
+        # Convert to HSV for color-based detection
+        if is_rgb:
+            hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        else:
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        h, w = gray.shape[:2]
+
+        # White color detection: low saturation, high value
+        # Golf balls are very white (low saturation, high brightness)
+        lower_white = np.array([0, 0, 180])   # Any hue, low sat, high value
+        upper_white = np.array([180, 60, 255])  # Any hue, low sat, max value
+
+        white_mask = cv2.inRange(hsv, lower_white, upper_white)
+
+        # Morphological operations to clean up mask
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_OPEN, kernel)
+        white_mask = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel)
+
+        # Find contours of white regions
+        contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        detections = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+
+            # Filter by area (approximate ball size)
+            min_area = np.pi * self.min_radius ** 2
+            max_area = np.pi * self.max_radius ** 2
+            if area < min_area or area > max_area:
+                continue
+
+            # Get enclosing circle
+            (cx, cy), radius = cv2.minEnclosingCircle(contour)
+            cx, cy, radius = int(cx), int(cy), int(radius)
+
+            # Check circularity (area vs enclosing circle area)
+            enclosing_area = np.pi * radius ** 2
+            circularity = area / enclosing_area if enclosing_area > 0 else 0
+
+            # Golf balls should be fairly circular (>0.7)
+            if circularity < 0.65:
+                continue
+
+            # Radius bounds check
+            if radius < self.min_radius or radius > self.max_radius:
+                continue
+
+            # Bounds check
+            if cx - radius < 0 or cx + radius >= w or cy - radius < 0 or cy + radius >= h:
+                continue
+
+            # Get brightness of the region
+            mask = np.zeros_like(gray)
+            cv2.circle(mask, (cx, cy), radius, 255, -1)
+            mean_brightness = cv2.mean(gray, mask=mask)[0]
+
+            if mean_brightness < self.min_brightness:
+                continue
+
+            # Confidence based on circularity and brightness
+            confidence = circularity * (mean_brightness / 255.0)
+
+            detections.append(Detection(
+                x=float(cx),
+                y=float(cy),
+                radius=float(radius),
+                confidence=confidence
+            ))
+
+        return detections
+
+    def detect(self, frame: np.ndarray, is_rgb: bool = False) -> List[Detection]:
         """Detect circles in frame, filtering for bright golf ball candidates."""
+        # Use white blob detection if enabled (better for low-contrast surfaces)
+        if self.use_white_detection:
+            return self._detect_white_blobs(frame, is_rgb)
+
         # Convert to grayscale
         if len(frame.shape) == 3:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if is_rgb:
+                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         else:
             gray = frame.copy()
 
@@ -435,6 +532,9 @@ def main():
     parser.add_argument("--width", type=int, default=640, help="Camera width")
     parser.add_argument("--height", type=int, default=480, help="Camera height")
     parser.add_argument("--fps", type=int, default=60, help="Camera FPS")
+    parser.add_argument("--awb", type=str, default=None,
+                       choices=["auto", "daylight", "cloudy", "tungsten", "fluorescent", "indoor"],
+                       help="Camera auto white balance mode (fixes color issues)")
 
     # Detector settings
     parser.add_argument("--detector", type=str, default="hough",
@@ -457,6 +557,8 @@ def main():
                        help="Disable brightness/uniformity filtering")
     parser.add_argument("--no-contrast-enhance", action="store_true",
                        help="Disable contrast enhancement (CLAHE)")
+    parser.add_argument("--white-detect", action="store_true",
+                       help="Use color-based white detection (better for carpet/grass)")
 
     # ByteTrack settings
     parser.add_argument("--track-buffer", type=int, default=30,
@@ -499,8 +601,12 @@ def main():
         print(f"Using YOLO detector: {args.model}")
         detector = YOLODetector(args.model, args.imgsz, args.confidence)
     else:
-        print("Using Hough Circle detector")
-        print(f"  Contrast enhancement: {'OFF' if args.no_contrast_enhance else 'ON (CLAHE)'}")
+        if args.white_detect:
+            print("Using WHITE BLOB detector (color-based)")
+            print(f"  Better for low-contrast surfaces (carpet, grass)")
+        else:
+            print("Using Hough Circle detector")
+            print(f"  Contrast enhancement: {'OFF' if args.no_contrast_enhance else 'ON (CLAHE)'}")
         print(f"  Sensitivity (param2): {args.param2} (lower=more sensitive)")
         if not args.no_brightness_filter:
             print(f"  Brightness filter: ON (min={args.min_brightness}, uniformity={args.min_uniformity})")
@@ -514,6 +620,7 @@ def main():
             min_uniformity=args.min_uniformity,
             brightness_filter=not args.no_brightness_filter,
             enhance_contrast=not args.no_contrast_enhance,
+            use_white_detection=args.white_detect,
         )
 
     # Initialize ByteTrack
@@ -552,14 +659,14 @@ def main():
     total_detections = 0
     unique_tracks = set()
 
-    def process_frame(frame: np.ndarray, frame_num: int) -> Tuple[np.ndarray, int]:
+    def process_frame(frame: np.ndarray, frame_num: int, is_rgb: bool = False) -> Tuple[np.ndarray, int]:
         """Process a single frame and return annotated result."""
         nonlocal total_detections
 
         start_time = time.time()
 
         # Detect balls
-        detections = detector.detect(frame)
+        detections = detector.detect(frame, is_rgb=is_rgb)
         total_detections += len(detections)
 
         if detections:
@@ -684,10 +791,28 @@ def main():
 
         print(f"Starting camera: {args.width}x{args.height} @ {args.fps}fps")
         camera = Picamera2()
+
+        # Build controls dict
+        controls = {"FrameRate": args.fps}
+
+        # Add white balance mode if specified
+        if args.awb:
+            # Map user-friendly names to libcamera AWB modes
+            awb_modes = {
+                "auto": 0,        # Auto
+                "daylight": 1,    # Daylight
+                "cloudy": 2,      # Cloudy
+                "tungsten": 3,    # Tungsten
+                "fluorescent": 4, # Fluorescent
+                "indoor": 5,      # Indoor
+            }
+            controls["AwbMode"] = awb_modes.get(args.awb, 0)
+            print(f"  White balance: {args.awb}")
+
         config = camera.create_video_configuration(
             main={"size": (args.width, args.height), "format": "RGB888"},
             buffer_count=2,
-            controls={"FrameRate": args.fps}
+            controls=controls
         )
         camera.configure(config)
         camera.start()
