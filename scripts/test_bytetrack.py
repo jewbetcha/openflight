@@ -176,6 +176,20 @@ class HoughDetector:
                     if uniformity < self.min_uniformity:
                         continue  # Too varied, probably an edge or texture
 
+                    # CIRCULARITY CHECK - verify it's actually round, not a white rectangle
+                    # Compare brightness inside circle vs corners of bounding box
+                    # A real circle should have darker corners (background showing)
+                    corner_mask = np.ones((2*r, 2*r), dtype=np.uint8) * 255
+                    cv2.circle(corner_mask, (r, r), r, 0, -1)  # Mask out the circle
+                    corner_pixels = roi[corner_mask == 255]
+
+                    if len(corner_pixels) > 10:
+                        corner_brightness = np.mean(corner_pixels)
+                        # Ball should be significantly brighter than corners
+                        # If corners are also bright, it's probably a white rectangle
+                        if corner_brightness > self.min_brightness * 0.85:
+                            continue  # Corners too bright - probably a white box, not a ball
+
                     # Confidence based on brightness and uniformity
                     confidence = (mean_brightness / 255.0) * uniformity
                 else:
