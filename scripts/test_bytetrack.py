@@ -82,7 +82,7 @@ class Detection:
 
 
 class HoughDetector:
-    """Detect balls using Hough Circle Transform."""
+    """Detect balls using Hough Circle Transform with golf ball filtering."""
 
     def __init__(
         self,
@@ -90,21 +90,27 @@ class HoughDetector:
         max_radius: int = 50,
         param1: int = 50,
         param2: int = 30,
-        min_dist: int = 50
+        min_dist: int = 50,
+        min_brightness: int = 150,
+        brightness_filter: bool = True,
     ):
         self.min_radius = min_radius
         self.max_radius = max_radius
         self.param1 = param1
         self.param2 = param2
         self.min_dist = min_dist
+        self.min_brightness = min_brightness
+        self.brightness_filter = brightness_filter
 
     def detect(self, frame: np.ndarray) -> List[Detection]:
-        """Detect circles in frame."""
+        """Detect circles in frame, filtering for bright golf ball candidates."""
         # Convert to grayscale
         if len(frame.shape) == 3:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         else:
             gray = frame
+
+        h, w = gray.shape[:2]
 
         # Apply blur to reduce noise
         blurred = cv2.GaussianBlur(gray, (9, 9), 2)
@@ -125,13 +131,35 @@ class HoughDetector:
         if circles is not None:
             circles = np.uint16(np.around(circles))
             for circle in circles[0, :]:
-                x, y, r = circle
-                # Hough doesn't give confidence, use a fixed value
+                x, y, r = int(circle[0]), int(circle[1]), int(circle[2])
+
+                # Bounds check
+                if x - r < 0 or x + r >= w or y - r < 0 or y + r >= h:
+                    continue
+
+                # FILTER 1: Brightness check - golf balls are white/bright
+                if self.brightness_filter:
+                    # Sample the center region of the detection
+                    sample_r = max(2, r // 2)
+                    roi = gray[y - sample_r:y + sample_r, x - sample_r:x + sample_r]
+                    if roi.size > 0:
+                        center_brightness = np.mean(roi)
+                        if center_brightness < self.min_brightness:
+                            continue  # Too dark, not a golf ball
+
+                        # Calculate confidence based on brightness (brighter = higher confidence)
+                        # Golf balls should be very bright (200+)
+                        confidence = min(1.0, center_brightness / 255.0)
+                    else:
+                        confidence = 0.5
+                else:
+                    confidence = 0.8
+
                 detections.append(Detection(
                     x=float(x),
                     y=float(y),
                     radius=float(r),
-                    confidence=0.8
+                    confidence=confidence
                 ))
 
         return detections
@@ -176,6 +204,119 @@ class YOLODetector:
                 ))
 
         return detections
+
+
+class GolfBallFilter:
+    """
+    Smart filter for golf ball tracking.
+
+    Keeps tracks that are either:
+    1. Potentially the ball (bright, right size, could be on tee)
+    2. Currently moving fast (ball in flight)
+    3. Recently launched (was stationary, now moving)
+
+    Filters out:
+    - Objects that have been stationary for too long AND aren't bright enough
+    """
+
+    def __init__(
+        self,
+        launch_velocity: float = 10.0,
+        stationary_timeout: int = 120,
+        min_confidence: float = 0.6,
+    ):
+        """
+        Args:
+            launch_velocity: Velocity threshold to detect launch (pixels/frame)
+            stationary_timeout: Frames before stationary low-confidence objects are filtered
+            min_confidence: Minimum confidence to keep stationary objects
+        """
+        self.launch_velocity = launch_velocity
+        self.stationary_timeout = stationary_timeout
+        self.min_confidence = min_confidence
+        self._track_data: dict = {}  # track_id -> {positions, stationary_frames, launched}
+
+    def update(self, tracked: sv.Detections) -> sv.Detections:
+        """Filter detections, keeping ball candidates and launched balls."""
+        if tracked.tracker_id is None or len(tracked) == 0:
+            return tracked
+
+        keep_mask = []
+
+        for i in range(len(tracked)):
+            track_id = int(tracked.tracker_id[i])
+            bbox = tracked.xyxy[i]
+            confidence = tracked.confidence[i] if tracked.confidence is not None else 0.5
+            cx, cy = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+
+            # Initialize track data
+            if track_id not in self._track_data:
+                self._track_data[track_id] = {
+                    'positions': [],
+                    'stationary_frames': 0,
+                    'launched': False,
+                    'peak_velocity': 0,
+                }
+
+            data = self._track_data[track_id]
+            data['positions'].append((cx, cy))
+
+            # Keep only recent positions
+            if len(data['positions']) > 10:
+                data['positions'] = data['positions'][-10:]
+
+            # Calculate current velocity
+            velocity = 0
+            if len(data['positions']) >= 2:
+                dx = data['positions'][-1][0] - data['positions'][-2][0]
+                dy = data['positions'][-1][1] - data['positions'][-2][1]
+                velocity = (dx * dx + dy * dy) ** 0.5
+                data['peak_velocity'] = max(data['peak_velocity'], velocity)
+
+            # Detect launch (sudden high velocity)
+            if velocity >= self.launch_velocity:
+                data['launched'] = True
+                data['stationary_frames'] = 0
+
+            # Track stationary time
+            if velocity < 1.0:
+                data['stationary_frames'] += 1
+            else:
+                data['stationary_frames'] = 0
+
+            # Decision logic:
+            # 1. Always keep launched/moving balls
+            if data['launched'] or velocity >= self.launch_velocity:
+                keep_mask.append(True)
+            # 2. Keep high-confidence stationary objects (likely the ball on tee)
+            elif confidence >= self.min_confidence:
+                keep_mask.append(True)
+            # 3. Filter out low-confidence objects that have been stationary too long
+            elif data['stationary_frames'] > self.stationary_timeout:
+                keep_mask.append(False)
+            # 4. Keep everything else (give it time to prove itself)
+            else:
+                keep_mask.append(True)
+
+        # Filter detections
+        keep_mask = np.array(keep_mask)
+        if not np.any(keep_mask):
+            return sv.Detections.empty()
+
+        return sv.Detections(
+            xyxy=tracked.xyxy[keep_mask],
+            confidence=tracked.confidence[keep_mask] if tracked.confidence is not None else None,
+            class_id=tracked.class_id[keep_mask] if tracked.class_id is not None else None,
+            tracker_id=tracked.tracker_id[keep_mask] if tracked.tracker_id is not None else None,
+        )
+
+    def get_launched_tracks(self) -> List[int]:
+        """Get track IDs that have been launched (ball in flight)."""
+        return [tid for tid, data in self._track_data.items() if data['launched']]
+
+    def reset(self):
+        """Reset filter state."""
+        self._track_data = {}
 
 
 # Color palette for different track IDs
@@ -266,6 +407,10 @@ def main():
     # Hough settings
     parser.add_argument("--min-radius", type=int, default=5, help="Min circle radius")
     parser.add_argument("--max-radius", type=int, default=50, help="Max circle radius")
+    parser.add_argument("--min-brightness", type=int, default=150,
+                       help="Min brightness for golf ball (0-255, golf balls are bright/white)")
+    parser.add_argument("--no-brightness-filter", action="store_true",
+                       help="Disable brightness filtering")
 
     # ByteTrack settings
     parser.add_argument("--track-buffer", type=int, default=30,
@@ -274,6 +419,14 @@ def main():
                        help="Confidence threshold for track activation")
     parser.add_argument("--min-iou", type=float, default=0.1,
                        help="Minimum IoU threshold for matching")
+
+    # Golf ball filter settings
+    parser.add_argument("--launch-velocity", type=float, default=10.0,
+                       help="Velocity threshold to detect ball launch (pixels/frame)")
+    parser.add_argument("--stationary-timeout", type=int, default=120,
+                       help="Frames before filtering low-confidence stationary objects")
+    parser.add_argument("--no-golf-filter", action="store_true",
+                       help="Disable golf ball filtering (show all detections)")
 
     # Display settings
     parser.add_argument("--no-trails", action="store_true", help="Don't draw tracking trails")
@@ -301,9 +454,12 @@ def main():
         detector = YOLODetector(args.model, args.imgsz, args.confidence)
     else:
         print("Using Hough Circle detector")
+        print(f"  Brightness filter: {'OFF' if args.no_brightness_filter else f'ON (min={args.min_brightness})'}")
         detector = HoughDetector(
             min_radius=args.min_radius,
-            max_radius=args.max_radius
+            max_radius=args.max_radius,
+            min_brightness=args.min_brightness,
+            brightness_filter=not args.no_brightness_filter,
         )
 
     # Initialize ByteTrack
@@ -318,6 +474,20 @@ def main():
         track_activation_threshold=args.activation_thresh,
         minimum_iou_threshold=args.min_iou,
     )
+
+    # Initialize golf ball filter
+    golf_filter = None
+    if not args.no_golf_filter:
+        print(f"Golf ball filter: ON")
+        print(f"  launch_velocity: {args.launch_velocity} px/frame")
+        print(f"  stationary_timeout: {args.stationary_timeout} frames")
+        golf_filter = GolfBallFilter(
+            launch_velocity=args.launch_velocity,
+            stationary_timeout=args.stationary_timeout,
+        )
+    else:
+        print("Golf ball filter: OFF")
+    print()
 
     # Track history for drawing trails
     track_history = {}
@@ -351,6 +521,10 @@ def main():
 
             # Update tracker
             tracked = tracker.update(sv_detections)
+
+            # Apply golf ball filter
+            if golf_filter is not None:
+                tracked = golf_filter.update(tracked)
 
             # Track unique IDs
             if tracked.tracker_id is not None:
