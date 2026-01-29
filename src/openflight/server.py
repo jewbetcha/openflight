@@ -762,7 +762,12 @@ class MockLaunchMonitor:
             ClubType.DRIVER: (143, 12, 1.45),
             ClubType.WOOD_3: (135, 10, 1.42),
             ClubType.WOOD_5: (128, 10, 1.40),
-            ClubType.HYBRID: (122, 9, 1.38),
+            ClubType.WOOD_7: (122, 9, 1.40),
+            ClubType.HYBRID_3: (123, 9, 1.39),
+            ClubType.HYBRID_5: (118, 9, 1.37),
+            ClubType.HYBRID_7: (112, 8, 1.35),
+            ClubType.HYBRID_9: (106, 8, 1.33),
+            ClubType.IRON_2: (120, 9, 1.35),
             ClubType.IRON_3: (118, 9, 1.35),
             ClubType.IRON_4: (114, 8, 1.33),
             ClubType.IRON_5: (110, 8, 1.31),
@@ -771,6 +776,9 @@ class MockLaunchMonitor:
             ClubType.IRON_8: (94, 6, 1.25),
             ClubType.IRON_9: (88, 6, 1.23),
             ClubType.PW: (82, 5, 1.21),
+            ClubType.GW: (76, 5, 1.20),
+            ClubType.SW: (73, 5, 1.19),
+            ClubType.LW: (70, 5, 1.18),
             ClubType.UNKNOWN: (120, 15, 1.35),
         }
 
