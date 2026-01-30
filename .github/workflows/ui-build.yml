@@ -40,3 +40,32 @@ jobs:
       - name: Lint
         run: npm run lint
         working-directory: ui
+
+  happo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Happo needs a little bit of git history so that it knows what to compare against
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 100
+      - name: Fetch main branch
+        # Happo needs to know what the main branch looks like
+        if: github.ref != 'refs/heads/main'
+        run: git fetch origin main:main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ui/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ui
+      - name: Run Happo Tests
+        run: npm run happo
+        working-directory: ui
+        env:
+          HAPPO_API_KEY: ${{ secrets.HAPPO_API_KEY }}
+          HAPPO_API_SECRET: ${{ secrets.HAPPO_API_SECRET }}
