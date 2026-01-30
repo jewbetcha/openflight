@@ -59,12 +59,17 @@
 /* Dialog backdrop */
 .club-picker__dropdown::backdrop {
   background: rgba(0, 0, 0, 0.3);
-  animation: fade-in 0.2s ease;
+  transition: 
+    all 0.2s ease,
+    display 0.2s allow-discrete,
+    overlay 0.2s allow-discrete;
+  opacity: 0;
 }
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.club-picker__dropdown[open]::backdrop {
+  opacity: 1;
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 /* Dropdown */
@@ -81,18 +86,21 @@
   padding: var(--space-md);
   min-width: 260px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.1);
-  animation: dropdown-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: 
+    all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    display 0.2s allow-discrete,
+    overlay 0.2s allow-discrete;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
 }
 
+.club-picker__dropdown[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 
-@keyframes dropdown-enter {
-  from {
+  @starting-style {
     opacity: 0;
     transform: translateY(-8px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
@@ -164,17 +172,20 @@
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     min-width: auto;
     padding: var(--space-lg);
-    animation: slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: 
+      all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      display 0.3s allow-discrete,
+      overlay 0.3s allow-discrete;
+    opacity: 0;
+    transform: translateY(100%);
   }
 
-  @keyframes slide-up {
-    from {
+  .club-picker__dropdown[open] {
+    opacity: 1;
+    transform: translateY(0);
+    @starting-style {
       opacity: 0;
       transform: translateY(100%);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
     }
   }
 
