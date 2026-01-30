@@ -59,7 +59,7 @@ openflight --live
 openflight --info
 ```
 
-### Web UI
+### Web UI - Yeet
 
 ```bash
 # Run the UI server with radar
