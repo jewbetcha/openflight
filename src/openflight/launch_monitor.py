@@ -22,7 +22,12 @@ class ClubType(Enum):
     DRIVER = "driver"
     WOOD_3 = "3-wood"
     WOOD_5 = "5-wood"
-    HYBRID = "hybrid"
+    WOOD_7 = "7-wood"
+    HYBRID_3 = "3-hybrid"
+    HYBRID_5 = "5-hybrid"
+    HYBRID_7 = "7-hybrid"
+    HYBRID_9 = "9-hybrid"
+    IRON_2 = "2-iron"
     IRON_3 = "3-iron"
     IRON_4 = "4-iron"
     IRON_5 = "5-iron"
@@ -31,6 +36,9 @@ class ClubType(Enum):
     IRON_8 = "8-iron"
     IRON_9 = "9-iron"
     PW = "pw"
+    GW = "gw"
+    SW = "sw"
+    LW = "lw"
     UNKNOWN = "unknown"
 
 
@@ -85,7 +93,12 @@ def estimate_carry_distance(ball_speed_mph: float, club: ClubType = ClubType.DRI
         ClubType.DRIVER: 1.0,
         ClubType.WOOD_3: 0.96,    # Slightly less efficient
         ClubType.WOOD_5: 0.93,
-        ClubType.HYBRID: 0.90,
+        ClubType.WOOD_7: 0.91,
+        ClubType.HYBRID_3: 0.91,
+        ClubType.HYBRID_5: 0.89,
+        ClubType.HYBRID_7: 0.87,
+        ClubType.HYBRID_9: 0.85,
+        ClubType.IRON_2: 0.88,
         ClubType.IRON_3: 0.87,
         ClubType.IRON_4: 0.85,
         ClubType.IRON_5: 0.82,
@@ -94,6 +107,9 @@ def estimate_carry_distance(ball_speed_mph: float, club: ClubType = ClubType.DRI
         ClubType.IRON_8: 0.73,
         ClubType.IRON_9: 0.70,
         ClubType.PW: 0.67,
+        ClubType.GW: 0.64,
+        ClubType.SW: 0.62,
+        ClubType.LW: 0.61,
         ClubType.UNKNOWN: 1.0,
     }
 
