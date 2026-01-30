@@ -3,7 +3,8 @@
   DIY Golf Launch Monitor using the OPS243-A Doppler Radar.
 </p>
 
-## FYI - This is in constant development and doesn't work that well at the moment
+> [!WARNING]
+> **This project is in active development.** Features may be incomplete, unstable, or change without notice. Expect bugs and breaking changes. Contributions and bug reports are welcome!
 
 ## Overview
 
