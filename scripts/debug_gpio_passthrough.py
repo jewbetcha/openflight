@@ -102,8 +102,14 @@ def main():
     radar._send_command("PI")
     time.sleep(0.1)
 
-    print("  GC (enable rolling buffer / continuous sampling)...")
-    response = radar._send_command("GC")
+    # Try G1 (rolling buffer mode) instead of GC (continuous sampling)
+    print("  G1 (enable rolling buffer mode - single capture)...")
+    response = radar._send_command("G1")
+    print(f"    Response: {response[:100] if response else 'None'}")
+    time.sleep(0.1)
+
+    print("  K+ (enable peak detection)...")
+    response = radar._send_command("K+")
     print(f"    Response: {response[:100] if response else 'None'}")
     time.sleep(0.1)
 
@@ -201,7 +207,7 @@ def main():
     # Re-arm for next test
     print()
     print("Re-arming rolling buffer (sending GC)...")
-    radar._send_command("GC")
+    radar._send_command("G1")
     time.sleep(0.2)
     radar._send_command("PA")
     time.sleep(0.2)
@@ -269,7 +275,7 @@ def main():
         # Re-arm and try falling edge
         print()
         print("Re-arming rolling buffer...")
-        radar._send_command("GC")
+        radar._send_command("G1")
         time.sleep(0.2)
         radar._send_command("PA")
         time.sleep(0.2)
@@ -315,7 +321,7 @@ def main():
             # Try level-triggered (hold HIGH)
             print()
             print("Re-arming rolling buffer...")
-            radar._send_command("GC")
+            radar._send_command("G1")
             time.sleep(0.2)
             radar._send_command("PA")
             time.sleep(0.2)
