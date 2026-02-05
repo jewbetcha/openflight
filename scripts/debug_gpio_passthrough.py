@@ -44,7 +44,9 @@ def test_gpio_input(input_pin: int, duration: float = 10.0):
     print()
 
     handle = lgpio.gpiochip_open(0)
-    lgpio.gpio_claim_input(handle, input_pin, lgpio.SET_PULL_DOWN)
+
+    # Must use gpio_claim_alert for edge detection callbacks
+    lgpio.gpio_claim_alert(handle, input_pin, lgpio.BOTH_EDGES, lgpio.SET_PULL_DOWN)
 
     edge_count = 0
     last_level = 0
@@ -56,7 +58,7 @@ def test_gpio_input(input_pin: int, duration: float = 10.0):
         print(f"  Edge #{edge_count}: {direction} (level={level})")
         last_level = level
 
-    callback_id = lgpio.callback(handle, input_pin, lgpio.BOTH_EDGES, on_edge)
+    cb = lgpio.callback(handle, input_pin, lgpio.BOTH_EDGES, on_edge)
 
     # Also poll the current level
     print(f"Current level: {lgpio.gpio_read(handle, input_pin)}")
@@ -71,7 +73,7 @@ def test_gpio_input(input_pin: int, duration: float = 10.0):
             current = lgpio.gpio_read(handle, input_pin)
             print(f"  [{time.time() - start:.0f}s] level={current}, edges={edge_count}")
 
-    lgpio.callback_cancel(callback_id)
+    cb.cancel()
     lgpio.gpiochip_close(handle)
 
     print()

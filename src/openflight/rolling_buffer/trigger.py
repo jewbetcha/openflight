@@ -632,8 +632,8 @@ class GPIOPassthroughTrigger(TriggerStrategy):
         try:
             self._handle = lgpio.gpiochip_open(0)
 
-            # Configure input with pull-down
-            lgpio.gpio_claim_input(self._handle, self.input_pin, lgpio.SET_PULL_DOWN)
+            # Configure input with pull-down and alert for edge detection
+            lgpio.gpio_claim_alert(self._handle, self.input_pin, lgpio.RISING_EDGE, lgpio.SET_PULL_DOWN)
 
             # Configure output, initially LOW
             lgpio.gpio_claim_output(self._handle, self.output_pin, 0)
