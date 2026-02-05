@@ -101,7 +101,8 @@ def software_trigger_and_read(radar, timeout=10.0):
 
     # Read response
     chunks = []
-    while time.time() - trigger_send_time < timeout:
+    start_time = time.perf_counter()
+    while time.perf_counter() - start_time < timeout:
         if radar.serial.in_waiting:
             chunk = radar.serial.read(radar.serial.in_waiting)
             chunks.append(chunk)
