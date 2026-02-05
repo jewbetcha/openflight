@@ -85,32 +85,69 @@ def main():
     print("Radar reset complete.")
 
     # =========================================================================
-    # STEP 2: Configure rolling buffer mode
+    # STEP 2: Configure rolling buffer mode (verbose)
     # =========================================================================
     print()
     print("-" * 70)
-    print("STEP 2: Configure rolling buffer mode")
+    print("STEP 2: Configure rolling buffer mode (verbose)")
     print("-" * 70)
 
-    print("Using radar.configure_for_rolling_buffer()...")
-    radar.configure_for_rolling_buffer()
+    print("Sending commands manually with response checking...")
+    print()
 
-    print("Setting pre-trigger segments to 12...")
-    radar.set_trigger_split(12)
+    # Set units
+    print("  UC (set units)...")
+    response = radar._send_command("UC")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
 
-    # Verify configuration
+    # Deactivate first
+    print("  PI (deactivate)...")
+    response = radar._send_command("PI")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
+
+    # Enable rolling buffer mode - THIS IS THE KEY COMMAND
+    print("  GC (enable rolling buffer mode)...")
+    response = radar._send_command("GC")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
+
+    # Activate sampling
+    print("  PA (activate)...")
+    response = radar._send_command("PA")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
+
+    # Set sample rate
+    print("  S=30000 (sample rate)...")
+    response = radar._send_command("S=30000")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
+
+    # Set trigger split
+    print("  S#12 (pre-trigger segments)...")
+    response = radar._send_command("S#12")
+    print(f"    Response: {response}")
+    time.sleep(0.1)
+
+    # Query current mode
     print()
     print("Verifying configuration...")
-    print("  S? (query sample rate)...")
-    response = radar._send_command("S?")
-    print(f"    Response: {response}")
-
     print("  G? (query mode)...")
     response = radar._send_command("G?")
     print(f"    Response: {response}")
 
+    print("  S? (query sample rate)...")
+    response = radar._send_command("S?")
+    print(f"    Response: {response}")
+
+    print("  ?? (query all settings)...")
+    response = radar._send_command("??")
+    print(f"    Response: {response[:500] if response else 'None'}...")
+
     print()
-    print("Rolling buffer mode configured.")
+    print("Configuration complete.")
 
     # =========================================================================
     # STEP 3: Test software trigger (S!)
