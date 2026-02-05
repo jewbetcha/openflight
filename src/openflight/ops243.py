@@ -1072,6 +1072,13 @@ class OPS243Radar:
         # Set trigger split (8 segments = ~34ms pre-trigger)
         self.set_trigger_split(8)
 
+        # CRITICAL: Re-activate sampling after changing settings
+        # Per API doc: "Use GC or PA to start a new round of sampling"
+        # Settings changes (S=30, S#n) may interrupt the sampling loop
+        self._send_command("PA")
+        time.sleep(0.1)
+        logger.info("Re-activated sampling with PA")
+
         logger.info("Rolling buffer mode configured")
 
     def configure_for_speed_trigger(self):
