@@ -257,6 +257,8 @@ class SessionLogger:
         readings: Optional[List[Dict]] = None,
         spin_rpm: Optional[float] = None,
         spin_confidence: Optional[float] = None,
+        spin_quality: Optional[str] = None,
+        carry_spin_adjusted: Optional[float] = None,
         mode: str = "streaming"
     ):
         """
@@ -273,6 +275,8 @@ class SessionLogger:
             readings: Optional list of individual readings that comprised the shot
             spin_rpm: Spin rate in RPM (rolling buffer mode only)
             spin_confidence: Confidence of spin detection (rolling buffer mode only)
+            spin_quality: Quality assessment ("high", "medium", "low")
+            carry_spin_adjusted: Carry distance adjusted for spin (rolling buffer mode only)
             mode: Radar mode ("streaming" or "rolling-buffer")
         """
         if not self.enabled:
@@ -292,6 +296,8 @@ class SessionLogger:
             "readings": readings,
             "spin_rpm": spin_rpm,
             "spin_confidence": spin_confidence,
+            "spin_quality": spin_quality,
+            "carry_spin_adjusted": carry_spin_adjusted,
             "mode": mode,
         })
 
@@ -381,6 +387,90 @@ class SessionLogger:
             "shot_number": shot_number,
             "block_count": len(blocks),
             "blocks": blocks,
+        })
+
+    def log_trigger_event(
+        self,
+        trigger_type: str,
+        accepted: bool,
+        reason: Optional[str] = None,
+        peak_speed_mph: Optional[float] = None,
+        readings_count: int = 0,
+        latency_ms: Optional[float] = None,
+    ):
+        """
+        Log a trigger event (accepted or rejected).
+
+        Useful for diagnosing false triggers at driving ranges where
+        nearby players can trip sound triggers.
+
+        Args:
+            trigger_type: Type of trigger (e.g., "sound-passthrough", "sound-gpio")
+            accepted: True if trigger led to valid shot detection
+            reason: Reason for rejection (if not accepted)
+            peak_speed_mph: Peak speed detected (if any)
+            readings_count: Number of readings in capture
+            latency_ms: Trigger latency in milliseconds (if measured)
+        """
+        if not self.enabled:
+            return
+
+        # Track stats
+        if "triggers_total" not in self._stats:
+            self._stats["triggers_total"] = 0
+            self._stats["triggers_accepted"] = 0
+            self._stats["triggers_rejected"] = 0
+
+        self._stats["triggers_total"] += 1
+        if accepted:
+            self._stats["triggers_accepted"] += 1
+        else:
+            self._stats["triggers_rejected"] += 1
+
+        self._write_entry("trigger_event", {
+            "trigger_type": trigger_type,
+            "accepted": accepted,
+            "reason": reason,
+            "peak_speed_mph": peak_speed_mph,
+            "readings_count": readings_count,
+            "latency_ms": latency_ms,
+        })
+
+    def log_rolling_buffer_capture(
+        self,
+        shot_number: int,
+        sample_time: float,
+        trigger_time: float,
+        i_samples: List[int],
+        q_samples: List[int],
+        ball_speed_mph: Optional[float] = None,
+        club_speed_mph: Optional[float] = None,
+    ):
+        """
+        Log raw rolling buffer capture data for offline analysis.
+
+        Args:
+            shot_number: Shot number this capture belongs to
+            sample_time: When sampling started (radar timestamp)
+            trigger_time: When trigger fired (radar timestamp)
+            i_samples: Raw I channel samples (4096 values)
+            q_samples: Raw Q channel samples (4096 values)
+            ball_speed_mph: Detected ball speed (if any)
+            club_speed_mph: Detected club speed (if any)
+        """
+        if not self.enabled:
+            return
+
+        self._write_entry("rolling_buffer_capture", {
+            "shot_number": shot_number,
+            "sample_time": sample_time,
+            "trigger_time": trigger_time,
+            "trigger_offset_ms": (trigger_time - sample_time) * 1000,
+            "sample_count": len(i_samples),
+            "i_samples": i_samples,
+            "q_samples": q_samples,
+            "ball_speed_mph": ball_speed_mph,
+            "club_speed_mph": club_speed_mph,
         })
 
     def log_error(self, error: str, context: Optional[Dict] = None):

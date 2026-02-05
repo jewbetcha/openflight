@@ -327,6 +327,8 @@ class RollingBufferMonitor:
         """Main capture loop - wait for trigger, process, emit shot."""
         while self._running:
             try:
+                trigger_start = time.time()
+
                 # Wait for trigger and capture
                 capture = self.trigger.wait_for_trigger(
                     radar=self.radar,
@@ -337,11 +339,23 @@ class RollingBufferMonitor:
                 if capture is None:
                     continue
 
+                trigger_latency_ms = (time.time() - trigger_start) * 1000
+
                 # Process capture
                 processed = self.processor.process_capture(capture)
 
                 if processed is None:
                     logger.warning("Failed to process capture")
+                    # Log rejected trigger (capture received but no valid shot data)
+                    session_logger = get_session_logger()
+                    if session_logger:
+                        session_logger.log_trigger_event(
+                            trigger_type=self.trigger_type,
+                            accepted=False,
+                            reason="No valid readings extracted from capture",
+                            readings_count=0,
+                            latency_ms=trigger_latency_ms,
+                        )
                     continue
 
                 # For speed trigger, use the trigger speed as club speed if not found in capture
@@ -370,6 +384,9 @@ class RollingBufferMonitor:
                     # Log to session logger
                     session_logger = get_session_logger()
                     if session_logger:
+                        shot_number = len(self._shots)
+
+                        # Log the shot
                         session_logger.log_shot(
                             ball_speed_mph=shot.ball_speed_mph,
                             club_speed_mph=shot.club_speed_mph,
@@ -381,13 +398,46 @@ class RollingBufferMonitor:
                             readings=None,  # Raw readings not stored in rolling buffer mode
                             spin_rpm=shot.spin_rpm,
                             spin_confidence=shot.spin_confidence,
+                            spin_quality=shot.spin_quality,
+                            carry_spin_adjusted=shot.carry_spin_adjusted,
                             mode="rolling-buffer"
+                        )
+
+                        # Log raw I/Q data for offline analysis
+                        session_logger.log_rolling_buffer_capture(
+                            shot_number=shot_number,
+                            sample_time=capture.sample_time,
+                            trigger_time=capture.trigger_time,
+                            i_samples=capture.i_samples,
+                            q_samples=capture.q_samples,
+                            ball_speed_mph=shot.ball_speed_mph,
+                            club_speed_mph=shot.club_speed_mph,
+                        )
+
+                        # Log accepted trigger event
+                        session_logger.log_trigger_event(
+                            trigger_type=self.trigger_type,
+                            accepted=True,
+                            peak_speed_mph=shot.ball_speed_mph,
+                            readings_count=len(processed.timeline.readings),
+                            latency_ms=trigger_latency_ms,
                         )
 
                     if self._shot_callback:
                         self._shot_callback(shot)
                 else:
                     logger.debug("Shot validation failed")
+                    # Log rejected trigger (capture processed but shot validation failed)
+                    session_logger = get_session_logger()
+                    if session_logger:
+                        session_logger.log_trigger_event(
+                            trigger_type=self.trigger_type,
+                            accepted=False,
+                            reason="Shot validation failed (speed too low or invalid)",
+                            peak_speed_mph=processed.ball_speed_mph if processed else None,
+                            readings_count=len(processed.timeline.readings) if processed else 0,
+                            latency_ms=trigger_latency_ms,
+                        )
 
                 # Reset trigger for next capture
                 self.trigger.reset()

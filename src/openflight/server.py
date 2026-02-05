@@ -912,7 +912,7 @@ def main():
     )
     parser.add_argument(
         "--trigger",
-        choices=["polling", "threshold", "speed", "sound", "sound-gpio"],
+        choices=["polling", "threshold", "speed", "sound", "sound-gpio", "sound-passthrough"],
         default="polling",
         help="Trigger strategy for rolling-buffer mode (default: polling)"
     )
@@ -930,6 +930,21 @@ def main():
         "--gpio-debounce",
         type=int, default=200,
         help="Debounce time in ms for sound-gpio trigger (default: 200)"
+    )
+    parser.add_argument(
+        "--gpio-input",
+        type=int, default=17,
+        help="GPIO input pin (BCM) for sound-passthrough trigger (default: 17, physical pin 11)"
+    )
+    parser.add_argument(
+        "--gpio-output",
+        type=int, default=27,
+        help="GPIO output pin (BCM) for sound-passthrough trigger (default: 27, physical pin 13)"
+    )
+    parser.add_argument(
+        "--pulse-width",
+        type=int, default=100,
+        help="Pulse width in microseconds for sound-passthrough trigger (default: 100)"
     )
     args = parser.parse_args()
 
@@ -979,6 +994,11 @@ def main():
         trigger_kwargs["gpio_pin"] = args.gpio_pin
         trigger_kwargs["pre_trigger_segments"] = args.sound_pre_trigger
         trigger_kwargs["debounce_ms"] = args.gpio_debounce
+    elif args.trigger == "sound-passthrough":
+        trigger_kwargs["input_pin"] = args.gpio_input
+        trigger_kwargs["output_pin"] = args.gpio_output
+        trigger_kwargs["pre_trigger_segments"] = args.sound_pre_trigger
+        trigger_kwargs["pulse_width_us"] = args.pulse_width
 
     start_monitor(
         port=args.port,
