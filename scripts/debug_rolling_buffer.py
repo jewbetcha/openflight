@@ -10,9 +10,14 @@ Tests the exact sequence from OmniPreSense API doc AN-010-AD:
 5. S#n - set trigger split
 6. PA - reactivate (in case settings interrupted sampling)
 7. Wait for buffer to fill
-8. S! - trigger and read I/Q data
+8. S! - trigger and read I/Q data (or wait for hardware trigger)
+
+Usage:
+    uv run python scripts/debug_rolling_buffer.py              # Software trigger (S!)
+    uv run python scripts/debug_rolling_buffer.py --hardware   # Wait for hardware trigger
 """
 
+import argparse
 import sys
 import time
 
@@ -48,11 +53,61 @@ def send_and_print(radar, cmd, description):
     return response
 
 
+def wait_for_hardware_trigger(radar, timeout=60.0):
+    """Wait for hardware trigger (data appears on serial when HOST_INT fires)."""
+    radar.serial.reset_input_buffer()
+
+    start = time.time()
+    chunks = []
+    last_data_time = None
+
+    while time.time() - start < timeout:
+        if radar.serial.in_waiting:
+            chunk = radar.serial.read(radar.serial.in_waiting)
+            chunks.append(chunk)
+            last_data_time = time.time()
+
+            # Check for complete I/Q response
+            full = b''.join(chunks)
+            if b'"Q"' in full and b']}' in full[full.rfind(b'"Q"'):]:
+                break
+            time.sleep(0.01)
+        else:
+            # If we've received data and no more coming, check if complete
+            if last_data_time and (time.time() - last_data_time) > 0.5:
+                full = b''.join(chunks)
+                if b'"Q"' in full:
+                    break
+            time.sleep(0.02)
+
+    elapsed = time.time() - start
+    response = b''.join(chunks).decode('utf-8', errors='ignore') if chunks else ""
+    return response, elapsed
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Rolling buffer debug script")
+    parser.add_argument(
+        "--hardware", "-hw", action="store_true",
+        help="Wait for hardware trigger instead of using S! software trigger"
+    )
+    parser.add_argument(
+        "--timeout", "-t", type=float, default=60.0,
+        help="Timeout for hardware trigger in seconds (default: 60)"
+    )
+    args = parser.parse_args()
+
     print("=" * 70)
     print("  Rolling Buffer Debug (API Doc Sequence)")
     print("=" * 70)
     print()
+
+    if args.hardware:
+        print("MODE: Hardware trigger (waiting for HOST_INT signal)")
+        print()
+    else:
+        print("MODE: Software trigger (S! command)")
+        print()
 
     radar = OPS243Radar()
     radar.connect()
@@ -130,35 +185,51 @@ def main():
     # Step 9: Trigger capture
     print()
     print("-" * 70)
-    print("Step 9: Trigger capture (S!)")
+    if args.hardware:
+        print("Step 9: Waiting for HARDWARE trigger on HOST_INT (J3 Pin 3)")
+    else:
+        print("Step 9: Trigger capture (S!)")
     print("-" * 70)
 
     # Clear buffer
     radar.serial.reset_input_buffer()
 
-    # Send trigger
-    print("  Sending S!...")
-    radar.serial.write(b"S!\r")
-    radar.serial.flush()
+    if args.hardware:
+        print()
+        print("  Radar is ready and waiting for hardware trigger.")
+        print("  Apply a LOW→HIGH edge (0V → 3.3V) to J3 Pin 3 (HOST_INT).")
+        print()
+        print("  To test with GPIO, run in another terminal:")
+        print("    uv run python scripts/debug_gpio_output.py")
+        print()
+        print(f"  Waiting up to {args.timeout:.0f} seconds for trigger...")
+        print()
 
-    # Read response with timeout
-    start = time.time()
-    chunks = []
-    timeout = 10.0
+        response, elapsed = wait_for_hardware_trigger(radar, timeout=args.timeout)
+    else:
+        # Send trigger
+        print("  Sending S!...")
+        radar.serial.write(b"S!\r")
+        radar.serial.flush()
 
-    while time.time() - start < timeout:
-        if radar.serial.in_waiting:
-            chunk = radar.serial.read(radar.serial.in_waiting)
-            chunks.append(chunk)
+        # Read response with timeout
+        start = time.time()
+        chunks = []
+        timeout = 10.0
 
-            # Check for complete response
-            full = b''.join(chunks)
-            if b'"Q"' in full and b']}' in full[full.rfind(b'"Q"'):]:
-                break
-        time.sleep(0.05)
+        while time.time() - start < timeout:
+            if radar.serial.in_waiting:
+                chunk = radar.serial.read(radar.serial.in_waiting)
+                chunks.append(chunk)
 
-    elapsed = time.time() - start
-    response = b''.join(chunks).decode('utf-8', errors='ignore')
+                # Check for complete response
+                full = b''.join(chunks)
+                if b'"Q"' in full and b']}' in full[full.rfind(b'"Q"'):]:
+                    break
+            time.sleep(0.05)
+
+        elapsed = time.time() - start
+        response = b''.join(chunks).decode('utf-8', errors='ignore')
 
     print(f"  Response time: {elapsed*1000:.0f}ms")
     print(f"  Response length: {len(response)} bytes")
@@ -188,12 +259,22 @@ def main():
         print("  SUCCESS: Received I/Q data!")
     else:
         print()
-        print("  FAIL: No I/Q data received")
-        print()
-        print("  Troubleshooting:")
-        print("    1. Check firmware version supports GC mode (1.2.3+)")
-        print("    2. Try power cycling the radar")
-        print("    3. Check if HOST_INT pin is floating/grounded")
+        if args.hardware:
+            print("  FAIL: No I/Q data received from hardware trigger")
+            print()
+            print("  Troubleshooting:")
+            print("    1. Verify HOST_INT (J3 Pin 3) receives a clean 0V → 3.3V edge")
+            print("    2. Measure HOST_INT voltage - should go from <1.2V to >2.0V")
+            print("    3. Check if a pull-down resistor is needed (1kΩ to GND)")
+            print("    4. Try software trigger to confirm radar is working:")
+            print("       uv run python scripts/debug_rolling_buffer.py")
+        else:
+            print("  FAIL: No I/Q data received")
+            print()
+            print("  Troubleshooting:")
+            print("    1. Check firmware version supports GC mode (1.2.3+)")
+            print("    2. Try power cycling the radar")
+            print("    3. Check if HOST_INT pin is floating/grounded")
 
     # Cleanup
     print()
