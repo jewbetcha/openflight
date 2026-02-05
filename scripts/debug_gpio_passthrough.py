@@ -92,41 +92,11 @@ def main():
     print("STEP 2: Configure rolling buffer mode")
     print("-" * 70)
 
-    print("Sending configuration commands...")
+    print("Using radar.configure_for_rolling_buffer()...")
+    radar.configure_for_rolling_buffer()
 
-    print("  UC (set units to MPH)...")
-    radar._send_command("UC")
-    time.sleep(0.1)
-
-    print("  PI (deactivate)...")
-    radar._send_command("PI")
-    time.sleep(0.1)
-
-    # Try G1 (rolling buffer mode) instead of GC (continuous sampling)
-    print("  G1 (enable rolling buffer mode - single capture)...")
-    response = radar._send_command("G1")
-    print(f"    Response: {response[:100] if response else 'None'}")
-    time.sleep(0.1)
-
-    print("  K+ (enable peak detection)...")
-    response = radar._send_command("K+")
-    print(f"    Response: {response[:100] if response else 'None'}")
-    time.sleep(0.1)
-
-    print("  S=30000 (set sample rate 30ksps)...")
-    response = radar._send_command("S=30000")
-    print(f"    Response: {response[:100] if response else 'None'}")
-    time.sleep(0.1)
-
-    print("  S#12 (set pre-trigger segments)...")
-    response = radar._send_command("S#12")
-    print(f"    Response: {response[:100] if response else 'None'}")
-    time.sleep(0.1)
-
-    print("  PA (activate)...")
-    response = radar._send_command("PA")
-    print(f"    Response: {response[:100] if response else 'None'}")
-    time.sleep(0.2)
+    print("Setting pre-trigger segments to 12...")
+    radar.set_trigger_split(12)
 
     # Verify configuration
     print()
@@ -206,10 +176,8 @@ def main():
 
     # Re-arm for next test
     print()
-    print("Re-arming rolling buffer (sending GC)...")
-    radar._send_command("G1")
-    time.sleep(0.2)
-    radar._send_command("PA")
+    print("Re-arming rolling buffer...")
+    radar.rearm_rolling_buffer()
     time.sleep(0.2)
 
     # =========================================================================
@@ -275,9 +243,7 @@ def main():
         # Re-arm and try falling edge
         print()
         print("Re-arming rolling buffer...")
-        radar._send_command("G1")
-        time.sleep(0.2)
-        radar._send_command("PA")
+        radar.rearm_rolling_buffer()
         time.sleep(0.2)
         radar.serial.reset_input_buffer()
 
@@ -321,9 +287,7 @@ def main():
             # Try level-triggered (hold HIGH)
             print()
             print("Re-arming rolling buffer...")
-            radar._send_command("G1")
-            time.sleep(0.2)
-            radar._send_command("PA")
+            radar.rearm_rolling_buffer()
             time.sleep(0.2)
             radar.serial.reset_input_buffer()
 

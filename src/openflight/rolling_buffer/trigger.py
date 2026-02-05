@@ -320,7 +320,7 @@ class SpeedTriggeredCapture(TriggerStrategy):
         2. Poll for speed readings at ~150-200Hz
         3. When speed >= threshold detected:
            a. Record club speed
-           b. Switch to rolling buffer mode (G1 + K+ + S#0)
+           b. Switch to rolling buffer mode (GC + S#0)
            c. Wait for ball impact (~15-25ms)
            d. Trigger capture (S!)
         4. Return to speed detection mode for next shot
