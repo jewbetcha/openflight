@@ -269,13 +269,13 @@ def main():
     # Clear any pending serial data
     radar.serial.reset_input_buffer()
 
-    # Test rising edge
+    # Test rising edge with longer pulse
     print()
-    print("Sending rising edge pulse (LOW → HIGH for 10ms → LOW)...")
+    print("Test 2a: Rising edge pulse (LOW → HIGH for 100ms → LOW)...")
     start = time.perf_counter()
 
     lgpio.gpio_write(h, OUTPUT_PIN, 1)
-    time.sleep(0.010)
+    time.sleep(0.100)  # 100ms pulse (10x longer)
     lgpio.gpio_write(h, OUTPUT_PIN, 0)
 
     print("  Pulse sent, waiting for response...")
@@ -287,6 +287,7 @@ def main():
     print(f"  Response time: {elapsed_ms:.0f}ms")
     print(f"  Response length: {len(response) if response else 0} bytes")
 
+    hw_trigger_success = False
     if response and len(response) > 100:
         has_i = '"I"' in response
         has_q = '"Q"' in response
@@ -298,30 +299,29 @@ def main():
             if capture:
                 print(f"  I samples: {len(capture.i_samples)}")
                 print(f"  Q samples: {len(capture.q_samples)}")
-                print("  SUCCESS: Hardware trigger (rising edge) works!")
+                print("  SUCCESS: Hardware trigger (100ms rising edge) works!")
+                hw_trigger_success = True
             else:
                 print(f"  Response received but parse failed: {response[:200]}")
         else:
             print(f"  Response preview: {response[:300]}")
     else:
-        print("  FAIL: No I/Q data from rising edge trigger")
+        print("  FAIL: No I/Q data from 100ms rising edge trigger")
 
-        # Try falling edge
+    # Test 2b: Try holding HIGH for extended period
+    if not hw_trigger_success:
         print()
-        print("Trying falling edge (HIGH → LOW for 10ms → HIGH)...")
+        print("Test 2b: Hold HIGH for 500ms (sustained trigger)...")
         rearm_buffer(radar)
         time.sleep(0.5)
         radar.serial.reset_input_buffer()
 
-        lgpio.gpio_write(h, OUTPUT_PIN, 1)
-        time.sleep(0.1)
-
         start = time.perf_counter()
-        lgpio.gpio_write(h, OUTPUT_PIN, 0)
-        time.sleep(0.010)
         lgpio.gpio_write(h, OUTPUT_PIN, 1)
+        time.sleep(0.500)  # Hold HIGH for 500ms
 
-        response = wait_for_hardware_response(radar, timeout=5.0)
+        response = wait_for_hardware_response(radar, timeout=3.0)
+        lgpio.gpio_write(h, OUTPUT_PIN, 0)
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         print(f"  Response time: {elapsed_ms:.0f}ms")
@@ -331,17 +331,72 @@ def main():
             has_i = '"I"' in response
             has_q = '"Q"' in response
             if has_i and has_q:
-                print("  SUCCESS: Hardware trigger (falling edge) works!")
+                print("  SUCCESS: Hardware trigger (sustained HIGH) works!")
+                hw_trigger_success = True
             else:
                 print(f"  Response preview: {response[:300]}")
         else:
-            print("  FAIL: No I/Q data from falling edge trigger")
-            print()
-            print("  Troubleshooting:")
-            print("    1. Verify GPIO27 is connected to J3 Pin 3 (HOST_INT)")
-            print("    2. Verify GND is shared between Pi and radar")
-            print("    3. Measure voltage on HOST_INT during pulse (should be 3.3V)")
-            print("    4. Try longer pulse width (100ms instead of 10ms)")
+            print("  FAIL: No response from sustained HIGH")
+
+    # Test 2c: Try multiple rapid pulses
+    if not hw_trigger_success:
+        print()
+        print("Test 2c: Multiple rapid pulses (5x 50ms pulses)...")
+        rearm_buffer(radar)
+        time.sleep(0.5)
+        radar.serial.reset_input_buffer()
+
+        start = time.perf_counter()
+        for i in range(5):
+            lgpio.gpio_write(h, OUTPUT_PIN, 1)
+            time.sleep(0.050)
+            lgpio.gpio_write(h, OUTPUT_PIN, 0)
+            time.sleep(0.050)
+
+        response = wait_for_hardware_response(radar, timeout=3.0)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        print(f"  Response time: {elapsed_ms:.0f}ms")
+        print(f"  Response length: {len(response) if response else 0} bytes")
+
+        if response and len(response) > 100:
+            has_i = '"I"' in response
+            has_q = '"Q"' in response
+            if has_i and has_q:
+                print("  SUCCESS: Hardware trigger (multiple pulses) works!")
+                hw_trigger_success = True
+            else:
+                print(f"  Response preview: {response[:300]}")
+        else:
+            print("  FAIL: No response from multiple pulses")
+
+    # Final diagnostics
+    if not hw_trigger_success:
+        print()
+        print("-" * 70)
+        print("HARDWARE TRIGGER DIAGNOSTICS")
+        print("-" * 70)
+        print()
+        print("All hardware trigger attempts failed. Please verify:")
+        print()
+        print("1. WIRING:")
+        print(f"   - Pi GPIO{OUTPUT_PIN} (physical pin {gpio_to_physical(OUTPUT_PIN)}) -> J3 Pin 3 (HOST_INT)")
+        print("   - Pi GND -> J3 Pin 10 (GND) - CRITICAL: grounds must be shared!")
+        print()
+        print("2. VOLTAGE CHECK with multimeter:")
+        print("   - Measure between GPIO27 and GND while script runs")
+        print("   - Should see 0V (LOW) -> 3.3V (HIGH) during pulses")
+        print()
+        print("3. J3 HEADER PINOUT (looking at radar board, pins numbered 1-10):")
+        print("   Pin 1: GPIO    Pin 2: GPIO")
+        print("   Pin 3: HOST_INT (trigger input) <- connect GPIO27 here")
+        print("   Pin 4: /RESET  Pin 5: SPI_SEL")
+        print("   Pin 6: RxD     Pin 7: TxD")
+        print("   Pin 8: SCK     Pin 9: 5V Power")
+        print("   Pin 10: GND <- ensure this is connected to Pi GND")
+        print()
+        print("4. ALTERNATIVE: Connect SEN-14262 GATE directly to J3 Pin 3")
+        print("   If GATE output is actually 3.3V (not 2.5V), it may work directly")
 
     lgpio.gpiochip_close(h)
     radar.serial.write(b"PI")
