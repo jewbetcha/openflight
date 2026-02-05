@@ -119,9 +119,9 @@ def main():
     print(f"    Response: {response}")
     time.sleep(0.1)
 
-    # Set sample rate
-    print("  S=30000 (sample rate)...")
-    response = radar._send_command("S=30000")
+    # Set sample rate (S=30 means 30 kHz, not S=30000!)
+    print("  S=30 (sample rate 30kHz)...")
+    response = radar._send_command("S=30")
     print(f"    Response: {response}")
     time.sleep(0.1)
 
