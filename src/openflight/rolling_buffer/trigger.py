@@ -533,18 +533,32 @@ class GPIOSoundTrigger(TriggerStrategy):
 
                 # Quick validation: does the capture contain any real swing data?
                 timeline = processor.process_standard(capture)
+                all_readings = timeline.readings
                 outbound = [
-                    r for r in timeline.readings
+                    r for r in all_readings
                     if r.is_outbound and r.speed_mph >= 15.0
                 ]
 
                 if not outbound:
-                    logger.info("GPIO trigger: no swing detected in capture, re-arming")
+                    # Log details about what WAS detected for debugging
+                    all_outbound = [r for r in all_readings if r.is_outbound]
+                    all_inbound = [r for r in all_readings if not r.is_outbound]
+                    peak_outbound = max((r.speed_mph for r in all_outbound), default=0)
+                    peak_inbound = max((r.speed_mph for r in all_inbound), default=0)
+                    logger.info(
+                        "GPIO trigger REJECTED: no swing >= 15 mph. "
+                        "Total readings: %d, outbound: %d (peak %.1f mph), inbound: %d (peak %.1f mph). "
+                        "Likely false trigger from nearby sound. Re-arming...",
+                        len(all_readings), len(all_outbound), peak_outbound,
+                        len(all_inbound), peak_inbound
+                    )
                     return None
 
                 peak = max(r.speed_mph for r in outbound)
-                logger.info("GPIO trigger capture: %d readings, peak %.1f mph",
-                           len(outbound), peak)
+                logger.info(
+                    "GPIO trigger ACCEPTED: %d outbound readings >= 15 mph, peak %.1f mph",
+                    len(outbound), peak
+                )
 
                 return capture
 

@@ -254,8 +254,24 @@ def main():
                 capture = processor.parse_capture(response)
                 if capture:
                     print(f"  I/Q samples:        {len(capture.i_samples)} I, {len(capture.q_samples)} Q")
-                    latencies.append(total_latency_ms)
-                    print("  SUCCESS!")
+
+                    # Analyze for swing detection
+                    timeline = processor.process_standard(capture)
+                    all_readings = timeline.readings
+                    outbound = [r for r in all_readings if r.is_outbound]
+                    inbound = [r for r in all_readings if not r.is_outbound]
+                    outbound_fast = [r for r in outbound if r.speed_mph >= 15.0]
+
+                    print(f"  Total readings:     {len(all_readings)}")
+                    print(f"  Outbound readings:  {len(outbound)} (peak: {max((r.speed_mph for r in outbound), default=0):.1f} mph)")
+                    print(f"  Inbound readings:   {len(inbound)} (peak: {max((r.speed_mph for r in inbound), default=0):.1f} mph)")
+
+                    if outbound_fast:
+                        peak = max(r.speed_mph for r in outbound_fast)
+                        print(f"  SWING DETECTED:     {len(outbound_fast)} readings >= 15 mph, peak {peak:.1f} mph")
+                        latencies.append(total_latency_ms)
+                    else:
+                        print("  NO SWING:           No outbound readings >= 15 mph (false trigger)")
                 else:
                     print("  WARNING: Failed to parse I/Q data")
             else:
