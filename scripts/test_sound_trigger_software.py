@@ -73,16 +73,40 @@ def send_and_print(radar, cmd, description):
 
 
 def configure_rolling_buffer(radar, pre_trigger_segments=12):
-    """Configure radar for rolling buffer mode."""
-    print("Configuring rolling buffer mode...")
+    """
+    Configure radar for rolling buffer mode.
 
+    Uses the exact sequence from OmniPreSense API doc AN-010-AD:
+    1. PI - reset to idle
+    2. GC - enter rolling buffer mode
+    3. PA - activate sampling
+    4. S=30 - set sample rate
+    5. S#n - set trigger split
+    6. PA - reactivate (CRITICAL after settings changes)
+    7. Wait for buffer to fill
+    """
+    print("Configuring rolling buffer mode (exact API sequence)...")
+
+    # Step 1: Reset to idle
     send_and_print(radar, "PI", "power idle")
     time.sleep(0.2)
+
+    # Step 2: Enter rolling buffer mode
     send_and_print(radar, "GC", "rolling buffer mode")
+
+    # Step 3: Activate sampling
     send_and_print(radar, "PA", "power active")
+
+    # Step 4: Set sample rate (30ksps for golf)
     send_and_print(radar, "S=30", "30ksps sample rate")
+
+    # Step 5: Set trigger split
     send_and_print(radar, f"S#{pre_trigger_segments}", f"{pre_trigger_segments} pre-trigger segments")
+
+    # Step 6: CRITICAL - Reactivate after settings changes
     send_and_print(radar, "PA", "reactivate sampling")
+
+    # Verify configuration
     send_and_print(radar, "G?", "verify mode")
     send_and_print(radar, "P?", "verify power")
 
@@ -121,12 +145,14 @@ def software_trigger_and_read(radar, timeout=10.0):
 def rearm_buffer(radar):
     """Re-arm rolling buffer for next capture."""
     radar.serial.reset_input_buffer()
+    # Re-enable rolling buffer mode
     radar.serial.write(b"GC")
     radar.serial.flush()
-    time.sleep(0.05)
+    time.sleep(0.1)
+    # Reactivate sampling
     radar.serial.write(b"PA")
     radar.serial.flush()
-    time.sleep(0.1)
+    time.sleep(0.2)  # Allow buffer to start filling
 
 
 def main():

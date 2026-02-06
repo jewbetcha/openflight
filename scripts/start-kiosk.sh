@@ -13,11 +13,7 @@ HOST="localhost"
 MOCK_MODE=false
 RADAR_LOG=false
 DEBUG_MODE=false
-CAMERA_MODE=true  # Camera enabled by default
-CAMERA_MODEL="models/golf_ball_yolo11n_new_256.onnx"
-CAMERA_IMGSZ=256
-ROBOFLOW_MODEL=""
-ROBOFLOW_API_KEY=""
+NO_CAMERA=false  # Camera auto-enabled by default (uses Hough + ByteTrack)
 MODE=""
 TRIGGER=""
 SOUND_PRE_TRIGGER=""
@@ -37,29 +33,9 @@ while [[ $# -gt 0 ]]; do
             DEBUG_MODE=true
             shift
             ;;
-        --camera|-c)
-            CAMERA_MODE=true
-            shift
-            ;;
         --no-camera)
-            CAMERA_MODE=false
+            NO_CAMERA=true
             shift
-            ;;
-        --camera-model)
-            CAMERA_MODEL="$2"
-            shift 2
-            ;;
-        --camera-imgsz)
-            CAMERA_IMGSZ="$2"
-            shift 2
-            ;;
-        --roboflow-model)
-            ROBOFLOW_MODEL="$2"
-            shift 2
-            ;;
-        --roboflow-api-key)
-            ROBOFLOW_API_KEY="$2"
-            shift 2
             ;;
         --mode)
             MODE="$2"
@@ -149,16 +125,8 @@ if [ "$DEBUG_MODE" = true ]; then
     SERVER_CMD="$SERVER_CMD --debug"
 fi
 
-if [ "$CAMERA_MODE" = true ]; then
-    SERVER_CMD="$SERVER_CMD --camera"
-    if [ -n "$ROBOFLOW_MODEL" ]; then
-        SERVER_CMD="$SERVER_CMD --roboflow-model $ROBOFLOW_MODEL"
-        if [ -n "$ROBOFLOW_API_KEY" ]; then
-            SERVER_CMD="$SERVER_CMD --roboflow-api-key $ROBOFLOW_API_KEY"
-        fi
-    else
-        SERVER_CMD="$SERVER_CMD --camera-model $CAMERA_MODEL --camera-imgsz $CAMERA_IMGSZ"
-    fi
+if [ "$NO_CAMERA" = true ]; then
+    SERVER_CMD="$SERVER_CMD --no-camera"
 fi
 
 if [ -n "$MODE" ]; then
@@ -184,12 +152,10 @@ if [ "$DEBUG_MODE" = true ]; then
     log "Debug mode enabled (verbose FFT/CFAR output)"
 fi
 
-if [ "$CAMERA_MODE" = true ]; then
-    if [ -n "$ROBOFLOW_MODEL" ]; then
-        log "Camera enabled with Roboflow model: $ROBOFLOW_MODEL"
-    else
-        log "Camera enabled with local model: $CAMERA_MODEL"
-    fi
+if [ "$NO_CAMERA" = true ]; then
+    log "Camera disabled"
+else
+    log "Camera enabled (Hough + ByteTrack)"
 fi
 
 $SERVER_CMD &

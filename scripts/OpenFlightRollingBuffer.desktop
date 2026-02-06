@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=OpenFlight Rolling Mode
-Comment=Golf Launch Monitor Kiosk (GPIO Passthrough Sound Trigger)
-Exec=lxterminal -e /home/coleman/openflight/scripts/start-kiosk.sh --mode rolling-buffer --trigger sound-passthrough --sound-pre-trigger 12 --gpio-input 17 --gpio-output 27 --pulse-width 100
+Comment=Golf Launch Monitor Kiosk (GPIO Sound Trigger with S! software trigger)
+Exec=lxterminal -e /home/coleman/openflight/scripts/start-kiosk.sh --mode rolling-buffer --trigger sound-gpio --sound-pre-trigger 12
 Icon=applications-games
 Terminal=false
 Type=Application
