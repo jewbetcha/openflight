@@ -862,12 +862,21 @@ class OPS243Radar:
         Each segment = 128 samples. At 30ksps:
         - 8 segments = 1024 samples = ~34ms pre-trigger
 
+        Note: After changing this setting, sampling is reactivated with PA
+        to ensure the buffer continues filling.
+
         Args:
             segments: Number of pre-trigger segments (0-32)
         """
         segments = max(0, min(32, segments))
         self._send_command(f"S#{segments}")
         logger.info("Trigger split set to %s segments", segments)
+
+        # CRITICAL: Reactivate sampling after changing settings
+        # Per API doc: settings changes may interrupt the sampling loop
+        self._send_command("PA")
+        time.sleep(0.1)
+        logger.info("Sampling reactivated after trigger split change")
 
     def trigger_capture(self, timeout: float = 10.0) -> str:
         """
@@ -1070,14 +1079,8 @@ class OPS243Radar:
             pass
 
         # Set trigger split (8 segments = ~34ms pre-trigger)
+        # Note: set_trigger_split() now automatically reactivates sampling with PA
         self.set_trigger_split(8)
-
-        # CRITICAL: Re-activate sampling after changing settings
-        # Per API doc: "Use GC or PA to start a new round of sampling"
-        # Settings changes (S=30, S#n) may interrupt the sampling loop
-        self._send_command("PA")
-        time.sleep(0.1)
-        logger.info("Re-activated sampling with PA")
 
         logger.info("Rolling buffer mode configured")
 
