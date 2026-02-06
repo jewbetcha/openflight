@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSocket } from "./hooks/useSocket";
+import { useSocket, type DebugReading, type DebugShotLog, type RadarConfig, type CameraStatus } from "./hooks/useSocket";
 import { ShotDisplay } from "./components/ShotDisplay";
 import { StatsView } from "./components/StatsView";
 import { ShotList } from "./components/ShotList";
@@ -15,9 +15,10 @@ import {
   LaunchDaddyBrand,
   LaunchDaddySecretIndicator,
 } from "./components/LaunchDaddy";
+import type { Shot } from "./types/shot";
 import "./App.css";
 
-type View = "live" | "stats" | "shots" | "camera" | "debug";
+export type View = "live" | "stats" | "shots" | "camera" | "debug";
 
 // Navigation icons as inline SVGs for better control
 const Icons = {
@@ -63,27 +64,49 @@ const Icons = {
   ),
 };
 
-function AppContent() {
-  const {
-    connected,
-    mockMode,
-    debugMode,
-    debugReadings,
-    debugShotLogs,
-    radarConfig,
-    latestShot,
-    shots,
-    cameraStatus,
-    clearSession,
-    setClub,
-    simulateShot,
-    toggleDebug,
-    updateRadarConfig,
-    toggleCamera,
-    toggleCameraStream,
-  } = useSocket();
-  const [currentView, setCurrentView] = useState<View>("live");
-  const [selectedClub, setSelectedClub] = useState("driver");
+export type AppViewProps = {
+  connected: boolean;
+  mockMode: boolean;
+  debugMode: boolean;
+  debugReadings: DebugReading[];
+  debugShotLogs: DebugShotLog[];
+  radarConfig: RadarConfig;
+  latestShot: Shot | null;
+  shots: Shot[];
+  cameraStatus: CameraStatus;
+  clearSession: () => void;
+  setClub: (club: string) => void;
+  simulateShot: () => void;
+  toggleDebug: () => void;
+  updateRadarConfig: (config: Partial<RadarConfig>) => void;
+  toggleCamera: () => void;
+  toggleCameraStream: () => void;
+  initialView?: View;
+  initialClub?: string;
+};
+
+export function AppView({
+  connected,
+  mockMode,
+  debugMode,
+  debugReadings,
+  debugShotLogs,
+  radarConfig,
+  latestShot,
+  shots,
+  cameraStatus,
+  clearSession,
+  setClub,
+  simulateShot,
+  toggleDebug,
+  updateRadarConfig,
+  toggleCamera,
+  toggleCameraStream,
+  initialView,
+  initialClub,
+}: AppViewProps) {
+  const [currentView, setCurrentView] = useState<View>(initialView ?? "live");
+  const [selectedClub, setSelectedClub] = useState(initialClub ?? "driver");
   const { isLaunchDaddyMode, isExploding, triggerExplosion, handleSecretTap } = useLaunchDaddy();
 
   // Trigger explosion when a new shot is detected
@@ -91,7 +114,7 @@ function AppContent() {
     if (latestShot && isLaunchDaddyMode) {
       triggerExplosion();
     }
-  }, [latestShot?.timestamp, isLaunchDaddyMode, triggerExplosion]);
+  }, [latestShot, isLaunchDaddyMode, triggerExplosion]);
 
   const handleClubChange = (club: string) => {
     setSelectedClub(club);
@@ -239,9 +262,11 @@ function AppContent() {
 }
 
 function App() {
+  const socketState = useSocket();
+
   return (
     <LaunchDaddyProvider>
-      <AppContent />
+      <AppView {...socketState} />
     </LaunchDaddyProvider>
   );
 }
