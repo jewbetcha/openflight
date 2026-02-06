@@ -497,6 +497,27 @@ class GPIOSoundTrigger(TriggerStrategy):
 
         # Set pre-trigger split once (persists across captures)
         if not self._split_configured:
+            # Verify rolling buffer mode is active
+            if radar.serial:
+                radar.serial.reset_input_buffer()
+                radar.serial.write(b"G?")
+                time.sleep(0.1)
+                mode_response = ""
+                while radar.serial.in_waiting:
+                    mode_response += radar.serial.read(
+                        radar.serial.in_waiting
+                    ).decode('ascii', errors='ignore')
+                    time.sleep(0.02)
+                logger.info("Current mode (G?): %s", mode_response.strip())
+
+                # If not in rolling buffer mode, enable it
+                if "Cont" not in mode_response and "Rolling" not in mode_response:
+                    logger.warning("Not in rolling buffer mode, re-enabling GC...")
+                    radar.serial.write(b"GC")
+                    time.sleep(0.1)
+                    radar.serial.write(b"PA")
+                    time.sleep(0.1)
+
             radar.set_trigger_split(self.pre_trigger_segments)
             self._split_configured = True
             # Wait for rolling buffer to fill with data

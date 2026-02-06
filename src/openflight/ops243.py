@@ -223,7 +223,8 @@ class OPS243Radar:
         self.serial.write(cmd.encode('ascii'))
 
         # For commands that require carriage return
-        if '=' in cmd or '>' in cmd or '<' in cmd:
+        # Note: S# commands (trigger split) also need \r
+        if '=' in cmd or '>' in cmd or '<' in cmd or '#' in cmd:
             self.serial.write(b'\r')
 
         # Wait for response
