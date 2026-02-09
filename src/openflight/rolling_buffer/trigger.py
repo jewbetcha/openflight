@@ -837,6 +837,7 @@ class SoundTrigger(TriggerStrategy):
         output, causing the radar to dump its rolling buffer automatically.
         We just block on serial read waiting for the I/Q data to arrive.
         """
+        print(f"[SOUND] Waiting for hardware trigger (timeout={timeout}s)...")
         logger.info(
             "Waiting for hardware sound trigger (timeout=%ss)...",
             timeout
@@ -845,9 +846,11 @@ class SoundTrigger(TriggerStrategy):
         response = radar.wait_for_hardware_trigger(timeout=timeout)
 
         if not response:
+            print("[SOUND] Timeout - no hardware trigger received")
             logger.info("Sound trigger timeout - no hardware trigger received")
             return None
 
+        print(f"[SOUND] Hardware trigger fired! Received {len(response)} bytes")
         logger.info("Hardware trigger fired, received %d bytes", len(response))
 
         # Re-arm for next capture
