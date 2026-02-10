@@ -119,6 +119,7 @@ function AppContent() {
             minHeight: '44px',
             display: 'flex',
             alignItems: 'center',
+            userSelect: 'none',
           }}
         >
           {isLaunchDaddyMode ? <LaunchDaddyBrand /> : <span style={{ opacity: 0.3, fontSize: '1.2rem' }}>⛳</span>}
