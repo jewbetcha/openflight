@@ -299,6 +299,7 @@ class RollingBufferMonitor:
         self,
         shot_callback: Optional[Callable[[Shot], None]] = None,
         live_callback: Optional[Callable[[SpeedReading], None]] = None,
+        diagnostic_callback: Optional[Callable[[dict], None]] = None,
     ):
         """
         Start monitoring for shots.
@@ -306,9 +307,11 @@ class RollingBufferMonitor:
         Args:
             shot_callback: Called when a complete shot is detected
             live_callback: Called for live readings (limited in rolling buffer mode)
+            diagnostic_callback: Called with trigger diagnostic data for UI display
         """
         self._shot_callback = shot_callback
         self._live_callback = live_callback
+        self._diagnostic_callback = diagnostic_callback
         self._running = True
 
         self._capture_thread = threading.Thread(
@@ -317,8 +320,7 @@ class RollingBufferMonitor:
         )
         self._capture_thread.start()
 
-        print(f"[MONITOR] Rolling buffer monitor started (trigger: {self.trigger_type})")
-        logger.info("Rolling buffer monitor started")
+        logger.info("Rolling buffer monitor started (trigger: %s)", self.trigger_type)
 
     def stop(self):
         """Stop monitoring."""
@@ -327,6 +329,36 @@ class RollingBufferMonitor:
             self._capture_thread.join(timeout=5.0)
             self._capture_thread = None
         logger.info("Rolling buffer monitor stopped")
+
+    def _emit_diagnostics(self, trigger_latency_ms: float = 0):
+        """Drain trigger diagnostics and emit them to logger and UI."""
+        diagnostics = self.trigger.drain_diagnostics()
+        session_logger = get_session_logger()
+
+        for diag in diagnostics:
+            diag["trigger_type"] = self.trigger_type
+            diag["latency_ms"] = trigger_latency_ms
+
+            # Log to session JSONL
+            if session_logger:
+                session_logger.log_trigger_diagnostic(
+                    trigger_type=self.trigger_type,
+                    accepted=diag["accepted"],
+                    reason=diag.get("reason", ""),
+                    response_bytes=diag.get("response_bytes", 0),
+                    total_readings=diag.get("total_readings", 0),
+                    outbound_readings=diag.get("outbound_readings", 0),
+                    inbound_readings=diag.get("inbound_readings", 0),
+                    peak_outbound_mph=diag.get("peak_outbound_mph", 0),
+                    peak_inbound_mph=diag.get("peak_inbound_mph", 0),
+                    all_outbound_speeds=diag.get("all_outbound_speeds"),
+                    all_inbound_speeds=diag.get("all_inbound_speeds"),
+                    latency_ms=trigger_latency_ms,
+                )
+
+            # Emit to UI via WebSocket
+            if self._diagnostic_callback:
+                self._diagnostic_callback(diag)
 
     def _capture_loop(self):
         """Main capture loop - wait for trigger, process, emit shot."""
@@ -341,26 +373,45 @@ class RollingBufferMonitor:
                     timeout=5.0,
                 )
 
+                trigger_latency_ms = (time.time() - trigger_start) * 1000
+
+                # Always drain trigger diagnostics (captures in-loop rejections)
+                self._emit_diagnostics(trigger_latency_ms)
+
                 if capture is None:
                     continue
-
-                trigger_latency_ms = (time.time() - trigger_start) * 1000
 
                 # Process capture
                 processed = self.processor.process_capture(capture)
 
                 if processed is None:
                     logger.warning("Failed to process capture")
-                    # Log rejected trigger (capture received but no valid shot data)
+                    # Emit diagnostic for processing failure
+                    diag = {
+                        "timestamp": capture.trigger_time if capture else 0,
+                        "accepted": False,
+                        "reason": "processing_failed",
+                        "trigger_type": self.trigger_type,
+                        "latency_ms": trigger_latency_ms,
+                        "response_bytes": 0,
+                        "total_readings": 0,
+                        "outbound_readings": 0,
+                        "inbound_readings": 0,
+                        "peak_outbound_mph": 0,
+                        "peak_inbound_mph": 0,
+                        "all_outbound_speeds": [],
+                        "all_inbound_speeds": [],
+                    }
                     session_logger = get_session_logger()
                     if session_logger:
-                        session_logger.log_trigger_event(
+                        session_logger.log_trigger_diagnostic(
                             trigger_type=self.trigger_type,
                             accepted=False,
-                            reason="No valid readings extracted from capture",
-                            readings_count=0,
+                            reason="processing_failed",
                             latency_ms=trigger_latency_ms,
                         )
+                    if self._diagnostic_callback:
+                        self._diagnostic_callback(diag)
                     continue
 
                 # For speed trigger, use the trigger speed as club speed if not found in capture
@@ -380,12 +431,11 @@ class RollingBufferMonitor:
 
                 if shot:
                     self._shots.append(shot)
-                    print(f"[SHOT] Detected: {shot.ball_speed_mph:.1f} mph, "
-                          f"club={shot.club_speed_mph}, spin={shot.spin_rpm or 'N/A'}")
                     logger.info(
-                        f"Shot detected: ball={shot.ball_speed_mph:.1f} mph, "
-                        f"club={shot.club_speed_mph}, "
-                        f"spin={shot.spin_rpm if shot.spin_rpm else 'N/A'}"
+                        "Shot detected: ball=%.1f mph, club=%s, spin=%s",
+                        shot.ball_speed_mph,
+                        f"{shot.club_speed_mph:.1f}" if shot.club_speed_mph else "N/A",
+                        f"{shot.spin_rpm:.0f}" if shot.spin_rpm else "N/A"
                     )
 
                     # Log to session logger
@@ -430,21 +480,78 @@ class RollingBufferMonitor:
                             latency_ms=trigger_latency_ms,
                         )
 
+                        # Log detailed trigger diagnostic
+                        session_logger.log_trigger_diagnostic(
+                            trigger_type=self.trigger_type,
+                            accepted=True,
+                            reason="accepted",
+                            total_readings=len(processed.timeline.readings),
+                            latency_ms=trigger_latency_ms,
+                            ball_speed_mph=shot.ball_speed_mph,
+                            club_speed_mph=shot.club_speed_mph,
+                            spin_rpm=shot.spin_rpm,
+                            carry_yards=shot.estimated_carry_yards,
+                        )
+
+                    # Emit diagnostic to UI
+                    if self._diagnostic_callback:
+                        self._diagnostic_callback({
+                            "timestamp": datetime.now().isoformat(),
+                            "accepted": True,
+                            "reason": "accepted",
+                            "trigger_type": self.trigger_type,
+                            "latency_ms": trigger_latency_ms,
+                            "response_bytes": 0,
+                            "total_readings": len(processed.timeline.readings),
+                            "outbound_readings": 0,
+                            "inbound_readings": 0,
+                            "peak_outbound_mph": shot.ball_speed_mph,
+                            "peak_inbound_mph": 0,
+                            "all_outbound_speeds": [],
+                            "all_inbound_speeds": [],
+                            "ball_speed_mph": shot.ball_speed_mph,
+                            "club_speed_mph": shot.club_speed_mph,
+                            "spin_rpm": shot.spin_rpm,
+                            "carry_yards": shot.estimated_carry_yards,
+                        })
+
                     if self._shot_callback:
                         self._shot_callback(shot)
                 else:
-                    logger.debug("Shot validation failed")
-                    # Log rejected trigger (capture processed but shot validation failed)
+                    logger.info(
+                        "Shot validation failed: ball=%.1f mph (min 15 mph)",
+                        processed.ball_speed_mph if processed else 0
+                    )
+                    # Emit diagnostic for shot validation failure
+                    diag = {
+                        "timestamp": datetime.now().isoformat(),
+                        "accepted": False,
+                        "reason": "shot_validation_failed",
+                        "trigger_type": self.trigger_type,
+                        "latency_ms": trigger_latency_ms,
+                        "response_bytes": 0,
+                        "total_readings": len(processed.timeline.readings) if processed else 0,
+                        "outbound_readings": 0,
+                        "inbound_readings": 0,
+                        "peak_outbound_mph": processed.ball_speed_mph if processed else 0,
+                        "peak_inbound_mph": 0,
+                        "all_outbound_speeds": [],
+                        "all_inbound_speeds": [],
+                        "ball_speed_mph": processed.ball_speed_mph if processed else None,
+                    }
                     session_logger = get_session_logger()
                     if session_logger:
-                        session_logger.log_trigger_event(
+                        session_logger.log_trigger_diagnostic(
                             trigger_type=self.trigger_type,
                             accepted=False,
-                            reason="Shot validation failed (speed too low or invalid)",
-                            peak_speed_mph=processed.ball_speed_mph if processed else None,
-                            readings_count=len(processed.timeline.readings) if processed else 0,
+                            reason="shot_validation_failed",
+                            peak_outbound_mph=processed.ball_speed_mph if processed else 0,
+                            total_readings=len(processed.timeline.readings) if processed else 0,
                             latency_ms=trigger_latency_ms,
+                            ball_speed_mph=processed.ball_speed_mph if processed else None,
                         )
+                    if self._diagnostic_callback:
+                        self._diagnostic_callback(diag)
 
                 # Reset trigger for next capture
                 self.trigger.reset()

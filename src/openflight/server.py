@@ -403,6 +403,34 @@ def on_live_reading(reading: SpeedReading):
         return
 
 
+def _get_trigger_status() -> dict:
+    """Build trigger status payload for the UI."""
+    from .rolling_buffer import RollingBufferMonitor  # pylint: disable=import-outside-toplevel
+
+    is_rolling_buffer = isinstance(monitor, RollingBufferMonitor)
+    session_logger = get_session_logger()
+    stats = session_logger.stats if session_logger else {}
+
+    mode = "mock" if mock_mode else ("rolling-buffer" if is_rolling_buffer else "streaming")
+    trigger_type = None
+    radar_port = None
+
+    if is_rolling_buffer:
+        trigger_type = monitor.trigger_type
+        if hasattr(monitor, 'radar') and hasattr(monitor.radar, 'port'):
+            radar_port = monitor.radar.port
+
+    return {
+        "mode": mode,
+        "trigger_type": trigger_type,
+        "radar_connected": monitor is not None and not mock_mode,
+        "radar_port": radar_port,
+        "triggers_total": stats.get("triggers_total", 0),
+        "triggers_accepted": stats.get("triggers_accepted", 0),
+        "triggers_rejected": stats.get("triggers_rejected", 0),
+    }
+
+
 @socketio.on("connect")
 def handle_connect():
     """Handle client connection."""
@@ -420,12 +448,19 @@ def handle_connect():
             "camera_streaming": camera_streaming,
             "ball_detected": ball_detected,
         })
+        socketio.emit("trigger_status", _get_trigger_status())
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
     """Handle client disconnection."""
     print("Client disconnected")
+
+
+@socketio.on("get_trigger_status")
+def handle_get_trigger_status():
+    """Get current trigger/mode status for debug UI."""
+    socketio.emit("trigger_status", _get_trigger_status())
 
 
 @socketio.on("set_club")
@@ -708,7 +743,18 @@ def start_monitor(
             trigger_type=trigger_type if mode == "rolling-buffer" else None
         )
 
-    monitor.start(shot_callback=on_shot_detected, live_callback=on_live_reading)
+    if mode == "rolling-buffer":
+        def on_trigger_diagnostic(data: dict):
+            """Forward trigger diagnostics to connected UI clients."""
+            socketio.emit("trigger_diagnostic", data)
+
+        monitor.start(  # pylint: disable=unexpected-keyword-arg
+            shot_callback=on_shot_detected,
+            live_callback=on_live_reading,
+            diagnostic_callback=on_trigger_diagnostic,
+        )
+    else:
+        monitor.start(shot_callback=on_shot_detected, live_callback=on_live_reading)
 
 
 def stop_monitor():

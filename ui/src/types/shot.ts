@@ -38,6 +38,37 @@ export interface SessionState {
   shots: Shot[];
 }
 
+export interface TriggerDiagnostic {
+  timestamp: string;
+  trigger_type: string;
+  accepted: boolean;
+  reason: string;
+  response_bytes: number;
+  total_readings: number;
+  outbound_readings: number;
+  inbound_readings: number;
+  peak_outbound_mph: number;
+  peak_inbound_mph: number;
+  all_outbound_speeds: number[];
+  all_inbound_speeds: number[];
+  latency_ms: number | null;
+  // Present when accepted (shot created):
+  ball_speed_mph?: number | null;
+  club_speed_mph?: number | null;
+  spin_rpm?: number | null;
+  carry_yards?: number | null;
+}
+
+export interface TriggerStatus {
+  mode: 'streaming' | 'rolling-buffer' | 'mock';
+  trigger_type: string | null;
+  radar_connected: boolean;
+  radar_port: string | null;
+  triggers_total: number;
+  triggers_accepted: number;
+  triggers_rejected: number;
+}
+
 /**
  * Compute session stats from an array of shots.
  */

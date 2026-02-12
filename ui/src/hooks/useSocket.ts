@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import type { Shot, SessionStats, SessionState } from '../types/shot';
+import type { Shot, SessionStats, SessionState, TriggerDiagnostic, TriggerStatus } from '../types/shot';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
@@ -68,6 +68,17 @@ export function useSocket() {
     ball_detected: false,
     ball_confidence: 0,
   });
+  // Trigger diagnostics state
+  const [triggerDiagnostics, setTriggerDiagnostics] = useState<TriggerDiagnostic[]>([]);
+  const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>({
+    mode: 'streaming',
+    trigger_type: null,
+    radar_connected: false,
+    radar_port: null,
+    triggers_total: 0,
+    triggers_accepted: 0,
+    triggers_rejected: 0,
+  });
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
@@ -78,6 +89,7 @@ export function useSocket() {
       console.log('Connected to server');
       setConnected(true);
       newSocket.emit('get_session');
+      newSocket.emit('get_trigger_status');
     });
 
     newSocket.on('disconnect', () => {
@@ -173,6 +185,23 @@ export function useSocket() {
       setLatestShot(null);
     });
 
+    newSocket.on('trigger_diagnostic', (data: TriggerDiagnostic) => {
+      setTriggerDiagnostics((prev) => {
+        const updated = [...prev, data];
+        return updated.length > 50 ? updated.slice(-50) : updated;
+      });
+      setTriggerStatus(prev => ({
+        ...prev,
+        triggers_total: prev.triggers_total + 1,
+        triggers_accepted: prev.triggers_accepted + (data.accepted ? 1 : 0),
+        triggers_rejected: prev.triggers_rejected + (data.accepted ? 0 : 1),
+      }));
+    });
+
+    newSocket.on('trigger_status', (data: TriggerStatus) => {
+      setTriggerStatus(data);
+    });
+
     socketRef.current = newSocket;
 
     return () => {
@@ -220,6 +249,8 @@ export function useSocket() {
     latestShot,
     shots,
     cameraStatus,
+    triggerDiagnostics,
+    triggerStatus,
     clearSession,
     setClub,
     simulateShot,

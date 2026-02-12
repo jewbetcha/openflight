@@ -668,3 +668,107 @@ class TestCarryCalculationIntegration:
         assert 200 <= carry_low_spin <= 270
         assert 230 <= carry_optimal_spin <= 280
         assert 210 <= carry_high_spin <= 270
+
+
+# =============================================================================
+# Tests for Trigger Diagnostics
+# =============================================================================
+
+class TestTriggerStrategyDiagnostics:
+    """Tests for the diagnostic accumulation in TriggerStrategy."""
+
+    def test_drain_diagnostics_returns_empty_list(self):
+        """drain_diagnostics should return empty list when no diagnostics."""
+        trigger = PollingTrigger()
+        result = trigger.drain_diagnostics()
+        assert result == []
+
+    def test_drain_diagnostics_clears_list(self):
+        """drain_diagnostics should clear the internal list."""
+        trigger = PollingTrigger()
+        trigger._append_diagnostic(
+            accepted=False,
+            reason="test",
+        )
+        assert len(trigger.drain_diagnostics()) == 1
+        assert len(trigger.drain_diagnostics()) == 0
+
+    def test_append_diagnostic_accepted(self):
+        """Appending accepted diagnostic should include all fields."""
+        trigger = PollingTrigger()
+        trigger._append_diagnostic(
+            accepted=True,
+            reason="accepted",
+            response_bytes=32768,
+            total_readings=32,
+            outbound_readings=8,
+            inbound_readings=24,
+            peak_outbound_mph=155.3,
+            peak_inbound_mph=45.0,
+            all_outbound_speeds=[155.3, 140.2],
+            all_inbound_speeds=[45.0],
+        )
+
+        diagnostics = trigger.drain_diagnostics()
+        assert len(diagnostics) == 1
+
+        diag = diagnostics[0]
+        assert diag["accepted"] is True
+        assert diag["reason"] == "accepted"
+        assert diag["response_bytes"] == 32768
+        assert diag["total_readings"] == 32
+        assert diag["outbound_readings"] == 8
+        assert diag["peak_outbound_mph"] == 155.3
+        assert len(diag["all_outbound_speeds"]) == 2
+        assert "timestamp" in diag
+
+    def test_append_diagnostic_rejected(self):
+        """Appending rejected diagnostic should include reason."""
+        trigger = ThresholdTrigger()
+        trigger._append_diagnostic(
+            accepted=False,
+            reason="no_outbound_speed",
+            total_readings=12,
+            outbound_readings=0,
+            inbound_readings=12,
+            peak_inbound_mph=42.1,
+        )
+
+        diagnostics = trigger.drain_diagnostics()
+        assert len(diagnostics) == 1
+        assert diagnostics[0]["accepted"] is False
+        assert diagnostics[0]["reason"] == "no_outbound_speed"
+        assert diagnostics[0]["peak_inbound_mph"] == 42.1
+
+    def test_multiple_diagnostics_accumulate(self):
+        """Multiple diagnostic entries should accumulate."""
+        trigger = PollingTrigger()
+        trigger._append_diagnostic(accepted=False, reason="no_response")
+        trigger._append_diagnostic(accepted=False, reason="parse_failed")
+        trigger._append_diagnostic(accepted=True, reason="accepted")
+
+        diagnostics = trigger.drain_diagnostics()
+        assert len(diagnostics) == 3
+        assert diagnostics[0]["reason"] == "no_response"
+        assert diagnostics[1]["reason"] == "parse_failed"
+        assert diagnostics[2]["reason"] == "accepted"
+
+    def test_default_empty_speed_lists(self):
+        """Speed lists should default to empty when not provided."""
+        trigger = ManualTrigger()
+        trigger._append_diagnostic(accepted=False, reason="timeout")
+
+        diagnostics = trigger.drain_diagnostics()
+        assert diagnostics[0]["all_outbound_speeds"] == []
+        assert diagnostics[0]["all_inbound_speeds"] == []
+
+    def test_all_trigger_types_have_diagnostics(self):
+        """All trigger types should support diagnostics via base class."""
+        triggers = [
+            PollingTrigger(),
+            ThresholdTrigger(),
+            ManualTrigger(),
+        ]
+        for trigger in triggers:
+            trigger._append_diagnostic(accepted=False, reason="test")
+            assert len(trigger.drain_diagnostics()) == 1

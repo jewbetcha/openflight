@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import type { DebugReading, RadarConfig, DebugShotLog, CameraStatus } from '../hooks/useSocket';
+import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import './DebugPanel.css';
 
 interface DebugPanelProps {
@@ -11,107 +12,42 @@ interface DebugPanelProps {
   mockMode: boolean;
   onToggle: () => void;
   onUpdateConfig: (config: Partial<RadarConfig>) => void;
+  triggerDiagnostics: TriggerDiagnostic[];
+  triggerStatus: TriggerStatus;
 }
 
-interface ReadingRowProps {
-  reading: DebugReading;
+const REASON_DISPLAY: Record<string, string> = {
+  'accepted': 'Shot detected',
+  'no_response': 'No data from radar after trigger',
+  'parse_failed': 'Failed to parse radar data',
+  'no_outbound_speed': 'No outbound speed >= 15 mph',
+  'processing_failed': 'Failed to process capture data',
+  'shot_validation_failed': 'Ball speed too low for shot',
+};
+
+function formatReason(reason: string): string {
+  return REASON_DISPLAY[reason] || reason;
 }
 
-const ReadingRow = memo(function ReadingRow({ reading }: ReadingRowProps) {
-  const time = new Date(reading.timestamp).toLocaleTimeString('en-US', {
+function formatTimeAgo(timestamp: string): string {
+  const now = Date.now();
+  const then = new Date(timestamp).getTime();
+  const diffSec = Math.floor((now - then) / 1000);
+
+  if (diffSec < 5) return 'just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  return `${Math.floor(diffSec / 3600)}h ago`;
+}
+
+function formatTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString('en-US', {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   });
-
-  return (
-    <div className={`debug-reading debug-reading--${reading.direction}`}>
-      <span className="debug-reading__time">{time}</span>
-      <span className="debug-reading__speed">{reading.speed.toFixed(1)}</span>
-      <span className="debug-reading__dir">{reading.direction === 'outbound' ? 'OUT' : 'IN'}</span>
-      <span className="debug-reading__mag">{reading.magnitude?.toFixed(0) ?? '--'}</span>
-    </div>
-  );
-});
-
-interface ShotLogRowProps {
-  log: DebugShotLog;
 }
-
-const ShotLogRow = memo(function ShotLogRow({ log }: ShotLogRowProps) {
-  const time = new Date(log.timestamp).toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-
-  const hasLaunchAngle = log.camera && log.camera.launch_detected;
-
-  return (
-    <div className="debug-shot-log">
-      <div className="debug-shot-log__header">
-        <span className="debug-shot-log__time">{time}</span>
-        <span className="debug-shot-log__club">{log.club}</span>
-      </div>
-      <div className="debug-shot-log__data">
-        <div className="debug-shot-log__section">
-          <span className="debug-shot-log__section-label">Radar</span>
-          <div className="debug-shot-log__row">
-            <span className="debug-shot-log__label">Ball Speed</span>
-            <span className="debug-shot-log__value debug-shot-log__value--primary">{log.radar.ball_speed_mph} mph</span>
-          </div>
-          <div className="debug-shot-log__row">
-            <span className="debug-shot-log__label">Club Speed</span>
-            <span className="debug-shot-log__value">{log.radar.club_speed_mph ?? '—'} {log.radar.club_speed_mph ? 'mph' : ''}</span>
-          </div>
-          <div className="debug-shot-log__row">
-            <span className="debug-shot-log__label">Smash</span>
-            <span className="debug-shot-log__value">{log.radar.smash_factor?.toFixed(2) ?? '—'}</span>
-          </div>
-          <div className="debug-shot-log__row">
-            <span className="debug-shot-log__label">Magnitude</span>
-            <span className="debug-shot-log__value">{log.radar.peak_magnitude}</span>
-          </div>
-        </div>
-        <div className="debug-shot-log__section">
-          <span className="debug-shot-log__section-label">Camera</span>
-          {log.camera ? (
-            <>
-              <div className="debug-shot-log__row">
-                <span className="debug-shot-log__label">Launch Angle</span>
-                <span className={`debug-shot-log__value ${hasLaunchAngle ? 'debug-shot-log__value--success' : 'debug-shot-log__value--muted'}`}>
-                  {hasLaunchAngle ? `${log.camera.launch_angle_vertical.toFixed(1)}°` : 'Not detected'}
-                </span>
-              </div>
-              <div className="debug-shot-log__row">
-                <span className="debug-shot-log__label">Horizontal</span>
-                <span className="debug-shot-log__value">
-                  {hasLaunchAngle ? `${log.camera.launch_angle_horizontal.toFixed(1)}°` : '—'}
-                </span>
-              </div>
-              <div className="debug-shot-log__row">
-                <span className="debug-shot-log__label">Confidence</span>
-                <span className="debug-shot-log__value">
-                  {hasLaunchAngle ? `${(log.camera.launch_angle_confidence * 100).toFixed(0)}%` : '—'}
-                </span>
-              </div>
-              <div className="debug-shot-log__row">
-                <span className="debug-shot-log__label">Positions</span>
-                <span className="debug-shot-log__value">{log.camera.positions_tracked}</span>
-              </div>
-            </>
-          ) : (
-            <div className="debug-shot-log__row">
-              <span className="debug-shot-log__value debug-shot-log__value--muted">Camera disabled</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
 
 interface SliderControlProps {
   label: string;
@@ -129,7 +65,6 @@ function SliderControl({ label, value, min, max, step = 1, unit = '', disabled, 
   const [prevValue, setPrevValue] = useState(value);
   const [dragging, setDragging] = useState(false);
 
-  // Sync local value when prop changes (only when not dragging)
   if (prevValue !== value) {
     setPrevValue(value);
     if (!dragging) {
@@ -175,48 +110,218 @@ function SliderControl({ label, value, min, max, step = 1, unit = '', disabled, 
   );
 }
 
-export function DebugPanel({ enabled, readings, shotLogs, radarConfig, cameraStatus, mockMode, onToggle, onUpdateConfig }: DebugPanelProps) {
+interface TriggerRowProps {
+  diag: TriggerDiagnostic;
+}
+
+const TriggerRow = memo(function TriggerRow({ diag }: TriggerRowProps) {
+  return (
+    <div className={`trigger-row ${diag.accepted ? 'trigger-row--accepted' : 'trigger-row--rejected'}`}>
+      <div className="trigger-row__header">
+        <span className="trigger-row__time">{formatTime(diag.timestamp)}</span>
+        <span className={`trigger-row__badge ${diag.accepted ? 'trigger-row__badge--accepted' : 'trigger-row__badge--rejected'}`}>
+          {diag.accepted ? 'HIT' : 'MISS'}
+        </span>
+      </div>
+      <div className="trigger-row__details">
+        <span className="trigger-row__reason">{formatReason(diag.reason)}</span>
+        {diag.peak_outbound_mph > 0 && (
+          <span className="trigger-row__speed">OUT {diag.peak_outbound_mph.toFixed(0)} mph</span>
+        )}
+        {diag.accepted && diag.ball_speed_mph && (
+          <span className="trigger-row__ball-speed">{diag.ball_speed_mph.toFixed(0)} mph</span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+function SystemStatus({ status }: { status: TriggerStatus }) {
+  return (
+    <div className="debug-panel__section">
+      <h4>System Status</h4>
+      <div className="system-status">
+        <div className="system-status__item">
+          <span className="system-status__label">Mode</span>
+          <span className={`system-status__badge system-status__badge--${status.mode}`}>
+            {status.mode}
+          </span>
+        </div>
+        {status.trigger_type && (
+          <div className="system-status__item">
+            <span className="system-status__label">Trigger</span>
+            <span className="system-status__value">{status.trigger_type}</span>
+          </div>
+        )}
+        <div className="system-status__item">
+          <span className="system-status__label">Radar</span>
+          <span className={`system-status__value ${status.radar_connected ? 'system-status__value--success' : 'system-status__value--error'}`}>
+            {status.radar_connected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        <div className="system-status__item">
+          <span className="system-status__label">Triggers</span>
+          <span className="system-status__value">
+            <span className="system-status__counter">{status.triggers_total}</span>
+            {status.triggers_total > 0 && (
+              <>
+                {' '}(<span className="system-status__counter--accepted">{status.triggers_accepted}</span>
+                {' / '}
+                <span className="system-status__counter--rejected">{status.triggers_rejected}</span>)
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
+  if (!diag) {
+    return (
+      <div className="debug-panel__section">
+        <h4>Last Trigger</h4>
+        <p className="debug-panel__empty">Waiting for trigger...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="debug-panel__section">
+      <h4>Last Trigger</h4>
+      <div className={`last-trigger ${diag.accepted ? 'last-trigger--accepted' : 'last-trigger--rejected'}`}>
+        <div className="last-trigger__header">
+          <span className={`last-trigger__status ${diag.accepted ? 'last-trigger__status--accepted' : 'last-trigger__status--rejected'}`}>
+            {diag.accepted ? 'ACCEPTED' : 'REJECTED'}
+          </span>
+          <span className="last-trigger__time">{formatTimeAgo(diag.timestamp)}</span>
+        </div>
+
+        <div className="last-trigger__reason">
+          {formatReason(diag.reason)}
+        </div>
+
+        <div className="last-trigger__data">
+          <div className="last-trigger__speeds">
+            <div className="last-trigger__speed-row">
+              <span className="last-trigger__speed-label">Outbound</span>
+              <span className="last-trigger__speed-value">
+                {diag.outbound_readings} readings
+                {diag.peak_outbound_mph > 0 && <>, peak <strong>{diag.peak_outbound_mph.toFixed(1)} mph</strong></>}
+              </span>
+            </div>
+            <div className="last-trigger__speed-row">
+              <span className="last-trigger__speed-label">Inbound</span>
+              <span className="last-trigger__speed-value">
+                {diag.inbound_readings} readings
+                {diag.peak_inbound_mph > 0 && <>, peak <strong>{diag.peak_inbound_mph.toFixed(1)} mph</strong></>}
+              </span>
+            </div>
+          </div>
+
+          <div className="last-trigger__meta">
+            {diag.latency_ms !== null && (
+              <span className="last-trigger__meta-item">
+                Latency: {diag.latency_ms.toFixed(0)}ms
+              </span>
+            )}
+            {diag.response_bytes > 0 && (
+              <span className="last-trigger__meta-item">
+                Data: {(diag.response_bytes / 1024).toFixed(1)}KB
+              </span>
+            )}
+            <span className="last-trigger__meta-item">
+              Readings: {diag.total_readings}
+            </span>
+          </div>
+
+          {diag.accepted && diag.ball_speed_mph && (
+            <div className="last-trigger__shot-result">
+              <div className="last-trigger__shot-item">
+                <span className="last-trigger__shot-label">Ball</span>
+                <span className="last-trigger__shot-value">{diag.ball_speed_mph.toFixed(1)} mph</span>
+              </div>
+              {diag.club_speed_mph && (
+                <div className="last-trigger__shot-item">
+                  <span className="last-trigger__shot-label">Club</span>
+                  <span className="last-trigger__shot-value">{diag.club_speed_mph.toFixed(1)} mph</span>
+                </div>
+              )}
+              {diag.spin_rpm && (
+                <div className="last-trigger__shot-item">
+                  <span className="last-trigger__shot-label">Spin</span>
+                  <span className="last-trigger__shot-value">{diag.spin_rpm.toFixed(0)} rpm</span>
+                </div>
+              )}
+              {diag.carry_yards && (
+                <div className="last-trigger__shot-item">
+                  <span className="last-trigger__shot-label">Carry</span>
+                  <span className="last-trigger__shot-value">{diag.carry_yards.toFixed(0)} yds</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DebugPanel({
+  radarConfig,
+  mockMode,
+  onUpdateConfig,
+  triggerDiagnostics,
+  triggerStatus,
+}: DebugPanelProps) {
+  const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
+  const lastDiag = triggerDiagnostics.length > 0
+    ? triggerDiagnostics[triggerDiagnostics.length - 1]
+    : null;
+
+  // Show last 20 triggers, newest first
+  const recentTriggers = [...triggerDiagnostics].reverse().slice(0, 20);
+
   return (
     <div className="debug-panel">
       <div className="debug-panel__header">
-        <h3>Debug Mode</h3>
-        <button
-          className={`debug-toggle ${enabled ? 'debug-toggle--active' : ''}`}
-          onClick={onToggle}
-        >
-          {enabled ? 'Stop' : 'Start'}
-        </button>
+        <h3>Diagnostics</h3>
       </div>
 
-      {/* Camera Status */}
-      <div className="debug-panel__section">
-        <h4>Camera Status</h4>
-        <div className="debug-panel__status-grid">
-          <div className="debug-panel__status-item">
-            <span className="debug-panel__status-label">Available</span>
-            <span className={`debug-panel__status-value ${cameraStatus.available ? 'debug-panel__status-value--success' : 'debug-panel__status-value--error'}`}>
-              {cameraStatus.available ? 'Yes' : 'No'}
-            </span>
-          </div>
-          <div className="debug-panel__status-item">
-            <span className="debug-panel__status-label">Enabled</span>
-            <span className={`debug-panel__status-value ${cameraStatus.enabled ? 'debug-panel__status-value--success' : ''}`}>
-              {cameraStatus.enabled ? 'Yes' : 'No'}
-            </span>
-          </div>
-          <div className="debug-panel__status-item">
-            <span className="debug-panel__status-label">Ball Detected</span>
-            <span className={`debug-panel__status-value ${cameraStatus.ball_detected ? 'debug-panel__status-value--success' : ''}`}>
-              {cameraStatus.ball_detected ? `Yes (${(cameraStatus.ball_confidence * 100).toFixed(0)}%)` : 'No'}
-            </span>
+      {/* System Status - always visible */}
+      <SystemStatus status={triggerStatus} />
+
+      {/* Last Trigger - rolling buffer mode */}
+      {isRollingBuffer && <LastTriggerCard diag={lastDiag} />}
+
+      {/* Trigger History - rolling buffer mode */}
+      {isRollingBuffer && (
+        <div className="debug-panel__section debug-panel__section--history">
+          <h4>Trigger History</h4>
+          <div className="trigger-history">
+            {recentTriggers.length === 0 ? (
+              <p className="debug-panel__empty">No triggers yet...</p>
+            ) : (
+              recentTriggers.map((diag, index) => (
+                <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />
+              ))
+            )}
           </div>
         </div>
-        <p className="debug-panel__note">
-          Launch angle detection is ready for testing. Spin detection requires a high-speed camera and is not yet available.
-        </p>
-      </div>
+      )}
 
-      {/* Radar Tuning Controls */}
+      {/* Streaming mode fallback message */}
+      {!isRollingBuffer && triggerStatus.mode !== 'mock' && (
+        <div className="debug-panel__section">
+          <p className="debug-panel__hint">
+            Trigger diagnostics are available in rolling buffer mode.
+            Current mode: {triggerStatus.mode}
+          </p>
+        </div>
+      )}
+
+      {/* Radar Tuning Controls - always available */}
       <div className="debug-panel__section">
         <h4>Radar Tuning</h4>
         {mockMode && (
@@ -254,55 +359,6 @@ export function DebugPanel({ enabled, readings, shotLogs, radarConfig, cameraSta
           TX Power: 0 = max range, 7 = min range
         </p>
       </div>
-
-      {/* Shot History */}
-      {enabled && (
-        <div className="debug-panel__section debug-panel__section--shots">
-          <h4>Shot History (Radar + Camera)</h4>
-          <p className="debug-panel__log-info">Logging to ~/openflight_logs/</p>
-          <div className="debug-panel__shot-logs">
-            {shotLogs.length === 0 ? (
-              <p className="debug-panel__empty">No shots recorded yet...</p>
-            ) : (
-              [...shotLogs].reverse().map((log, index) => (
-                <ShotLogRow key={`${log.timestamp}-${index}`} log={log} />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Raw Readings */}
-      {enabled && (
-        <div className="debug-panel__section debug-panel__section--readings">
-          <h4>Raw Radar Readings</h4>
-
-          <div className="debug-panel__labels">
-            <span>Time</span>
-            <span>Speed</span>
-            <span>Dir</span>
-            <span>Mag</span>
-          </div>
-
-          <div className="debug-panel__readings">
-            {readings.length === 0 ? (
-              <p className="debug-panel__empty">Waiting for readings...</p>
-            ) : (
-              [...readings].reverse().map((reading, index) => (
-                <ReadingRow key={`${reading.timestamp}-${index}`} reading={reading} />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {!enabled && (
-        <div className="debug-panel__section">
-          <p className="debug-panel__hint">
-            Start debug mode to see raw radar readings, shot history with camera data, and log data for analysis.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

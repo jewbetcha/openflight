@@ -74,6 +74,8 @@ function AppContent() {
     latestShot,
     shots,
     cameraStatus,
+    triggerDiagnostics,
+    triggerStatus,
     clearSession,
     setClub,
     simulateShot,
@@ -232,6 +234,8 @@ function AppContent() {
             mockMode={mockMode}
             onToggle={toggleDebug}
             onUpdateConfig={updateRadarConfig}
+            triggerDiagnostics={triggerDiagnostics}
+            triggerStatus={triggerStatus}
           />
         )}
       </main>
