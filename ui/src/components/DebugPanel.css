@@ -8,7 +8,7 @@
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   color: var(--color-cream);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .debug-panel__header {
@@ -24,6 +24,48 @@
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* Sub-tabs */
+.debug-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  margin-bottom: var(--space-md);
+}
+
+.debug-tabs__tab {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.1);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  min-height: 32px;
+  touch-action: manipulation;
+}
+
+.debug-tabs__tab:active {
+  transform: scale(0.95);
+}
+
+.debug-tabs__tab--active {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.4);
+  color: var(--color-gold);
+}
+
+/* Tab content wrapper */
+.debug-panel__tab-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Sections */
@@ -488,8 +530,14 @@
     font-size: 0.625rem;
   }
 
-  .debug-panel__section--history {
-    max-height: 140px;
+  .debug-tabs__tab {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.6875rem;
+    min-height: 28px;
+  }
+
+  .debug-tabs {
+    margin-bottom: var(--space-sm);
   }
 
   .slider-control__label,

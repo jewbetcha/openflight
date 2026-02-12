@@ -52,6 +52,8 @@ class TriggerStrategy(ABC):
         peak_inbound_mph: float = 0.0,
         all_outbound_speeds: Optional[List[float]] = None,
         all_inbound_speeds: Optional[List[float]] = None,
+        peak_outbound_magnitude: float = 0.0,
+        peak_inbound_magnitude: float = 0.0,
     ):
         """Append a diagnostic entry for the current trigger event."""
         self._diagnostics.append({
@@ -66,6 +68,8 @@ class TriggerStrategy(ABC):
             "peak_inbound_mph": peak_inbound_mph,
             "all_outbound_speeds": all_outbound_speeds or [],
             "all_inbound_speeds": all_inbound_speeds or [],
+            "peak_outbound_magnitude": peak_outbound_magnitude,
+            "peak_inbound_magnitude": peak_inbound_magnitude,
         })
 
     @abstractmethod
@@ -609,6 +613,8 @@ class GPIOSoundTrigger(TriggerStrategy):
                 inbound_speeds = [r.speed_mph for r in all_inbound]
                 peak_outbound = max(outbound_speeds, default=0)
                 peak_inbound = max(inbound_speeds, default=0)
+                peak_out_mag = max((r.magnitude for r in all_outbound), default=0)
+                peak_in_mag = max((r.magnitude for r in all_inbound), default=0)
 
                 outbound_valid = [
                     r for r in all_outbound if r.speed_mph >= 15.0
@@ -633,6 +639,8 @@ class GPIOSoundTrigger(TriggerStrategy):
                         peak_inbound_mph=peak_inbound,
                         all_outbound_speeds=outbound_speeds,
                         all_inbound_speeds=inbound_speeds,
+                        peak_outbound_magnitude=peak_out_mag,
+                        peak_inbound_magnitude=peak_in_mag,
                     )
                     continue
 
@@ -653,6 +661,8 @@ class GPIOSoundTrigger(TriggerStrategy):
                     peak_inbound_mph=peak_inbound,
                     all_outbound_speeds=outbound_speeds,
                     all_inbound_speeds=inbound_speeds,
+                    peak_outbound_magnitude=peak_out_mag,
+                    peak_inbound_magnitude=peak_in_mag,
                 )
 
                 return capture
@@ -843,6 +853,8 @@ class GPIOPassthroughTrigger(TriggerStrategy):
         inbound_speeds = [r.speed_mph for r in all_inbound]
         peak_outbound = max(outbound_speeds, default=0)
         peak_inbound = max(inbound_speeds, default=0)
+        peak_out_mag = max((r.magnitude for r in all_outbound), default=0)
+        peak_in_mag = max((r.magnitude for r in all_inbound), default=0)
 
         outbound_valid = [r for r in all_outbound if r.speed_mph >= 15.0]
 
@@ -859,6 +871,8 @@ class GPIOPassthroughTrigger(TriggerStrategy):
                 peak_inbound_mph=peak_inbound,
                 all_outbound_speeds=outbound_speeds,
                 all_inbound_speeds=inbound_speeds,
+                peak_outbound_magnitude=peak_out_mag,
+                peak_inbound_magnitude=peak_in_mag,
             )
             return None
 
@@ -876,6 +890,8 @@ class GPIOPassthroughTrigger(TriggerStrategy):
             peak_inbound_mph=peak_inbound,
             all_outbound_speeds=outbound_speeds,
             all_inbound_speeds=inbound_speeds,
+            peak_outbound_magnitude=peak_out_mag,
+            peak_inbound_magnitude=peak_in_mag,
         )
 
         return capture
@@ -990,6 +1006,8 @@ class SoundTrigger(TriggerStrategy):
         inbound_speeds = [r.speed_mph for r in all_inbound]
         peak_outbound = max(outbound_speeds, default=0)
         peak_inbound = max(inbound_speeds, default=0)
+        peak_out_mag = max((r.magnitude for r in all_outbound), default=0)
+        peak_in_mag = max((r.magnitude for r in all_inbound), default=0)
 
         outbound_valid = [r for r in all_outbound if r.speed_mph >= 15.0]
 
@@ -1006,6 +1024,8 @@ class SoundTrigger(TriggerStrategy):
                 peak_inbound_mph=peak_inbound,
                 all_outbound_speeds=outbound_speeds,
                 all_inbound_speeds=inbound_speeds,
+                peak_outbound_magnitude=peak_out_mag,
+                peak_inbound_magnitude=peak_in_mag,
             )
             return None
 
@@ -1023,6 +1043,8 @@ class SoundTrigger(TriggerStrategy):
             peak_inbound_mph=peak_inbound,
             all_outbound_speeds=outbound_speeds,
             all_inbound_speeds=inbound_speeds,
+            peak_outbound_magnitude=peak_out_mag,
+            peak_inbound_magnitude=peak_in_mag,
         )
 
         return capture

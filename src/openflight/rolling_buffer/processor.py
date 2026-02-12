@@ -57,6 +57,11 @@ class RollingBufferProcessor:
     # Magnitude threshold for valid peaks (lowered for better detection)
     MAGNITUDE_THRESHOLD = 10
 
+    # DC mask: skip first N bins in peak search to reject DC leakage,
+    # body movement, and environmental noise. At 30kHz/4096-pt FFT,
+    # each bin ≈ 0.1 mph, so 50 bins ≈ 5 mph exclusion zone.
+    DC_MASK_BINS = 50
+
     # Spin detection
     MIN_SPIN_RPM = 1000
     MAX_SPIN_RPM = 10000
@@ -146,7 +151,7 @@ class RollingBufferProcessor:
         self,
         i_block: np.ndarray,
         q_block: np.ndarray,
-    ) -> Tuple[float, float, str]:
+    ) -> List[Tuple[float, float, str]]:
         """
         Process a single 128-sample block through FFT.
 
@@ -156,15 +161,16 @@ class RollingBufferProcessor:
         3. Apply Hanning window
         4. Create complex signal (I + jQ)
         5. FFT with zero-padding
-        6. Find peak magnitude
-        7. Convert bin to speed
+        6. Find peak in outbound and inbound independently
+        7. Return all peaks exceeding MAGNITUDE_THRESHOLD
 
         Args:
             i_block: 128 I samples
             q_block: 128 Q samples
 
         Returns:
-            Tuple of (speed_mph, magnitude, direction)
+            List of (speed_mph, magnitude, direction) tuples for each
+            peak exceeding MAGNITUDE_THRESHOLD. May contain 0, 1, or 2 entries.
         """
         # Remove DC offset
         i_centered = i_block - np.mean(i_block)
@@ -185,36 +191,43 @@ class RollingBufferProcessor:
         fft_result = np.fft.fft(complex_signal, self.FFT_SIZE)
         magnitude = np.abs(fft_result)
 
-        # Find peak in positive frequencies and negative frequencies
         half = self.FFT_SIZE // 2
+        dc_mask = self.DC_MASK_BINS
+
+        results: List[Tuple[float, float, str]] = []
 
         # OPS243 I/Q convention (empirically determined from diagnostic data):
-        # - Positive frequencies (bins 1 to half-1) = OUTBOUND (away from radar, ball/club flying away)
-        # - Negative frequencies (bins half+1 to end) = INBOUND (toward radar, backswing)
-        pos_peak_bin = np.argmax(magnitude[1:half]) + 1
-        pos_peak_mag = magnitude[pos_peak_bin]
+        # - Positive frequencies (bins 1 to half-1) = OUTBOUND (away from radar)
+        # - Negative frequencies (bins half+1 to end) = INBOUND (toward radar)
 
-        neg_peak_bin = np.argmax(magnitude[half + 1:]) + half + 1
-        neg_peak_mag = magnitude[neg_peak_bin]
+        # Outbound peak: search positive frequencies, skipping DC mask bins
+        if dc_mask < half:
+            pos_peak_bin = np.argmax(magnitude[dc_mask:half]) + dc_mask
+            pos_peak_mag = magnitude[pos_peak_bin]
 
-        # Choose strongest peak and determine direction
-        if pos_peak_mag >= neg_peak_mag:
-            peak_bin = pos_peak_bin
-            peak_mag = pos_peak_mag
-            direction = "outbound"  # Positive frequency = away from radar (ball/club)
-        else:
-            peak_bin = neg_peak_bin - self.FFT_SIZE  # Convert to negative bin
-            peak_mag = neg_peak_mag
-            direction = "inbound"  # Negative frequency = toward radar (backswing)
+            if pos_peak_mag >= self.MAGNITUDE_THRESHOLD:
+                freq_hz = pos_peak_bin * self.SAMPLE_RATE / self.FFT_SIZE
+                speed_mps = freq_hz * self.WAVELENGTH_M / 2
+                speed_mph = speed_mps * self.MPS_TO_MPH
+                results.append((speed_mph, float(pos_peak_mag), "outbound"))
 
-        # Convert bin to speed
-        # Frequency = bin * sample_rate / fft_size
-        # Speed = frequency * wavelength / 2 (factor of 2 for Doppler)
-        freq_hz = abs(peak_bin) * self.SAMPLE_RATE / self.FFT_SIZE
-        speed_mps = freq_hz * self.WAVELENGTH_M / 2
-        speed_mph = speed_mps * self.MPS_TO_MPH
+        # Inbound peak: search negative frequencies, skipping DC mask bins
+        # Negative frequencies are in bins [half+1, FFT_SIZE-1].
+        # Mirror of DC mask: skip bins closest to Nyquist boundary
+        # i.e. search from (half + dc_mask) to end
+        neg_start = half + dc_mask
+        if neg_start < self.FFT_SIZE:
+            neg_peak_bin = np.argmax(magnitude[neg_start:]) + neg_start
+            neg_peak_mag = magnitude[neg_peak_bin]
 
-        return speed_mph, peak_mag, direction
+            if neg_peak_mag >= self.MAGNITUDE_THRESHOLD:
+                abs_bin = self.FFT_SIZE - neg_peak_bin
+                freq_hz = abs_bin * self.SAMPLE_RATE / self.FFT_SIZE
+                speed_mps = freq_hz * self.WAVELENGTH_M / 2
+                speed_mph = speed_mps * self.MPS_TO_MPH
+                results.append((speed_mph, float(neg_peak_mag), "inbound"))
+
+        return results
 
     def _process_capture(self, capture: IQCapture, step_size: int) -> SpeedTimeline:
         """
@@ -237,11 +250,10 @@ class RollingBufferProcessor:
             i_block = i_data[start:start + self.WINDOW_SIZE]
             q_block = q_data[start:start + self.WINDOW_SIZE]
 
-            speed_mph, magnitude, direction = self._process_block(i_block, q_block)
-
+            peaks = self._process_block(i_block, q_block)
             timestamp_ms = (start / self.SAMPLE_RATE) * 1000
 
-            if magnitude >= self.MAGNITUDE_THRESHOLD:
+            for speed_mph, magnitude, direction in peaks:
                 readings.append(SpeedReading(
                     speed_mph=speed_mph,
                     magnitude=magnitude,

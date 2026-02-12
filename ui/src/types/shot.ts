@@ -51,6 +51,8 @@ export interface TriggerDiagnostic {
   peak_inbound_mph: number;
   all_outbound_speeds: number[];
   all_inbound_speeds: number[];
+  peak_outbound_magnitude: number;
+  peak_inbound_magnitude: number;
   latency_ms: number | null;
   // Present when accepted (shot created):
   ball_speed_mph?: number | null;

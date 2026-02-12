@@ -772,3 +772,159 @@ class TestTriggerStrategyDiagnostics:
         for trigger in triggers:
             trigger._append_diagnostic(accepted=False, reason="test")
             assert len(trigger.drain_diagnostics()) == 1
+
+    def test_diagnostic_includes_magnitude_fields(self):
+        """Diagnostics should include peak magnitude fields."""
+        trigger = PollingTrigger()
+        trigger._append_diagnostic(
+            accepted=True,
+            reason="accepted",
+            peak_outbound_magnitude=245.5,
+            peak_inbound_magnitude=180.3,
+        )
+        diagnostics = trigger.drain_diagnostics()
+        assert diagnostics[0]["peak_outbound_magnitude"] == 245.5
+        assert diagnostics[0]["peak_inbound_magnitude"] == 180.3
+
+    def test_diagnostic_magnitude_defaults_to_zero(self):
+        """Magnitude fields should default to 0 when not provided."""
+        trigger = PollingTrigger()
+        trigger._append_diagnostic(accepted=False, reason="test")
+        diagnostics = trigger.drain_diagnostics()
+        assert diagnostics[0]["peak_outbound_magnitude"] == 0.0
+        assert diagnostics[0]["peak_inbound_magnitude"] == 0.0
+
+
+# =============================================================================
+# Tests for FFT Dual-Peak Extraction and DC Mask
+# =============================================================================
+
+class TestDualPeakExtraction:
+    """Tests for dual-peak FFT processing and DC mask."""
+
+    @pytest.fixture
+    def processor(self):
+        """Create a processor instance for testing."""
+        return RollingBufferProcessor()
+
+    def test_dc_mask_bins_constant(self, processor):
+        """DC_MASK_BINS should be 50 (~5 mph exclusion zone)."""
+        assert processor.DC_MASK_BINS == 50
+
+    def test_both_peaks_extracted_from_block(self, processor):
+        """A signal with outbound + inbound tones should produce two peaks."""
+        import numpy as np
+
+        n = processor.WINDOW_SIZE
+        t = np.arange(n) / processor.SAMPLE_RATE
+
+        # Outbound tone at ~120 mph
+        # speed = freq * wavelength / 2 => freq = speed / (wavelength/2)
+        # freq = 120 / 2.23694 (m/s) * 2 / 0.01243 = ~8630 Hz
+        outbound_freq = (120 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
+        # Inbound tone at ~50 mph
+        inbound_freq = (50 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
+
+        # Outbound = positive frequency, Inbound = negative frequency
+        # I + jQ: positive freq => I=cos, Q=sin; negative freq => I=cos, Q=-sin
+        i_signal = (
+            500 * np.cos(2 * np.pi * outbound_freq * t)
+            + 400 * np.cos(2 * np.pi * inbound_freq * t)
+        )
+        q_signal = (
+            500 * np.sin(2 * np.pi * outbound_freq * t)
+            - 400 * np.sin(2 * np.pi * inbound_freq * t)
+        )
+
+        # Offset to simulate ADC midpoint
+        i_block = (i_signal + 2048).astype(np.float64)
+        q_block = (q_signal + 2048).astype(np.float64)
+
+        results = processor._process_block(i_block, q_block)
+
+        # Should find both peaks
+        directions = [r[2] for r in results]
+        assert "outbound" in directions, f"Expected outbound peak, got: {results}"
+        assert "inbound" in directions, f"Expected inbound peak, got: {results}"
+
+        # Check speeds are approximately correct
+        for speed, mag, direction in results:
+            if direction == "outbound":
+                assert abs(speed - 120) < 5, f"Outbound speed {speed} not near 120 mph"
+            elif direction == "inbound":
+                assert abs(speed - 50) < 5, f"Inbound speed {speed} not near 50 mph"
+
+    def test_dc_leakage_does_not_mask_real_signal(self, processor):
+        """Strong DC offset should not prevent detection of real Doppler signal."""
+        import numpy as np
+
+        n = processor.WINDOW_SIZE
+        t = np.arange(n) / processor.SAMPLE_RATE
+
+        # Real outbound Doppler at ~80 mph
+        real_freq = (80 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
+
+        # Strong DC component (large offset that won't be fully removed by mean subtraction
+        # due to windowing artifacts) plus real signal
+        i_signal = 2048 + 300 * np.cos(2 * np.pi * real_freq * t)
+        q_signal = 2048 + 300 * np.sin(2 * np.pi * real_freq * t)
+
+        i_block = i_signal.astype(np.float64)
+        q_block = q_signal.astype(np.float64)
+
+        results = processor._process_block(i_block, q_block)
+
+        # Should find the real signal, not a DC artifact
+        outbound_results = [(s, m, d) for s, m, d in results if d == "outbound"]
+        assert len(outbound_results) > 0, f"No outbound peak found, results: {results}"
+
+        # The detected speed should be near 80 mph, not near 0
+        speed = outbound_results[0][0]
+        assert speed > 10, f"Detected speed {speed} mph is too low (DC artifact?)"
+        assert abs(speed - 80) < 5, f"Outbound speed {speed} not near 80 mph"
+
+    def test_ball_found_when_backswing_stronger(self, processor):
+        """Outbound ball should be found even when inbound backswing is stronger."""
+        import numpy as np
+
+        # Create full 4096-sample capture with strong inbound + weaker outbound
+        n_samples = 4096
+        t = np.arange(n_samples) / processor.SAMPLE_RATE
+
+        # Strong inbound (backswing) at 50 mph, amplitude 800
+        inbound_freq = (50 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
+        # Weaker outbound (ball) at 120 mph, amplitude 300
+        outbound_freq = (120 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
+
+        i_signal = (
+            300 * np.cos(2 * np.pi * outbound_freq * t)
+            + 800 * np.cos(2 * np.pi * inbound_freq * t)
+        )
+        q_signal = (
+            300 * np.sin(2 * np.pi * outbound_freq * t)
+            - 800 * np.sin(2 * np.pi * inbound_freq * t)
+        )
+
+        i_samples = (i_signal + 2048).astype(int).tolist()
+        q_samples = (q_signal + 2048).astype(int).tolist()
+
+        capture = IQCapture(
+            sample_time=0.136,
+            trigger_time=0.0,
+            i_samples=i_samples,
+            q_samples=q_samples,
+            timestamp=1234567890.0,
+        )
+
+        timeline = processor.process_standard(capture)
+
+        # Should have outbound readings despite stronger inbound
+        outbound = [r for r in timeline.readings if r.is_outbound]
+        assert len(outbound) > 0, (
+            f"No outbound readings found. Total readings: {len(timeline.readings)}, "
+            f"directions: {[r.direction for r in timeline.readings]}"
+        )
+
+        # Peak outbound should be near 120 mph
+        peak_outbound = max(r.speed_mph for r in outbound)
+        assert peak_outbound > 100, f"Peak outbound {peak_outbound} mph too low"

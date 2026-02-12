@@ -268,6 +268,8 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
   );
 }
 
+type DebugTab = 'status' | 'history' | 'tuning';
+
 export function DebugPanel({
   radarConfig,
   mockMode,
@@ -275,6 +277,7 @@ export function DebugPanel({
   triggerDiagnostics,
   triggerStatus,
 }: DebugPanelProps) {
+  const [activeTab, setActiveTab] = useState<DebugTab>('status');
   const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
   const lastDiag = triggerDiagnostics.length > 0
     ? triggerDiagnostics[triggerDiagnostics.length - 1]
@@ -289,75 +292,99 @@ export function DebugPanel({
         <h3>Diagnostics</h3>
       </div>
 
-      {/* System Status - always visible */}
-      <SystemStatus status={triggerStatus} />
-
-      {/* Last Trigger - rolling buffer mode */}
-      {isRollingBuffer && <LastTriggerCard diag={lastDiag} />}
-
-      {/* Trigger History - rolling buffer mode */}
-      {isRollingBuffer && (
-        <div className="debug-panel__section debug-panel__section--history">
-          <h4>Trigger History</h4>
-          <div className="trigger-history">
-            {recentTriggers.length === 0 ? (
-              <p className="debug-panel__empty">No triggers yet...</p>
-            ) : (
-              recentTriggers.map((diag, index) => (
-                <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Streaming mode fallback message */}
-      {!isRollingBuffer && triggerStatus.mode !== 'mock' && (
-        <div className="debug-panel__section">
-          <p className="debug-panel__hint">
-            Trigger diagnostics are available in rolling buffer mode.
-            Current mode: {triggerStatus.mode}
-          </p>
-        </div>
-      )}
-
-      {/* Radar Tuning Controls - always available */}
-      <div className="debug-panel__section">
-        <h4>Radar Tuning</h4>
-        {mockMode && (
-          <p className="debug-panel__mock-warning">Radar tuning disabled in mock mode</p>
+      <div className="debug-tabs">
+        <button
+          className={`debug-tabs__tab ${activeTab === 'status' ? 'debug-tabs__tab--active' : ''}`}
+          onClick={() => setActiveTab('status')}
+        >
+          Status
+        </button>
+        {isRollingBuffer && (
+          <button
+            className={`debug-tabs__tab ${activeTab === 'history' ? 'debug-tabs__tab--active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            History
+          </button>
         )}
-        <div className="debug-panel__controls">
-          <SliderControl
-            label="Min Speed"
-            value={radarConfig.min_speed}
-            min={0}
-            max={50}
-            unit=" mph"
-            disabled={mockMode}
-            onChange={(v) => onUpdateConfig({ min_speed: v })}
-          />
-          <SliderControl
-            label="Min Magnitude"
-            value={radarConfig.min_magnitude}
-            min={0}
-            max={2000}
-            step={50}
-            disabled={mockMode}
-            onChange={(v) => onUpdateConfig({ min_magnitude: v })}
-          />
-          <SliderControl
-            label="TX Power"
-            value={radarConfig.transmit_power}
-            min={0}
-            max={7}
-            disabled={mockMode}
-            onChange={(v) => onUpdateConfig({ transmit_power: v })}
-          />
-        </div>
-        <p className="debug-panel__hint">
-          TX Power: 0 = max range, 7 = min range
-        </p>
+        <button
+          className={`debug-tabs__tab ${activeTab === 'tuning' ? 'debug-tabs__tab--active' : ''}`}
+          onClick={() => setActiveTab('tuning')}
+        >
+          Tuning
+        </button>
+      </div>
+
+      <div className="debug-panel__tab-content">
+        {activeTab === 'status' && (
+          <>
+            <SystemStatus status={triggerStatus} />
+            {isRollingBuffer && <LastTriggerCard diag={lastDiag} />}
+            {!isRollingBuffer && triggerStatus.mode !== 'mock' && (
+              <div className="debug-panel__section">
+                <p className="debug-panel__hint">
+                  Trigger diagnostics are available in rolling buffer mode.
+                  Current mode: {triggerStatus.mode}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'history' && isRollingBuffer && (
+          <div className="debug-panel__section debug-panel__section--history">
+            <h4>Trigger History</h4>
+            <div className="trigger-history">
+              {recentTriggers.length === 0 ? (
+                <p className="debug-panel__empty">No triggers yet...</p>
+              ) : (
+                recentTriggers.map((diag, index) => (
+                  <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tuning' && (
+          <div className="debug-panel__section">
+            <h4>Radar Tuning</h4>
+            {mockMode && (
+              <p className="debug-panel__mock-warning">Radar tuning disabled in mock mode</p>
+            )}
+            <div className="debug-panel__controls">
+              <SliderControl
+                label="Min Speed"
+                value={radarConfig.min_speed}
+                min={0}
+                max={50}
+                unit=" mph"
+                disabled={mockMode}
+                onChange={(v) => onUpdateConfig({ min_speed: v })}
+              />
+              <SliderControl
+                label="Min Magnitude"
+                value={radarConfig.min_magnitude}
+                min={0}
+                max={2000}
+                step={50}
+                disabled={mockMode}
+                onChange={(v) => onUpdateConfig({ min_magnitude: v })}
+              />
+              <SliderControl
+                label="TX Power"
+                value={radarConfig.transmit_power}
+                min={0}
+                max={7}
+                disabled={mockMode}
+                onChange={(v) => onUpdateConfig({ transmit_power: v })}
+              />
+            </div>
+            <p className="debug-panel__hint">
+              TX Power: 0 = max range, 7 = min range
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
