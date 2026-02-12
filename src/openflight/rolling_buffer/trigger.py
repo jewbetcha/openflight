@@ -54,9 +54,10 @@ class TriggerStrategy(ABC):
         all_inbound_speeds: Optional[List[float]] = None,
         peak_outbound_magnitude: float = 0.0,
         peak_inbound_magnitude: float = 0.0,
+        trigger_latency_ms: Optional[float] = None,
     ):
         """Append a diagnostic entry for the current trigger event."""
-        self._diagnostics.append({
+        entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "accepted": accepted,
             "reason": reason,
@@ -70,7 +71,10 @@ class TriggerStrategy(ABC):
             "all_inbound_speeds": all_inbound_speeds or [],
             "peak_outbound_magnitude": peak_outbound_magnitude,
             "peak_inbound_magnitude": peak_inbound_magnitude,
-        })
+        }
+        if trigger_latency_ms is not None:
+            entry["trigger_latency_ms"] = trigger_latency_ms
+        self._diagnostics.append(entry)
 
     @abstractmethod
     def wait_for_trigger(
@@ -484,7 +488,7 @@ class GPIOSoundTrigger(TriggerStrategy):
     def __init__(
         self,
         gpio_pin: int = 17,
-        pre_trigger_segments: int = 12,
+        pre_trigger_segments: int = 20,
         debounce_ms: int = 200,
     ):
         """
@@ -494,7 +498,7 @@ class GPIOSoundTrigger(TriggerStrategy):
             gpio_pin: GPIO pin (BCM numbering) for GATE input (default: 17)
             pre_trigger_segments: Number of pre-trigger segments for S# command.
                 Each segment = 128 samples = ~4.27ms at 30ksps.
-                Default 12 gives ~51ms pre-trigger, ~85ms post-trigger.
+                Default 20 gives ~85ms pre-trigger, ~51ms post-trigger.
                 NOTE: This is passed to enter_rolling_buffer_mode() by the caller.
                 The trigger does NOT configure rolling buffer mode itself.
             debounce_ms: Debounce time in ms to ignore rapid triggers (default: 200)
@@ -565,25 +569,30 @@ class GPIOSoundTrigger(TriggerStrategy):
         while (time.time() - start_time) < timeout:
             if self._trigger_event["triggered"]:
                 self._trigger_event["triggered"] = False
+                edge_time = time.time()
                 logger.info("GPIO edge detected on GPIO%d, sending S! trigger...",
                            self.gpio_pin)
 
-                # Send S! to trigger the radar capture
+                # Measure edge-to-S! latency (trigger_capture sends S! immediately)
+                trigger_latency = (time.time() - edge_time) * 1000
                 response = radar.trigger_capture(timeout=5.0)
 
                 if not response:
-                    logger.warning("No response from radar after S! trigger")
+                    logger.warning("No response from radar after S! (%.1fms after edge)",
+                                  trigger_latency)
                     self._append_diagnostic(
                         accepted=False,
                         reason="no_response",
                         response_bytes=0,
+                        trigger_latency_ms=trigger_latency,
                     )
                     radar.rearm_rolling_buffer()
                     time.sleep(0.3)
                     continue
 
                 response_len = len(response)
-                logger.info("Capture received, %d bytes", response_len)
+                logger.info("Capture received, %d bytes (S! sent %.1fms after edge)",
+                           response_len, trigger_latency)
                 if response_len < 5000:
                     logger.debug("Response content: %s", repr(response))
                 else:
@@ -601,6 +610,7 @@ class GPIOSoundTrigger(TriggerStrategy):
                         accepted=False,
                         reason="parse_failed",
                         response_bytes=response_len,
+                        trigger_latency_ms=trigger_latency,
                     )
                     continue
 
@@ -641,14 +651,15 @@ class GPIOSoundTrigger(TriggerStrategy):
                         all_inbound_speeds=inbound_speeds,
                         peak_outbound_magnitude=peak_out_mag,
                         peak_inbound_magnitude=peak_in_mag,
+                        trigger_latency_ms=trigger_latency,
                     )
                     continue
 
                 peak = max(r.speed_mph for r in outbound_valid)
                 logger.info(
                     "GPIO trigger ACCEPTED: %d outbound readings >= 15 mph, "
-                    "peak %.1f mph",
-                    len(outbound_valid), peak
+                    "peak %.1f mph (S! sent %.1fms after edge)",
+                    len(outbound_valid), peak, trigger_latency
                 )
                 self._append_diagnostic(
                     accepted=True,
@@ -663,6 +674,7 @@ class GPIOSoundTrigger(TriggerStrategy):
                     all_inbound_speeds=inbound_speeds,
                     peak_outbound_magnitude=peak_out_mag,
                     peak_inbound_magnitude=peak_in_mag,
+                    trigger_latency_ms=trigger_latency,
                 )
 
                 return capture

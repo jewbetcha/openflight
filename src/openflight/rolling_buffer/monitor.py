@@ -330,14 +330,17 @@ class RollingBufferMonitor:
             self._capture_thread = None
         logger.info("Rolling buffer monitor stopped")
 
-    def _emit_diagnostics(self, trigger_latency_ms: float = 0):
+    def _emit_diagnostics(self, wall_clock_ms: float = 0):
         """Drain trigger diagnostics and emit them to logger and UI."""
         diagnostics = self.trigger.drain_diagnostics()
         session_logger = get_session_logger()
 
         for diag in diagnostics:
             diag["trigger_type"] = self.trigger_type
-            diag["latency_ms"] = trigger_latency_ms
+            # Use trigger's own edge-to-S! latency if measured,
+            # otherwise fall back to wall-clock (includes idle wait + serial transfer)
+            latency = diag.pop("trigger_latency_ms", None) or wall_clock_ms
+            diag["latency_ms"] = latency
 
             # Log to session JSONL
             if session_logger:
@@ -353,7 +356,7 @@ class RollingBufferMonitor:
                     peak_inbound_mph=diag.get("peak_inbound_mph", 0),
                     all_outbound_speeds=diag.get("all_outbound_speeds"),
                     all_inbound_speeds=diag.get("all_inbound_speeds"),
-                    latency_ms=trigger_latency_ms,
+                    latency_ms=latency,
                 )
 
             # Emit to UI via WebSocket
