@@ -370,10 +370,12 @@ class RollingBufferMonitor:
                 trigger_start = time.time()
 
                 # Wait for trigger and capture
+                # Use a long timeout so sound/hardware triggers can wait
+                # for the next swing without noisy timeout-restart cycles.
                 capture = self.trigger.wait_for_trigger(
                     radar=self.radar,
                     processor=self.processor,
-                    timeout=5.0,
+                    timeout=30.0,
                 )
 
                 trigger_latency_ms = (time.time() - trigger_start) * 1000
