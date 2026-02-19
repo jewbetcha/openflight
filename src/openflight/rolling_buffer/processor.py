@@ -54,8 +54,9 @@ class RollingBufferProcessor:
     ADC_RANGE = 4096         # 12-bit ADC
     VOLTAGE_REF = 3.3        # Reference voltage
 
-    # Magnitude threshold for valid peaks (lowered for better detection)
-    MAGNITUDE_THRESHOLD = 10
+    # Magnitude threshold for valid peaks. Low threshold lets weak signals
+    # through; they get filtered later by the 15 mph speed check.
+    MAGNITUDE_THRESHOLD = 3
 
     # DC mask: skip first N bins in peak search to reject DC leakage,
     # body movement, and environmental noise. At 30kHz/4096-pt FFT,
