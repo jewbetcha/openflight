@@ -59,8 +59,10 @@ class RollingBufferProcessor:
 
     # DC mask: skip first N bins in peak search to reject DC leakage,
     # body movement, and environmental noise. At 30kHz/4096-pt FFT,
-    # each bin ≈ 0.1 mph, so 50 bins ≈ 5 mph exclusion zone.
-    DC_MASK_BINS = 50
+    # each bin ≈ 0.1 mph, so 150 bins ≈ 15 mph exclusion zone.
+    # Matches the streaming processor's dc_mask and the trigger's
+    # 15 mph acceptance threshold — no useful signal lives below 15 mph.
+    DC_MASK_BINS = 150
 
     # Spin detection
     MIN_SPIN_RPM = 1000

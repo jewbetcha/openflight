@@ -808,8 +808,8 @@ class TestDualPeakExtraction:
         return RollingBufferProcessor()
 
     def test_dc_mask_bins_constant(self, processor):
-        """DC_MASK_BINS should be 50 (~5 mph exclusion zone)."""
-        assert processor.DC_MASK_BINS == 50
+        """DC_MASK_BINS should be 150 (~15 mph exclusion zone)."""
+        assert processor.DC_MASK_BINS == 150
 
     def test_both_peaks_extracted_from_block(self, processor):
         """A signal with outbound + inbound tones should produce two peaks."""
