@@ -367,15 +367,10 @@ class TestRollingBufferProcessor:
 
     def test_process_standard_returns_timeline(self, processor):
         """Standard processing should return a SpeedTimeline."""
-        # Create synthetic I/Q data with a Doppler frequency that corresponds
-        # to a realistic golf ball speed. At 30 kHz sample rate:
-        # bin = speed * (FFT_SIZE / SAMPLE_RATE) / 0.0063
-        # For 150 mph: bin ≈ 150 * (4096/30000) / 0.0063 ≈ 3252
-        # Frequency = bin * SAMPLE_RATE / FFT_SIZE ≈ 23.8 kHz (unrealistic)
-        # Actually: speed = bin * 0.0063 * (30000 / 4096), so for 150 mph:
-        # bin = 150 / (0.0063 * 7.324) ≈ 3252
-        # Let's use a lower test frequency that maps to a detectable speed
-        doppler_freq = 500  # Hz - corresponds to ~10 mph
+        # Use a Doppler frequency above DC_MASK_BINS (150 bins ≈ 15 mph).
+        # 1500 Hz → bin ~205 → ~20.9 mph, safely above the mask.
+        # I=sin, Q=cos produces a negative-frequency (inbound) tone.
+        doppler_freq = 1500  # Hz - corresponds to ~20.9 mph
         i_samples = [2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
         q_samples = [2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
 
@@ -396,7 +391,7 @@ class TestRollingBufferProcessor:
 
     def test_process_overlapping_higher_resolution(self, processor):
         """Overlapping processing should give more readings than standard."""
-        doppler_freq = 500  # Hz
+        doppler_freq = 1500  # Hz - ~20.9 mph, above DC mask
         i_samples = [2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
         q_samples = [2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
 

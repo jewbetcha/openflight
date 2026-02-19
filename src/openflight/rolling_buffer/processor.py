@@ -215,11 +215,14 @@ class RollingBufferProcessor:
 
         # Inbound peak: search negative frequencies, skipping DC mask bins
         # Negative frequencies are in bins [half+1, FFT_SIZE-1].
-        # Mirror of DC mask: skip bins closest to Nyquist boundary
-        # i.e. search from (half + dc_mask) to end
-        neg_start = half + dc_mask
-        if neg_start < self.FFT_SIZE:
-            neg_peak_bin = np.argmax(magnitude[neg_start:]) + neg_start
+        # FFT layout: bin FFT_SIZE-1 is freq -1 (nearest DC),
+        #             bin half+1 is freq -(half-1) (nearest Nyquist).
+        # DC leakage lives at the END of the array (bins near FFT_SIZE-1),
+        # so we exclude bins [FFT_SIZE - dc_mask, FFT_SIZE-1].
+        neg_start = half + 1
+        neg_end = self.FFT_SIZE - dc_mask
+        if neg_start < neg_end:
+            neg_peak_bin = np.argmax(magnitude[neg_start:neg_end]) + neg_start
             neg_peak_mag = magnitude[neg_peak_bin]
 
             if neg_peak_mag >= self.MAGNITUDE_THRESHOLD:

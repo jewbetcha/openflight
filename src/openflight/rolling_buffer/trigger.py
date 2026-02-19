@@ -16,6 +16,9 @@ from .types import IQCapture
 if TYPE_CHECKING:
     from ..ops243 import OPS243Radar
 
+# Incremented per capture for log sequencing (not shot number)
+_capture_sequence = 0
+
 logger = logging.getLogger("openflight.rolling_buffer.trigger")
 
 
@@ -75,6 +78,28 @@ class TriggerStrategy(ABC):
         if trigger_latency_ms is not None:
             entry["trigger_latency_ms"] = trigger_latency_ms
         self._diagnostics.append(entry)
+
+    def _log_capture(self, capture: IQCapture, accepted: bool):
+        """Log raw I/Q data for offline analysis (all triggers, not just accepted)."""
+        # Import here to avoid circular dependency
+        from ..session_logger import get_session_logger  # pylint: disable=import-outside-toplevel
+
+        session_logger = get_session_logger()
+        if not session_logger:
+            return
+
+        global _capture_sequence  # pylint: disable=global-statement
+        _capture_sequence += 1
+
+        session_logger.log_rolling_buffer_capture(
+            shot_number=_capture_sequence,
+            sample_time=capture.sample_time,
+            trigger_time=capture.trigger_time,
+            i_samples=capture.i_samples,
+            q_samples=capture.q_samples,
+            ball_speed_mph=None,
+            club_speed_mph=None,
+        )
 
     @abstractmethod
     def wait_for_trigger(
@@ -614,6 +639,9 @@ class GPIOSoundTrigger(TriggerStrategy):
                     )
                     continue
 
+                # Log raw I/Q for ALL triggers (accepted or rejected) for offline analysis
+                self._log_capture(capture, accepted=False)  # updated to True below if accepted
+
                 # Quick validation: does the capture contain any real swing data?
                 timeline = processor.process_standard(capture)
                 all_readings = timeline.readings
@@ -856,6 +884,9 @@ class GPIOPassthroughTrigger(TriggerStrategy):
             )
             return None
 
+        # Log raw I/Q for ALL triggers for offline analysis
+        self._log_capture(capture, accepted=False)
+
         # Quick validation: does the capture contain any real swing data?
         timeline = processor.process_standard(capture)
         all_readings = timeline.readings
@@ -1005,6 +1036,9 @@ class SoundTrigger(TriggerStrategy):
                 response_bytes=response_len,
             )
             return None
+
+        # Log raw I/Q for ALL triggers for offline analysis
+        self._log_capture(capture, accepted=False)
 
         # Quick validation: does the capture contain any real swing data?
         # At a driving range, a nearby player's impact sound can trip the

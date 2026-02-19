@@ -19,32 +19,51 @@ The sound trigger enables precise timing of radar captures by detecting the club
 | Part | Description | Link | ~Price |
 |------|-------------|------|--------|
 | **SparkFun SEN-14262** | Sound Detector with envelope/gate outputs | [SparkFun](https://www.sparkfun.com/products/14262) | $12 |
-| **Jumper Wires** | Female-to-female for Pi GPIO connection | Any | $5 |
+| **IRLZ44N MOSFET (2)** | Logic-level N-channel MOSFETs for driver circuit | [Amazon](https://www.amazon.com/dp/B0CBKH4XGL) | $8 |
+| **4.7Ω Resistor** | Strong pull-up for HOST_INT drive | Any electronics supplier | $1 |
+| **10kΩ Resistor** | Pull-up for first inverter stage | Any electronics supplier | $1 |
+| **1kΩ Resistor** | Gate protection (optional) | Any electronics supplier | $1 |
+| **Breadboard** | For circuit assembly | Any | $5 |
+| **Jumper Wires** | For connections | Any | $5 |
 
-### Sound Trigger Wiring (GPIO Passthrough Method)
+### Sound Trigger Wiring (MOSFET Driver - Recommended)
 
-The Pi acts as a voltage booster between the sound detector and radar, providing ultra-low-latency triggering (~10μs):
+The MOSFET double-inverter provides high-current 3.3V drive to HOST_INT. This is the recommended method for reliable triggering.
 
 ```
-SparkFun SEN-14262          Raspberry Pi              OPS243-A Radar
-┌─────────────────┐     ┌─────────────────┐     ┌──────────────────┐
-│                 │     │                 │     │                  │
-│ VCC ────────────┼─────┼── 3.3V (pin 1)  │     │                  │
-│                 │     │                 │     │                  │
-│ GND ────────────┼─────┼── GND (pin 6) ──┼─────┼── GND            │
-│                 │     │                 │     │                  │
-│ GATE ───────────┼─────┼►► GPIO17 (in)   │     │                  │
-│                 │     │     (pin 11)    │     │                  │
-│                 │     │       │         │     │                  │
-│                 │     │       ▼ lgpio   │     │                  │
-│                 │     │   GPIO27 (out) ─┼─────┼►► HOST_INT       │
-│                 │     │     (pin 13)    │     │   (J3 Pin 3)     │
-└─────────────────┘     └─────────────────┘     └──────────────────┘
+SEN-14262                    BREADBOARD                         OPS243-A
+┌───────────┐                                                 ┌──────────┐
+│           │                  3.3V RAIL                      │          │
+│ VCC ──────┼───────════════════╤═══════════════════          │          │
+│           │                   │                             │          │
+│           │                 [10kΩ]          [4.7Ω]          │          │
+│           │                   │               │             │          │
+│ GATE ─────┼──[1kΩ]──►Gate    Drain           Drain ────────►│ HOST_INT │
+│           │                 ┌─┴─┐    wire   ┌─┴─┐           │ (J3 P3)  │
+│           │                 │Q1 │ ─────────►│Q2 │           │          │
+│           │                 └─┬─┘  (G to D) └─┬─┘           │          │
+│           │                   │               │             │          │
+│ GND ──────┼───────════════════╧═══════════════╧═════════════┼── GND    │
+│           │                 GND RAIL                        │ (J3 P1)  │
+└───────────┘                                                 └──────────┘
 ```
 
-**Why GPIO Passthrough?** The SEN-14262 GATE output (~2.5V) is below the OPS243-A HOST_INT threshold (~3.0V). The Pi GPIO input has a lower threshold (~1.8V), so it reliably detects the GATE signal and outputs a clean 3.3V pulse to trigger the radar.
+**Why MOSFETs?** The OPS243-A HOST_INT has very low input impedance (~27Ω) requiring high current drive (~100mA+). The IRLZ44N double-inverter with 4.7Ω pull-up provides ~700mA capability at full 3.3V.
 
-**Trigger Latency:** ~10μs (hardware + C callback) vs ~1-18ms with software S! trigger.
+**Trigger Latency:** ~1μs (pure hardware switching).
+
+See [sound-trigger-wiring.md](sound-trigger-wiring.md) for detailed step-by-step instructions.
+
+### Alternative: GPIO Passthrough Method
+
+If you don't have MOSFETs, the Pi can act as a software-controlled trigger with slightly higher latency:
+
+```
+SEN-14262 GATE → GPIO17 (pin 11) [input]
+GPIO27 (pin 13) → HOST_INT (J3 Pin 3) [output]
+```
+
+**Trigger Latency:** ~10μs (lgpio C callback) - use `--trigger sound-passthrough`.
 
 ## IR Illumination (for camera)
 
