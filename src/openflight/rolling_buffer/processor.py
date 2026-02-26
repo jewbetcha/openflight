@@ -69,6 +69,9 @@ class RollingBufferProcessor:
     MIN_SPIN_RPM = 1000
     MAX_SPIN_RPM = 10000
     MIN_SPIN_SNR = 3.0
+    MIN_SPIN_SAMPLES = 16
+    MAX_SPIN_RPM_BIN_WIDTH_FOR_MEDIUM = 1500.0
+    MAX_SPIN_RPM_BIN_WIDTH_FOR_HIGH = 1000.0
 
     def __init__(self):
         """Initialize processor with pre-computed window function."""
@@ -354,7 +357,7 @@ class RollingBufferProcessor:
         Returns:
             SpinResult with detected spin or failure reason
         """
-        if len(ball_speeds) < 10:
+        if len(ball_speeds) < self.MIN_SPIN_SAMPLES:
             return SpinResult.no_spin_detected("Insufficient ball speed samples")
 
         speeds = np.array(ball_speeds)
@@ -368,6 +371,7 @@ class RollingBufferProcessor:
 
         # FFT on detrended speeds
         n = len(detrended)
+        rpm_bin_width = (sample_rate_hz * 60) / n
         spin_fft = np.fft.fft(detrended)
         frequencies = np.fft.fftfreq(n, d=1 / sample_rate_hz)
 
@@ -413,6 +417,16 @@ class RollingBufferProcessor:
         else:
             quality = "medium"
             confidence = 0.6
+
+        # Coarse FFT frequency bins can make short windows look overconfident.
+        # Cap confidence until the spin RPM resolution is fine enough.
+        if rpm_bin_width > self.MAX_SPIN_RPM_BIN_WIDTH_FOR_MEDIUM:
+            quality = "low"
+            confidence = min(confidence, 0.3)
+        elif rpm_bin_width > self.MAX_SPIN_RPM_BIN_WIDTH_FOR_HIGH:
+            if quality == "high":
+                quality = "medium"
+            confidence = min(confidence, 0.6)
 
         return SpinResult(
             spin_rpm=spin_rpm,

@@ -412,6 +412,68 @@ class TestRollingBufferProcessor:
         assert len(standard.readings) == 32
         assert len(overlapping.readings) >= 120  # Allow some tolerance
 
+    def _make_spin_signal(
+        self,
+        sample_count,
+        fft_bin,
+        sample_rate_hz=937.5,
+        baseline_mph=150.0,
+        amplitude_mph=1.0,
+        noise_mph=0.05,
+    ):
+        """Create a synthetic speed oscillation aligned to an FFT bin."""
+        import numpy as np
+
+        t = np.arange(sample_count) / sample_rate_hz
+        freq_hz = fft_bin * sample_rate_hz / sample_count
+        noise = noise_mph * (
+            np.sin(2 * np.pi * 17.3 * t) + 0.7 * np.cos(2 * np.pi * 29.1 * t)
+        )
+        return (baseline_mph + amplitude_mph * np.sin(2 * np.pi * freq_hz * t) + noise).tolist()
+
+    def test_detect_spin_rejects_too_few_samples(self, processor):
+        """Very short windows should not report spin at all."""
+        ball_speeds = self._make_spin_signal(sample_count=12, fft_bin=2)
+
+        result = processor.detect_spin(ball_speeds, 937.5)
+
+        assert result.spin_rpm == 0
+        assert result.confidence == 0
+        assert "Insufficient ball speed samples" in result.quality
+
+    def test_detect_spin_coarse_resolution_caps_to_low_confidence(self, processor):
+        """Coarse RPM bin spacing should not report medium/high confidence."""
+        ball_speeds = self._make_spin_signal(sample_count=24, fft_bin=2)
+
+        result = processor.detect_spin(ball_speeds, 937.5)
+
+        assert result.spin_rpm > 0
+        assert result.snr >= processor.MIN_SPIN_SNR
+        assert result.quality == "low"
+        assert result.confidence == 0.3
+
+    def test_detect_spin_short_window_cannot_report_high_confidence(self, processor):
+        """Short windows can detect spin but should cap confidence below high."""
+        ball_speeds = self._make_spin_signal(sample_count=48, fft_bin=3)
+
+        result = processor.detect_spin(ball_speeds, 937.5)
+
+        assert result.spin_rpm > 0
+        assert result.snr >= 5.0
+        assert result.quality == "medium"
+        assert result.confidence == 0.6
+
+    def test_detect_spin_longer_window_allows_high_confidence(self, processor):
+        """Longer windows with finer RPM resolution can report high confidence."""
+        ball_speeds = self._make_spin_signal(sample_count=80, fft_bin=4)
+
+        result = processor.detect_spin(ball_speeds, 937.5)
+
+        assert result.spin_rpm > 0
+        assert result.snr >= 5.0
+        assert result.quality == "high"
+        assert result.confidence == 0.9
+
 
 # =============================================================================
 # Tests for Trigger Strategies
