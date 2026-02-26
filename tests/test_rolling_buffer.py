@@ -412,6 +412,27 @@ class TestRollingBufferProcessor:
         assert len(standard.readings) == 32
         assert len(overlapping.readings) >= 120  # Allow some tolerance
 
+    def test_detect_spin_resamples_irregular_timestamps_before_fft(self, processor):
+        """Irregularly spaced detections should be resampled before spin FFT."""
+        sample_rate_hz = 1000.0
+        target_spin_rpm = 3000.0  # 50 Hz
+        spin_hz = target_spin_rpm / 60.0
+
+        timestamps_ms = []
+        speeds = []
+        for t_ms in range(100):  # 0..99 ms at 1 kHz nominal
+            if t_ms % 4 == 3:
+                continue  # Drop every 4th detection -> irregular spacing (1,1,2 ms)
+            timestamps_ms.append(float(t_ms))
+            speeds.append(150.0 + 1.5 * math.sin(2 * math.pi * spin_hz * (t_ms / 1000.0)))
+
+        naive = processor.detect_spin(speeds, sample_rate_hz)
+        corrected = processor.detect_spin(speeds, sample_rate_hz, timestamps_ms=timestamps_ms)
+
+        assert corrected.spin_rpm == pytest.approx(target_spin_rpm, abs=150)
+        assert abs(corrected.spin_rpm - target_spin_rpm) < abs(naive.spin_rpm - target_spin_rpm)
+        assert abs(naive.spin_rpm - target_spin_rpm) >= 500
+
 
 # =============================================================================
 # Tests for Trigger Strategies

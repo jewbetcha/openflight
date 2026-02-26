@@ -321,22 +321,28 @@ class RollingBufferProcessor:
         Returns:
             List of ball speed values for spin analysis
         """
-        # Get readings after trigger (post-impact ball flight)
-        ball_readings = timeline.get_readings_after(trigger_offset_ms)
+        ball_readings = self._extract_ball_speed_readings(timeline, trigger_offset_ms, window_ms)
+        return [r.speed_mph for r in ball_readings]
 
-        # Filter to outbound only and within window
-        ball_speeds = [
-            r.speed_mph
+    def _extract_ball_speed_readings(
+        self,
+        timeline: SpeedTimeline,
+        trigger_offset_ms: float,
+        window_ms: float = 50,
+    ) -> List[SpeedReading]:
+        """Get outbound post-impact readings within the spin analysis window."""
+        ball_readings = timeline.get_readings_after(trigger_offset_ms)
+        return [
+            r
             for r in ball_readings
             if r.is_outbound and r.timestamp_ms < trigger_offset_ms + window_ms
         ]
-
-        return ball_speeds
 
     def detect_spin(
         self,
         ball_speeds: List[float],
         sample_rate_hz: float,
+        timestamps_ms: Optional[List[float]] = None,
     ) -> SpinResult:
         """
         Detect spin rate from speed oscillations using secondary FFT.
@@ -350,6 +356,9 @@ class RollingBufferProcessor:
         Args:
             ball_speeds: Post-impact ball speed readings
             sample_rate_hz: Sample rate of the speed data (~937 Hz)
+            timestamps_ms: Optional timestamps (ms) for each speed sample.
+                If provided, speeds are interpolated onto a uniform grid
+                before FFT to avoid treating dropped detections as evenly spaced.
 
         Returns:
             SpinResult with detected spin or failure reason
@@ -357,7 +366,38 @@ class RollingBufferProcessor:
         if len(ball_speeds) < 10:
             return SpinResult.no_spin_detected("Insufficient ball speed samples")
 
-        speeds = np.array(ball_speeds)
+        speeds = np.array(ball_speeds, dtype=float)
+        fft_sample_rate_hz = sample_rate_hz
+
+        if timestamps_ms is not None and len(timestamps_ms) == len(ball_speeds) and sample_rate_hz > 0:
+            timestamps = np.array(timestamps_ms, dtype=float)
+            finite_mask = np.isfinite(timestamps) & np.isfinite(speeds)
+            timestamps = timestamps[finite_mask]
+            speeds = speeds[finite_mask]
+
+            if len(speeds) < 10:
+                return SpinResult.no_spin_detected("Insufficient ball speed samples")
+
+            order = np.argsort(timestamps)
+            timestamps = timestamps[order]
+            speeds = speeds[order]
+
+            # Duplicate timestamps can happen with malformed inputs; keep the first.
+            if len(timestamps) > 1:
+                keep = np.concatenate(([True], np.diff(timestamps) > 0))
+                timestamps = timestamps[keep]
+                speeds = speeds[keep]
+
+            nominal_dt_ms = 1000.0 / sample_rate_hz
+            if len(speeds) >= 10 and nominal_dt_ms > 0 and timestamps[-1] > timestamps[0]:
+                uniform_timestamps = np.arange(
+                    timestamps[0],
+                    timestamps[-1] + (0.5 * nominal_dt_ms),
+                    nominal_dt_ms,
+                )
+                if len(uniform_timestamps) >= 10:
+                    speeds = np.interp(uniform_timestamps, timestamps, speeds)
+                    fft_sample_rate_hz = 1000.0 / nominal_dt_ms
 
         # Detrend: remove mean (average ball speed)
         detrended = speeds - np.mean(speeds)
@@ -369,7 +409,7 @@ class RollingBufferProcessor:
         # FFT on detrended speeds
         n = len(detrended)
         spin_fft = np.fft.fft(detrended)
-        frequencies = np.fft.fftfreq(n, d=1 / sample_rate_hz)
+        frequencies = np.fft.fftfreq(n, d=1 / fft_sample_rate_hz)
 
         # Only look at positive frequencies (up to Nyquist)
         half = n // 2
@@ -502,8 +542,14 @@ class RollingBufferProcessor:
 
         # Try spin detection
         trigger_offset_ms = capture.trigger_offset_ms
-        ball_speeds = self.extract_ball_speeds(timeline, trigger_offset_ms)
-        spin = self.detect_spin(ball_speeds, timeline.sample_rate_hz)
+        ball_readings = self._extract_ball_speed_readings(timeline, trigger_offset_ms)
+        ball_speeds = [r.speed_mph for r in ball_readings]
+        ball_timestamps = [r.timestamp_ms for r in ball_readings]
+        spin = self.detect_spin(
+            ball_speeds,
+            timeline.sample_rate_hz,
+            timestamps_ms=ball_timestamps,
+        )
 
         return ProcessedCapture(
             timeline=timeline,
