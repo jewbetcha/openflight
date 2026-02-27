@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './ClubPicker.css';
 
 const CLUBS_BY_TYPE = {
@@ -38,6 +38,7 @@ interface ClubPickerProps {
 
 export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   const selectedLabel =
     ALL_CLUBS.find(c => c.id === selectedClub)?.label || 'DR';
@@ -46,6 +47,19 @@ export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
     onClubChange(clubId);
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+    } else if (!isOpen && dialog.open) {
+      dialog.close();
+    }
+  }, [isOpen]);
 
   return (
     <div className="club-picker">
@@ -69,36 +83,37 @@ export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
         </svg>
       </button>
 
-      {isOpen && (
-        <>
-          <div
-            className="club-picker__overlay"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="club-picker__dropdown">
-            {Object.entries(CLUBS_BY_TYPE).map(([type, clubs]) => (
-              <div className="club-picker__section">
-                <span className="club-picker__section-title">{type}</span>
-                <div className="club-picker__grid">
-                  {clubs.map(club => (
-                    <button
-                      key={club.id}
-                      className={`club-picker__option ${
-                        selectedClub === club.id
-                          ? 'club-picker__option--selected'
-                          : ''
-                      }`}
-                      onClick={() => handleSelect(club.id)}
-                    >
-                      {club.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+      <dialog
+        className="club-picker__dropdown"
+        onClose={() => setIsOpen(false)}
+        ref={dialogRef}
+        onClick={event => {
+          if (event.target === event.currentTarget) {
+            setIsOpen(false);
+          }
+        }}
+      >
+        {Object.entries(CLUBS_BY_TYPE).map(([type, clubs]) => (
+          <div className="club-picker__section" key={type}>
+            <span className="club-picker__section-title">{type}</span>
+            <div className="club-picker__grid">
+              {clubs.map(club => (
+                <button
+                  key={club.id}
+                  className={`club-picker__option ${
+                    selectedClub === club.id
+                      ? 'club-picker__option--selected'
+                      : ''
+                  }`}
+                  onClick={() => handleSelect(club.id)}
+                >
+                  {club.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </>
-      )}
+        ))}
+      </dialog>
     </div>
   );
 }
