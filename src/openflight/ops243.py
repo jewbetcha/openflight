@@ -1124,9 +1124,20 @@ class OPS243Radar:
         # Activate sampling
         self.serial.write(b"PA")
         self.serial.flush()
-        time.sleep(0.2)  # Allow buffer to start filling
+        time.sleep(0.1)
 
-        logger.debug("Rolling buffer re-armed")
+        # Re-send trigger split (GC may reset to default)
+        pre_trigger_segments = max(0, min(32, pre_trigger_segments))
+        self.serial.write(f"S#{pre_trigger_segments}\r".encode())
+        self.serial.flush()
+        time.sleep(0.1)
+
+        # Reactivate after settings change
+        self.serial.write(b"PA")
+        self.serial.flush()
+        time.sleep(0.15)  # Allow buffer to start filling
+
+        logger.debug("Rolling buffer re-armed (S#%d)", pre_trigger_segments)
 
     def configure_for_rolling_buffer(self, pre_trigger_segments: int = 12):
         """

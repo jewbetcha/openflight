@@ -513,7 +513,7 @@ class GPIOSoundTrigger(TriggerStrategy):
     def __init__(
         self,
         gpio_pin: int = 17,
-        pre_trigger_segments: int = 32,
+        pre_trigger_segments: int = 20,
         debounce_ms: int = 20,
     ):
         """
@@ -612,7 +612,7 @@ class GPIOSoundTrigger(TriggerStrategy):
                         response_bytes=0,
                         trigger_latency_ms=trigger_latency,
                     )
-                    radar.rearm_rolling_buffer()
+                    radar.rearm_rolling_buffer(self.pre_trigger_segments)
                     self._trigger_event["triggered"] = False  # discard edges during rearm
                     continue
 
@@ -625,7 +625,7 @@ class GPIOSoundTrigger(TriggerStrategy):
                     logger.debug("Response preview: %s...", repr(response[:500]))
 
                 # Re-arm for next capture
-                radar.rearm_rolling_buffer()
+                radar.rearm_rolling_buffer(self.pre_trigger_segments)
                 self._trigger_event["triggered"] = False  # discard edges during rearm
 
                 capture = processor.parse_capture(response)
@@ -873,7 +873,7 @@ class GPIOPassthroughTrigger(TriggerStrategy):
         logger.info("Hardware trigger fired (via GPIO passthrough), received %d bytes", response_len)
 
         # Re-arm for next capture
-        radar.rearm_rolling_buffer()
+        radar.rearm_rolling_buffer(self.pre_trigger_segments)
 
         capture = processor.parse_capture(response)
 
@@ -1026,7 +1026,7 @@ class SoundTrigger(TriggerStrategy):
         logger.info("Hardware trigger fired, received %d bytes", response_len)
 
         # Re-arm for next capture
-        radar.rearm_rolling_buffer()
+        radar.rearm_rolling_buffer(self.pre_trigger_segments)
 
         capture = processor.parse_capture(response)
 
