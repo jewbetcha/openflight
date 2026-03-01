@@ -10,7 +10,7 @@ export function LaunchDaddyProvider({ children }: { children: ReactNode }) {
   const lastTapTime = useRef(0);
 
   const toggleLaunchDaddy = useCallback(() => {
-    setIsLaunchDaddyMode(prev => !prev);
+    setIsLaunchDaddyMode((prev) => !prev);
     setSecretTapCount(0);
     secretTapCountRef.current = 0;
   }, []);
@@ -26,7 +26,7 @@ export function LaunchDaddyProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     const nextCount = now - lastTapTime.current > 2000 ? 1 : secretTapCountRef.current + 1;
     if (nextCount >= 5) {
-      setIsLaunchDaddyMode(mode => !mode);
+      setIsLaunchDaddyMode((mode) => !mode);
       secretTapCountRef.current = 0;
       setSecretTapCount(0);
     } else {

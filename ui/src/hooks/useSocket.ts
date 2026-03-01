@@ -104,40 +104,44 @@ export function useSocket() {
         // Keep only last 200 shots in UI state to prevent memory issues
         return updated.length > 200 ? updated.slice(-200) : updated;
       });
-
     });
 
-    newSocket.on('session_state', (data: SessionState & {
-      mock_mode?: boolean;
-      debug_mode?: boolean;
-      camera_available?: boolean;
-      camera_enabled?: boolean;
-      camera_streaming?: boolean;
-      ball_detected?: boolean;
-    }) => {
-      console.log('Session state received:', data);
-      setShots(data.shots);
+    newSocket.on(
+      'session_state',
+      (
+        data: SessionState & {
+          mock_mode?: boolean;
+          debug_mode?: boolean;
+          camera_available?: boolean;
+          camera_enabled?: boolean;
+          camera_streaming?: boolean;
+          ball_detected?: boolean;
+        }
+      ) => {
+        console.log('Session state received:', data);
+        setShots(data.shots);
 
-      if (data.mock_mode !== undefined) {
-        setMockMode(data.mock_mode);
+        if (data.mock_mode !== undefined) {
+          setMockMode(data.mock_mode);
+        }
+        if (data.debug_mode !== undefined) {
+          setDebugMode(data.debug_mode);
+        }
+        if (data.shots.length > 0) {
+          setLatestShot(data.shots[data.shots.length - 1]);
+        }
+        // Update camera status from session state
+        if (data.camera_available !== undefined) {
+          setCameraStatus((prev) => ({
+            ...prev,
+            available: data.camera_available!,
+            enabled: data.camera_enabled || false,
+            streaming: data.camera_streaming || false,
+            ball_detected: data.ball_detected || false,
+          }));
+        }
       }
-      if (data.debug_mode !== undefined) {
-        setDebugMode(data.debug_mode);
-      }
-      if (data.shots.length > 0) {
-        setLatestShot(data.shots[data.shots.length - 1]);
-      }
-      // Update camera status from session state
-      if (data.camera_available !== undefined) {
-        setCameraStatus(prev => ({
-          ...prev,
-          available: data.camera_available!,
-          enabled: data.camera_enabled || false,
-          streaming: data.camera_streaming || false,
-          ball_detected: data.ball_detected || false,
-        }));
-      }
-    });
+    );
 
     newSocket.on('debug_toggled', (data: { enabled: boolean }) => {
       setDebugMode(data.enabled);
@@ -173,7 +177,7 @@ export function useSocket() {
     });
 
     newSocket.on('ball_detection', (data: { detected: boolean; confidence: number }) => {
-      setCameraStatus(prev => ({
+      setCameraStatus((prev) => ({
         ...prev,
         ball_detected: data.detected,
         ball_confidence: data.confidence,
@@ -190,7 +194,7 @@ export function useSocket() {
         const updated = [...prev, data];
         return updated.length > 50 ? updated.slice(-50) : updated;
       });
-      setTriggerStatus(prev => ({
+      setTriggerStatus((prev) => ({
         ...prev,
         triggers_total: prev.triggers_total + 1,
         triggers_accepted: prev.triggers_accepted + (data.accepted ? 1 : 0),

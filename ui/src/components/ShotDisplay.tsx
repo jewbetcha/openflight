@@ -44,13 +44,7 @@ function SpeedGauge({ speed, label }: { speed: number; label: string }) {
     <div className="speed-gauge">
       <svg viewBox="0 0 200 140" className="speed-gauge__svg">
         {/* Background arc */}
-        <path
-          d={backgroundArc}
-          fill="none"
-          stroke="rgba(245, 240, 230, 0.1)"
-          strokeWidth="12"
-          strokeLinecap="round"
-        />
+        <path d={backgroundArc} fill="none" stroke="rgba(245, 240, 230, 0.1)" strokeWidth="12" strokeLinecap="round" />
         {/* Value arc */}
         <path
           d={valueArc}
@@ -178,7 +172,11 @@ export function ShotDisplay({ shot, isLatest = true }: ShotDisplayProps) {
               value={shot.launch_angle_vertical!.toFixed(1)}
               unit="°"
               label="Launch Angle"
-              subtext={shot.launch_angle_horizontal !== null ? `${shot.launch_angle_horizontal > 0 ? '+' : ''}${shot.launch_angle_horizontal.toFixed(1)}° H` : undefined}
+              subtext={
+                shot.launch_angle_horizontal !== null
+                  ? `${shot.launch_angle_horizontal > 0 ? '+' : ''}${shot.launch_angle_horizontal.toFixed(1)}° H`
+                  : undefined
+              }
               variant="secondary"
               confidence={getLaunchAngleQuality(shot.launch_angle_confidence)}
             />

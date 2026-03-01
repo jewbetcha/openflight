@@ -411,6 +411,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines. Quick summary:
 - **Tests required**: Run `pytest tests/ -v` before submitting a PR
 - **Code quality**: Run `pylint src/openflight/` (score 9+)
 - **UI changes**: Run `cd ui && npm run build` to verify
+- **UI formatting**: If your IDE does not include automatic "format-on-save," run `cd ui && npm run format` to format TypeScript/React files. 
+  - Note: editors like Zed, WebStorm, and VS Code (with the [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)) will pick it up automatically and format when saving.
 
 ## Documentation
 

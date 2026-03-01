@@ -24,9 +24,7 @@ export function LaunchDaddySecretIndicator() {
       {[1, 2, 3, 4, 5].map((num) => (
         <div
           key={num}
-          className={`launch-daddy-secret-dot ${
-            num <= secretTapCount ? 'launch-daddy-secret-dot--active' : ''
-          }`}
+          className={`launch-daddy-secret-dot ${num <= secretTapCount ? 'launch-daddy-secret-dot--active' : ''}`}
         />
       ))}
     </div>

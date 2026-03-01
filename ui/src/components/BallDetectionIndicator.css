@@ -58,7 +58,8 @@
 }
 
 @keyframes pulse-ball-icon {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -69,7 +70,8 @@
 }
 
 @keyframes search-ball-icon {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {

@@ -14,7 +14,7 @@ interface Particle {
 
 function generateParticles(count: number): Particle[] {
   return Array.from({ length: count }, (_, i) => {
-    const angle = (Math.random() * 360) * (Math.PI / 180);
+    const angle = Math.random() * 360 * (Math.PI / 180);
     const distance = 100 + Math.random() * 400;
     return {
       id: i,
@@ -102,14 +102,16 @@ export function LaunchDaddyOverlay() {
             <div
               key={particle.id}
               className={`launch-daddy-particle launch-daddy-particle--${particle.type}`}
-              style={{
-                left: `${particle.startX}%`,
-                top: `${particle.startY}%`,
-                '--tx': `${particle.tx}px`,
-                '--ty': `${particle.ty}px`,
-                animationDelay: `${particle.delay}s`,
-                animationDuration: `${particle.duration}s`,
-              } as React.CSSProperties}
+              style={
+                {
+                  left: `${particle.startX}%`,
+                  top: `${particle.startY}%`,
+                  '--tx': `${particle.tx}px`,
+                  '--ty': `${particle.ty}px`,
+                  animationDelay: `${particle.delay}s`,
+                  animationDuration: `${particle.duration}s`,
+                } as React.CSSProperties
+              }
             />
           ))}
         </div>

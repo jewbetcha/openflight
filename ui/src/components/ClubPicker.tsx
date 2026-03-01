@@ -39,8 +39,7 @@ interface ClubPickerProps {
 export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const selectedLabel =
-    ALL_CLUBS.find(c => c.id === selectedClub)?.label || 'DR';
+  const selectedLabel = ALL_CLUBS.find((c) => c.id === selectedClub)?.label || 'DR';
 
   const handleSelect = (clubId: string) => {
     onClubChange(clubId);
@@ -49,17 +48,11 @@ export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
 
   return (
     <div className="club-picker">
-      <button
-        className="club-picker__trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-      >
+      <button className="club-picker__trigger" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}>
         <span className="club-picker__label">Club</span>
         <span className="club-picker__value">{selectedLabel}</span>
         <svg
-          className={`club-picker__arrow ${
-            isOpen ? 'club-picker__arrow--open' : ''
-          }`}
+          className={`club-picker__arrow ${isOpen ? 'club-picker__arrow--open' : ''}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -71,22 +64,17 @@ export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
 
       {isOpen && (
         <>
-          <div
-            className="club-picker__overlay"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="club-picker__overlay" onClick={() => setIsOpen(false)} />
           <div className="club-picker__dropdown">
             {Object.entries(CLUBS_BY_TYPE).map(([type, clubs]) => (
               <div className="club-picker__section">
                 <span className="club-picker__section-title">{type}</span>
                 <div className="club-picker__grid">
-                  {clubs.map(club => (
+                  {clubs.map((club) => (
                     <button
                       key={club.id}
                       className={`club-picker__option ${
-                        selectedClub === club.id
-                          ? 'club-picker__option--selected'
-                          : ''
+                        selectedClub === club.id ? 'club-picker__option--selected' : ''
                       }`}
                       onClick={() => handleSelect(club.id)}
                     >

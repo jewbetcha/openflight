@@ -17,12 +17,12 @@ interface DebugPanelProps {
 }
 
 const REASON_DISPLAY: Record<string, string> = {
-  'accepted': 'Shot detected',
-  'no_response': 'No data from radar after trigger',
-  'parse_failed': 'Failed to parse radar data',
-  'no_outbound_speed': 'No outbound speed >= 15 mph',
-  'processing_failed': 'Failed to process capture data',
-  'shot_validation_failed': 'Ball speed too low for shot',
+  accepted: 'Shot detected',
+  no_response: 'No data from radar after trigger',
+  parse_failed: 'Failed to parse radar data',
+  no_outbound_speed: 'No outbound speed >= 15 mph',
+  processing_failed: 'Failed to process capture data',
+  shot_validation_failed: 'Ball speed too low for shot',
 };
 
 function formatReason(reason: string): string {
@@ -88,7 +88,10 @@ function SliderControl({ label, value, min, max, step = 1, unit = '', disabled, 
     <div className={`slider-control ${disabled ? 'slider-control--disabled' : ''}`}>
       <div className="slider-control__header">
         <span className="slider-control__label">{label}</span>
-        <span className="slider-control__value">{localValue}{unit}</span>
+        <span className="slider-control__value">
+          {localValue}
+          {unit}
+        </span>
       </div>
       <input
         type="range"
@@ -103,8 +106,14 @@ function SliderControl({ label, value, min, max, step = 1, unit = '', disabled, 
         onTouchEnd={handleRelease}
       />
       <div className="slider-control__range">
-        <span>{min}{unit}</span>
-        <span>{max}{unit}</span>
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
       </div>
     </div>
   );
@@ -119,7 +128,9 @@ const TriggerRow = memo(function TriggerRow({ diag }: TriggerRowProps) {
     <div className={`trigger-row ${diag.accepted ? 'trigger-row--accepted' : 'trigger-row--rejected'}`}>
       <div className="trigger-row__header">
         <span className="trigger-row__time">{formatTime(diag.timestamp)}</span>
-        <span className={`trigger-row__badge ${diag.accepted ? 'trigger-row__badge--accepted' : 'trigger-row__badge--rejected'}`}>
+        <span
+          className={`trigger-row__badge ${diag.accepted ? 'trigger-row__badge--accepted' : 'trigger-row__badge--rejected'}`}
+        >
           {diag.accepted ? 'HIT' : 'MISS'}
         </span>
       </div>
@@ -143,9 +154,7 @@ function SystemStatus({ status }: { status: TriggerStatus }) {
       <div className="system-status">
         <div className="system-status__item">
           <span className="system-status__label">Mode</span>
-          <span className={`system-status__badge system-status__badge--${status.mode}`}>
-            {status.mode}
-          </span>
+          <span className={`system-status__badge system-status__badge--${status.mode}`}>{status.mode}</span>
         </div>
         {status.trigger_type && (
           <div className="system-status__item">
@@ -155,7 +164,9 @@ function SystemStatus({ status }: { status: TriggerStatus }) {
         )}
         <div className="system-status__item">
           <span className="system-status__label">Radar</span>
-          <span className={`system-status__value ${status.radar_connected ? 'system-status__value--success' : 'system-status__value--error'}`}>
+          <span
+            className={`system-status__value ${status.radar_connected ? 'system-status__value--success' : 'system-status__value--error'}`}
+          >
             {status.radar_connected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
@@ -165,7 +176,8 @@ function SystemStatus({ status }: { status: TriggerStatus }) {
             <span className="system-status__counter">{status.triggers_total}</span>
             {status.triggers_total > 0 && (
               <>
-                {' '}(<span className="system-status__counter--accepted">{status.triggers_accepted}</span>
+                {' '}
+                (<span className="system-status__counter--accepted">{status.triggers_accepted}</span>
                 {' / '}
                 <span className="system-status__counter--rejected">{status.triggers_rejected}</span>)
               </>
@@ -192,15 +204,15 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
       <h4>Last Trigger</h4>
       <div className={`last-trigger ${diag.accepted ? 'last-trigger--accepted' : 'last-trigger--rejected'}`}>
         <div className="last-trigger__header">
-          <span className={`last-trigger__status ${diag.accepted ? 'last-trigger__status--accepted' : 'last-trigger__status--rejected'}`}>
+          <span
+            className={`last-trigger__status ${diag.accepted ? 'last-trigger__status--accepted' : 'last-trigger__status--rejected'}`}
+          >
             {diag.accepted ? 'ACCEPTED' : 'REJECTED'}
           </span>
           <span className="last-trigger__time">{formatTimeAgo(diag.timestamp)}</span>
         </div>
 
-        <div className="last-trigger__reason">
-          {formatReason(diag.reason)}
-        </div>
+        <div className="last-trigger__reason">{formatReason(diag.reason)}</div>
 
         <div className="last-trigger__data">
           <div className="last-trigger__speeds">
@@ -208,32 +220,34 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
               <span className="last-trigger__speed-label">Outbound</span>
               <span className="last-trigger__speed-value">
                 {diag.outbound_readings} readings
-                {diag.peak_outbound_mph > 0 && <>, peak <strong>{diag.peak_outbound_mph.toFixed(1)} mph</strong></>}
+                {diag.peak_outbound_mph > 0 && (
+                  <>
+                    , peak <strong>{diag.peak_outbound_mph.toFixed(1)} mph</strong>
+                  </>
+                )}
               </span>
             </div>
             <div className="last-trigger__speed-row">
               <span className="last-trigger__speed-label">Inbound</span>
               <span className="last-trigger__speed-value">
                 {diag.inbound_readings} readings
-                {diag.peak_inbound_mph > 0 && <>, peak <strong>{diag.peak_inbound_mph.toFixed(1)} mph</strong></>}
+                {diag.peak_inbound_mph > 0 && (
+                  <>
+                    , peak <strong>{diag.peak_inbound_mph.toFixed(1)} mph</strong>
+                  </>
+                )}
               </span>
             </div>
           </div>
 
           <div className="last-trigger__meta">
             {diag.latency_ms !== null && (
-              <span className="last-trigger__meta-item">
-                Latency: {diag.latency_ms.toFixed(0)}ms
-              </span>
+              <span className="last-trigger__meta-item">Latency: {diag.latency_ms.toFixed(0)}ms</span>
             )}
             {diag.response_bytes > 0 && (
-              <span className="last-trigger__meta-item">
-                Data: {(diag.response_bytes / 1024).toFixed(1)}KB
-              </span>
+              <span className="last-trigger__meta-item">Data: {(diag.response_bytes / 1024).toFixed(1)}KB</span>
             )}
-            <span className="last-trigger__meta-item">
-              Readings: {diag.total_readings}
-            </span>
+            <span className="last-trigger__meta-item">Readings: {diag.total_readings}</span>
           </div>
 
           {diag.accepted && diag.ball_speed_mph && (
@@ -279,9 +293,7 @@ export function DebugPanel({
 }: DebugPanelProps) {
   const [activeTab, setActiveTab] = useState<DebugTab>('status');
   const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
-  const lastDiag = triggerDiagnostics.length > 0
-    ? triggerDiagnostics[triggerDiagnostics.length - 1]
-    : null;
+  const lastDiag = triggerDiagnostics.length > 0 ? triggerDiagnostics[triggerDiagnostics.length - 1] : null;
 
   // Show last 20 triggers, newest first
   const recentTriggers = [...triggerDiagnostics].reverse().slice(0, 20);
@@ -323,8 +335,7 @@ export function DebugPanel({
             {!isRollingBuffer && triggerStatus.mode !== 'mock' && (
               <div className="debug-panel__section">
                 <p className="debug-panel__hint">
-                  Trigger diagnostics are available in rolling buffer mode.
-                  Current mode: {triggerStatus.mode}
+                  Trigger diagnostics are available in rolling buffer mode. Current mode: {triggerStatus.mode}
                 </p>
               </div>
             )}
@@ -338,9 +349,7 @@ export function DebugPanel({
               {recentTriggers.length === 0 ? (
                 <p className="debug-panel__empty">No triggers yet...</p>
               ) : (
-                recentTriggers.map((diag, index) => (
-                  <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />
-                ))
+                recentTriggers.map((diag, index) => <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />)
               )}
             </div>
           </div>
@@ -349,9 +358,7 @@ export function DebugPanel({
         {activeTab === 'tuning' && (
           <div className="debug-panel__section">
             <h4>Radar Tuning</h4>
-            {mockMode && (
-              <p className="debug-panel__mock-warning">Radar tuning disabled in mock mode</p>
-            )}
+            {mockMode && <p className="debug-panel__mock-warning">Radar tuning disabled in mock mode</p>}
             <div className="debug-panel__controls">
               <SliderControl
                 label="Min Speed"
@@ -380,9 +387,7 @@ export function DebugPanel({
                 onChange={(v) => onUpdateConfig({ transmit_power: v })}
               />
             </div>
-            <p className="debug-panel__hint">
-              TX Power: 0 = max range, 7 = min range
-            </p>
+            <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range</p>
           </div>
         )}
       </div>

@@ -37,12 +37,8 @@ export function BallDetectionIndicator({
       onClick={onToggle}
       title={enabled ? 'Click to disable camera' : 'Click to enable camera'}
     >
-      <span className="ball-indicator__icon">
-        {detected ? '⚪' : '◯'}
-      </span>
-      <span className="ball-indicator__text">
-        {getStatusText()}
-      </span>
+      <span className="ball-indicator__icon">{detected ? '⚪' : '◯'}</span>
+      <span className="ball-indicator__text">{getStatusText()}</span>
     </button>
   );
 }

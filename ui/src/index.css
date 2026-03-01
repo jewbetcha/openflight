@@ -17,21 +17,21 @@
   --color-bg-hover: #222230;
 
   /* Gold accent (primary) */
-  --color-gold: #D4AF37;
-  --color-gold-bright: #F4CF47;
-  --color-gold-dim: #A68B2A;
+  --color-gold: #d4af37;
+  --color-gold-bright: #f4cf47;
+  --color-gold-dim: #a68b2a;
   --color-gold-glow: rgba(212, 175, 55, 0.4);
 
   /* Cream/ivory (secondary) */
-  --color-cream: #F5F0E6;
+  --color-cream: #f5f0e6;
   --color-cream-dim: rgba(245, 240, 230, 0.7);
   --color-cream-muted: rgba(245, 240, 230, 0.5);
 
   /* Accent colors */
-  --color-success: #4ADE80;
-  --color-info: #60A5FA;
-  --color-warning: #FBBF24;
-  --color-danger: #F87171;
+  --color-success: #4ade80;
+  --color-info: #60a5fa;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
 
   /* Text */
   --text-primary: var(--color-cream);
@@ -111,9 +111,15 @@ button {
 }
 
 /* Utility classes */
-.text-gold { color: var(--color-gold); }
-.text-cream { color: var(--color-cream); }
-.text-muted { color: var(--text-muted); }
+.text-gold {
+  color: var(--color-gold);
+}
+.text-cream {
+  color: var(--color-cream);
+}
+.text-muted {
+  color: var(--text-muted);
+}
 
 /* Focus styles for accessibility */
 :focus-visible {

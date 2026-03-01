@@ -73,11 +73,7 @@ export function ShotList({ shots }: ShotListProps) {
     <div className="shot-list">
       <div className="shot-list__rows">
         {pageShots.map((shot, index) => (
-          <ShotRow
-            key={shot.timestamp}
-            shot={shot}
-            shotNumber={shots.length - startIndex - index}
-          />
+          <ShotRow key={shot.timestamp} shot={shot} shotNumber={shots.length - startIndex - index} />
         ))}
       </div>
 
