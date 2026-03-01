@@ -448,27 +448,16 @@ class RollingBufferMonitor:
                         f"{shot.spin_rpm:.0f}" if shot.spin_rpm else "N/A"
                     )
 
-                    # Log to session logger
+                    # Attach metadata for server.py to log with camera data
+                    shot._readings_count = len(processed.timeline.readings)
+                    shot._readings_data = None  # Raw readings not stored in rolling buffer mode
+                    shot._peak_magnitude = None  # Not available in rolling buffer mode
+                    shot._mode = "rolling-buffer"
+
+                    # Log raw I/Q data and trigger events to session logger
                     session_logger = get_session_logger()
                     if session_logger:
                         shot_number = len(self._shots)
-
-                        # Log the shot
-                        session_logger.log_shot(
-                            ball_speed_mph=shot.ball_speed_mph,
-                            club_speed_mph=shot.club_speed_mph,
-                            smash_factor=shot.smash_factor,
-                            estimated_carry_yards=shot.estimated_carry_yards,
-                            club=self._current_club.value,
-                            peak_magnitude=None,  # Not available in rolling buffer mode
-                            readings_count=len(processed.timeline.readings),
-                            readings=None,  # Raw readings not stored in rolling buffer mode
-                            spin_rpm=shot.spin_rpm,
-                            spin_confidence=shot.spin_confidence,
-                            spin_quality=shot.spin_quality,
-                            carry_spin_adjusted=shot.carry_spin_adjusted,
-                            mode="rolling-buffer"
-                        )
 
                         # Log raw I/Q data for offline analysis
                         session_logger.log_rolling_buffer_capture(

@@ -112,7 +112,11 @@ def init_camera(
     roboflow_api_key: str = None,
     imgsz: int = 256,
     use_hough: bool = True,  # Default to Hough detection
-    hough_param2: int = 27,  # Tuned sensitivity
+    hough_param2: int = 33,
+    hough_param1: int = 48,
+    hough_min_radius: int = 4,
+    hough_max_radius: int = 43,
+    hough_min_dist: int = 266,
 ):
     """Initialize camera and ball tracker (Hough, YOLO, or Roboflow)."""
     global camera, camera_tracker, camera_enabled  # pylint: disable=global-statement
@@ -155,6 +159,10 @@ def init_camera(
             camera_tracker = CameraTracker(
                 use_hough=True,
                 hough_param2=hough_param2,
+                hough_param1=hough_param1,
+                hough_min_radius=hough_min_radius,
+                hough_max_radius=hough_max_radius,
+                hough_min_dist=hough_min_dist,
             )
 
         # Auto-enable camera when initialized
@@ -628,18 +636,6 @@ def on_shot_detected(shot: Shot):
                 }
                 logger.info("Launch angle: %.1f° V, %.1f° H (conf: %.0f%%)", launch_angle.vertical, launch_angle.horizontal, launch_angle.confidence * 100)
 
-                # Log camera data to session logger
-                session_logger = get_session_logger()
-                if session_logger:
-                    session_logger.log_camera_data(
-                        shot_number=session_logger.stats.get("shots_detected", 0),
-                        launch_angle_vertical=launch_angle.vertical,
-                        launch_angle_horizontal=launch_angle.horizontal,
-                        confidence=launch_angle.confidence,
-                        positions_tracked=len(launch_angle.positions),
-                        launch_detected=camera_tracker.launch_detected
-                    )
-
             # Reset camera tracker for next shot
             camera_tracker.reset()
             ball_detected = False
@@ -647,6 +643,31 @@ def on_shot_detected(shot: Shot):
     except Exception as e:
         logger.warning("Camera processing error: %s", e)
         camera_data = None
+
+    # Log shot with all data (radar + spin + camera) in one entry
+    try:
+        session_log = get_session_logger()
+        if session_log:
+            session_log.log_shot(
+                ball_speed_mph=shot.ball_speed_mph,
+                club_speed_mph=shot.club_speed_mph,
+                smash_factor=shot.smash_factor,
+                estimated_carry_yards=shot.estimated_carry_yards,
+                club=shot.club.value,
+                peak_magnitude=getattr(shot, '_peak_magnitude', None),
+                readings_count=getattr(shot, '_readings_count', 0),
+                readings=getattr(shot, '_readings_data', None),
+                spin_rpm=shot.spin_rpm,
+                spin_confidence=shot.spin_confidence,
+                spin_quality=shot.spin_quality,
+                carry_spin_adjusted=shot.carry_spin_adjusted,
+                mode=getattr(shot, '_mode', 'streaming'),
+                launch_angle_vertical=shot.launch_angle_vertical,
+                launch_angle_horizontal=shot.launch_angle_horizontal,
+                launch_angle_confidence=shot.launch_angle_confidence,
+            )
+    except Exception as e:
+        logger.warning("Failed to log shot: %s", e)
 
     # Emit shot with launch angle data included
     try:
@@ -928,8 +949,24 @@ def main():
         help="YOLO inference input size (256 for speed, 640 for accuracy)"
     )
     parser.add_argument(
-        "--hough-param2", type=int, default=27,
-        help="Hough circle detection sensitivity (lower = more sensitive, default 27)"
+        "--hough-param2", type=int, default=33,
+        help="Hough accumulator threshold (lower = more sensitive, default 33)"
+    )
+    parser.add_argument(
+        "--hough-param1", type=int, default=48,
+        help="Canny edge threshold (lower = detects weaker edges, default 48)"
+    )
+    parser.add_argument(
+        "--hough-min-radius", type=int, default=4,
+        help="Min ball radius in pixels (default 4)"
+    )
+    parser.add_argument(
+        "--hough-max-radius", type=int, default=43,
+        help="Max ball radius in pixels (default 43)"
+    )
+    parser.add_argument(
+        "--hough-min-dist", type=int, default=266,
+        help="Min distance between detected circles in pixels (default 266)"
     )
     parser.add_argument(
         "--roboflow-model",
@@ -1089,6 +1126,10 @@ def main():
             imgsz=args.camera_imgsz,
             use_hough=use_hough,
             hough_param2=args.hough_param2,
+            hough_param1=args.hough_param1,
+            hough_min_radius=args.hough_min_radius,
+            hough_max_radius=args.hough_max_radius,
+            hough_min_dist=args.hough_min_dist,
         ):
             start_camera_thread()
         else:

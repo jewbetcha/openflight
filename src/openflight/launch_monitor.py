@@ -633,31 +633,22 @@ class LaunchMonitor:
         else:
             print(f"[SHOT CREATED] Ball: {ball_speed:.1f} mph (club not detected)")
 
-        # Log shot to session logger
+        # Attach readings data for session logging (server.py logs after camera data is added)
+        shot._readings_data = [
+            {"speed": r.speed, "direction": r.direction.value, "magnitude": r.magnitude,
+             "timestamp": r.timestamp}
+            for r in self._current_readings
+        ]
+        shot._readings_count = len(self._current_readings)
+        shot._peak_magnitude = peak_mag
+
+        # Log I/Q blocks for this shot (for post-session analysis)
         logger = get_session_logger()
-        if logger:
-            readings_data = [
-                {"speed": r.speed, "direction": r.direction.value, "magnitude": r.magnitude,
-                 "timestamp": r.timestamp}
-                for r in self._current_readings
-            ]
-            logger.log_shot(
-                ball_speed_mph=ball_speed,
-                club_speed_mph=club_speed,
-                smash_factor=shot.smash_factor,
-                estimated_carry_yards=shot.estimated_carry_yards,
-                club=self._current_club.value,
-                peak_magnitude=peak_mag,
-                readings_count=len(self._current_readings),
-                readings=readings_data
-            )
+        if logger and self._use_iq_streaming and self._iq_detector:
+            shot_number = logger.stats.get("shots_detected", len(self._shots))
+            self._iq_detector.log_iq_for_shot(shot_number)
 
-            # Log I/Q blocks for this shot (for post-session analysis)
-            if self._use_iq_streaming and self._iq_detector:
-                shot_number = logger.stats.get("shots_detected", len(self._shots))
-                self._iq_detector.log_iq_for_shot(shot_number)
-
-        # Callback
+        # Callback (server.py will log the shot with camera data included)
         if self._shot_callback:
             self._shot_callback(shot)
 

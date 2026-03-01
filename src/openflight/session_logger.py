@@ -259,7 +259,10 @@ class SessionLogger:
         spin_confidence: Optional[float] = None,
         spin_quality: Optional[str] = None,
         carry_spin_adjusted: Optional[float] = None,
-        mode: str = "streaming"
+        mode: str = "streaming",
+        launch_angle_vertical: Optional[float] = None,
+        launch_angle_horizontal: Optional[float] = None,
+        launch_angle_confidence: Optional[float] = None,
     ):
         """
         Log a detected shot with all metrics.
@@ -299,6 +302,9 @@ class SessionLogger:
             "spin_quality": spin_quality,
             "carry_spin_adjusted": carry_spin_adjusted,
             "mode": mode,
+            "launch_angle_vertical": launch_angle_vertical,
+            "launch_angle_horizontal": launch_angle_horizontal,
+            "launch_angle_confidence": launch_angle_confidence,
         })
 
     def log_camera_data(

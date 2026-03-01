@@ -260,16 +260,16 @@ def main():
                         help="BCM GPIO pin for SEN-14262 GATE (default: 17)")
     parser.add_argument("--timeout", type=float, default=60.0,
                         help="Seconds to wait per shot (default: 60)")
-    parser.add_argument("--hough-param2", type=int, default=27,
-                        help="Hough accumulator threshold — lower = more sensitive (default: 27)")
-    parser.add_argument("--hough-param1", type=int, default=50,
-                        help="Canny edge threshold — lower = detects weaker edges (default: 50)")
-    parser.add_argument("--hough-min-radius", type=int, default=5,
-                        help="Min ball radius in pixels (default: 5)")
-    parser.add_argument("--hough-max-radius", type=int, default=50,
-                        help="Max ball radius in pixels (default: 50)")
-    parser.add_argument("--hough-min-dist", type=int, default=50,
-                        help="Min distance between detected circles (default: 50)")
+    parser.add_argument("--hough-param2", type=int, default=33,
+                        help="Hough accumulator threshold — lower = more sensitive (default: 33)")
+    parser.add_argument("--hough-param1", type=int, default=48,
+                        help="Canny edge threshold — lower = detects weaker edges (default: 48)")
+    parser.add_argument("--hough-min-radius", type=int, default=4,
+                        help="Min ball radius in pixels (default: 4)")
+    parser.add_argument("--hough-max-radius", type=int, default=43,
+                        help="Max ball radius in pixels (default: 43)")
+    parser.add_argument("--hough-min-dist", type=int, default=266,
+                        help="Min distance between detected circles (default: 266)")
     parser.add_argument("--resolution", type=str, default="640x480",
                         help="Camera resolution WIDTHxHEIGHT (default: 640x480)")
     parser.add_argument("--framerate", type=int, default=60,
