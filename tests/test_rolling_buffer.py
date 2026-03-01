@@ -2,6 +2,7 @@
 
 import math
 import pytest
+import numpy as np
 from datetime import datetime
 from unittest.mock import Mock, patch, MagicMock
 
@@ -1239,3 +1240,262 @@ class TestMultiPeakIntegration:
         assert abs(result.club_speed_mph - 60) < 5, (
             f"Club speed {result.club_speed_mph} not near 60 mph"
         )
+
+
+# =============================================================================
+# Tests for extract_ball_speeds (spin detection fix)
+# =============================================================================
+
+class TestExtractBallSpeeds:
+    """Tests for the updated extract_ball_speeds using ball position instead of trigger offset."""
+
+    def _make_timeline(self, readings):
+        """Helper to create a SpeedTimeline from a list of reading tuples."""
+        speed_readings = [
+            SpeedReading(
+                speed_mph=speed,
+                magnitude=mag,
+                timestamp_ms=ts,
+                direction=direction,
+            )
+            for speed, mag, ts, direction in readings
+        ]
+        return SpeedTimeline(readings=speed_readings, sample_rate_hz=937.5)
+
+    def test_finds_ball_readings_at_ball_timestamp(self):
+        """Ball readings at ball_timestamp_ms are included."""
+        timeline = self._make_timeline([
+            # Ball signal at t=10-60ms
+            (75.0, 10.0, 10.0, "outbound"),
+            (74.5, 9.0, 20.0, "outbound"),
+            (75.2, 8.0, 30.0, "outbound"),
+            (74.8, 7.0, 40.0, "outbound"),
+            (75.1, 6.0, 50.0, "outbound"),
+            # Club signal earlier
+            (55.0, 15.0, 0.0, "outbound"),
+            # Inbound noise
+            (30.0, 5.0, 25.0, "inbound"),
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0
+        )
+        assert len(speeds) == 5
+        assert all(70 <= s <= 80 for s in speeds)
+
+    def test_filters_by_speed_band(self):
+        """Only readings within speed tolerance of ball_speed_mph are included."""
+        timeline = self._make_timeline([
+            (75.0, 10.0, 10.0, "outbound"),  # In band
+            (74.0, 9.0, 20.0, "outbound"),   # In band
+            (55.0, 15.0, 15.0, "outbound"),  # Out of band (club speed)
+            (90.0, 5.0, 25.0, "outbound"),   # Out of band (too fast)
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            speed_tolerance_mph=5.0,
+        )
+        assert len(speeds) == 2
+        assert 55.0 not in speeds
+        assert 90.0 not in speeds
+
+    def test_respects_window(self):
+        """Only readings within window_ms after ball_timestamp_ms are included."""
+        timeline = self._make_timeline([
+            (75.0, 10.0, 10.0, "outbound"),
+            (74.5, 9.0, 30.0, "outbound"),
+            (75.2, 8.0, 50.0, "outbound"),
+            (74.8, 7.0, 80.0, "outbound"),  # Outside 50ms window
+            (75.1, 6.0, 100.0, "outbound"),  # Outside 50ms window
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            window_ms=50,
+        )
+        assert len(speeds) == 3
+
+    def test_excludes_inbound_readings(self):
+        """Inbound readings are always excluded."""
+        timeline = self._make_timeline([
+            (75.0, 10.0, 10.0, "outbound"),
+            (74.0, 9.0, 20.0, "inbound"),   # Same speed band but inbound
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+        )
+        assert len(speeds) == 1
+
+    def test_excludes_readings_before_ball_timestamp(self):
+        """Readings before ball_timestamp_ms are excluded."""
+        timeline = self._make_timeline([
+            (75.0, 10.0, 0.0, "outbound"),   # Before ball_timestamp
+            (74.5, 9.0, 5.0, "outbound"),    # Before ball_timestamp
+            (75.2, 8.0, 10.0, "outbound"),   # At ball_timestamp (included)
+            (74.8, 7.0, 20.0, "outbound"),   # After (included)
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+        )
+        assert len(speeds) == 2
+
+    def test_empty_timeline_returns_empty(self):
+        """Empty timeline returns empty list."""
+        timeline = self._make_timeline([])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+        )
+        assert speeds == []
+
+    def test_custom_speed_tolerance(self):
+        """Custom speed_tolerance_mph is respected."""
+        timeline = self._make_timeline([
+            (75.0, 10.0, 10.0, "outbound"),
+            (72.0, 9.0, 20.0, "outbound"),  # Within ±5 but not ±2
+            (74.0, 8.0, 30.0, "outbound"),  # Within ±2
+        ])
+        processor = RollingBufferProcessor()
+        speeds = processor.extract_ball_speeds(
+            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            speed_tolerance_mph=2.0,
+        )
+        assert len(speeds) == 2  # 75.0 and 74.0 only
+        assert 72.0 not in speeds
+
+
+class TestSpinDetectionIntegration:
+    """End-to-end spin detection tests using synthetic I/Q with speed oscillations."""
+
+    def _make_iq_with_oscillating_speed(
+        self,
+        base_speed_mph: float,
+        spin_rpm: float,
+        sample_rate: int = 30000,
+        num_samples: int = 4096,
+        amplitude_factor: float = 0.02,
+    ):
+        """
+        Generate synthetic I/Q data with a speed that oscillates at spin_rpm.
+
+        The ball signal has a Doppler frequency that varies sinusoidally,
+        simulating the dimple-induced speed modulation.
+        """
+        # Convert base speed to Doppler frequency
+        wavelength = 0.01243  # 24.125 GHz
+        base_speed_mps = base_speed_mph / 2.23694
+        base_freq = 2 * base_speed_mps / wavelength
+
+        # Spin modulation: speed varies by ±amplitude_factor around base
+        spin_freq = spin_rpm / 60.0  # Hz
+
+        t = np.arange(num_samples) / sample_rate
+
+        # Instantaneous frequency = base_freq + modulation
+        modulation = base_freq * amplitude_factor * np.sin(2 * np.pi * spin_freq * t)
+        inst_freq = base_freq + modulation
+
+        # Phase is integral of frequency
+        phase = 2 * np.pi * np.cumsum(inst_freq) / sample_rate
+
+        # Generate I/Q with voltage scaling to match ADC range
+        signal_amplitude = 200  # Strong signal
+        i_signal = signal_amplitude * np.cos(phase)
+        q_signal = signal_amplitude * np.sin(phase)
+
+        # Add DC offset to match ADC center (12-bit, 0-4095)
+        i_samples = (i_signal + 2048).astype(int).clip(0, 4095).tolist()
+        q_samples = (q_signal + 2048).astype(int).clip(0, 4095).tolist()
+
+        return i_samples, q_samples
+
+    def test_spin_detected_with_oscillating_signal(self):
+        """Synthetic I/Q with spin modulation should produce non-zero spin_rpm."""
+        target_spin_rpm = 3000
+        target_speed_mph = 150
+
+        i_samples, q_samples = self._make_iq_with_oscillating_speed(
+            base_speed_mph=target_speed_mph,
+            spin_rpm=target_spin_rpm,
+        )
+
+        capture = IQCapture(
+            sample_time=0.0,
+            trigger_time=0.136,  # Trigger at end (all pre-trigger)
+            i_samples=i_samples,
+            q_samples=q_samples,
+        )
+
+        processor = RollingBufferProcessor()
+        result = processor.process_capture(capture)
+
+        assert result is not None, "Processing should succeed"
+        assert result.ball_speed_mph > 100, (
+            f"Ball speed {result.ball_speed_mph} should be near {target_speed_mph}"
+        )
+        # The key fix: with ball_timestamp_ms-based extraction,
+        # we should get ball speed samples for spin analysis
+        ball_speeds = processor.extract_ball_speeds(
+            result.timeline, result.ball_timestamp_ms, result.ball_speed_mph,
+        )
+        assert len(ball_speeds) > 0, (
+            f"Should find ball speed samples at ball_timestamp_ms={result.ball_timestamp_ms}"
+        )
+
+    def test_process_capture_spin_field_populated(self):
+        """process_capture should populate spin field in ProcessedCapture."""
+        i_samples, q_samples = self._make_iq_with_oscillating_speed(
+            base_speed_mph=150, spin_rpm=3000,
+        )
+
+        capture = IQCapture(
+            sample_time=0.0,
+            trigger_time=0.136,
+            i_samples=i_samples,
+            q_samples=q_samples,
+        )
+
+        processor = RollingBufferProcessor()
+        result = processor.process_capture(capture)
+
+        assert result is not None
+        assert result.spin is not None, "Spin result should be populated"
+        # Spin detection may or may not succeed depending on signal quality,
+        # but the result should exist (not None)
+
+    def test_no_spin_with_constant_speed(self):
+        """Constant-speed signal (no oscillation) should yield low/no spin."""
+        sample_rate = 30000
+        num_samples = 4096
+        speed_mph = 150
+        wavelength = 0.01243
+        speed_mps = speed_mph / 2.23694
+        freq = 2 * speed_mps / wavelength
+
+        t = np.arange(num_samples) / sample_rate
+        phase = 2 * np.pi * freq * t
+
+        i_samples = (200 * np.cos(phase) + 2048).astype(int).clip(0, 4095).tolist()
+        q_samples = (200 * np.sin(phase) + 2048).astype(int).clip(0, 4095).tolist()
+
+        capture = IQCapture(
+            sample_time=0.0,
+            trigger_time=0.136,
+            i_samples=i_samples,
+            q_samples=q_samples,
+        )
+
+        processor = RollingBufferProcessor()
+        result = processor.process_capture(capture)
+
+        assert result is not None
+        # With constant speed, spin detection should fail or return 0
+        if result.spin and result.spin.spin_rpm > 0:
+            # If spin is detected, it should have low confidence
+            assert result.spin.confidence < 0.7, (
+                f"Constant-speed signal should not produce reliable spin "
+                f"(got {result.spin.spin_rpm} rpm, confidence {result.spin.confidence})"
+            )

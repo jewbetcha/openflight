@@ -369,28 +369,38 @@ class RollingBufferProcessor:
     def extract_ball_speeds(
         self,
         timeline: SpeedTimeline,
-        trigger_offset_ms: float,
+        ball_timestamp_ms: float,
+        ball_speed_mph: float,
         window_ms: float = 50,
+        speed_tolerance_mph: float = 5.0,
     ) -> List[float]:
         """
-        Extract ball speed readings after impact for spin analysis.
+        Extract ball speed readings around impact for spin analysis.
+
+        Uses the detected ball signal position rather than trigger offset,
+        since with all-pre-trigger buffer configurations (e.g. S#32) the
+        trigger fires at the end of the buffer while ball signal is at the
+        beginning.
 
         Args:
             timeline: High-resolution speed timeline
-            trigger_offset_ms: When trigger fired relative to buffer start
-            window_ms: Time window after trigger to analyze
+            ball_timestamp_ms: When ball was first detected in the timeline
+            ball_speed_mph: Detected ball speed for filtering
+            window_ms: Time window after ball_timestamp_ms to analyze
+            speed_tolerance_mph: Accept readings within this range of ball_speed_mph
 
         Returns:
             List of ball speed values for spin analysis
         """
-        # Get readings after trigger (post-impact ball flight)
-        ball_readings = timeline.get_readings_after(trigger_offset_ms)
+        min_speed = ball_speed_mph - speed_tolerance_mph
+        max_speed = ball_speed_mph + speed_tolerance_mph
 
-        # Filter to outbound only and within window
         ball_speeds = [
             r.speed_mph
-            for r in ball_readings
-            if r.is_outbound and r.timestamp_ms < trigger_offset_ms + window_ms
+            for r in timeline.readings
+            if r.is_outbound
+            and ball_timestamp_ms <= r.timestamp_ms <= ball_timestamp_ms + window_ms
+            and min_speed <= r.speed_mph <= max_speed
         ]
 
         return ball_speeds
@@ -566,8 +576,9 @@ class RollingBufferProcessor:
         )
 
         # Try spin detection
-        trigger_offset_ms = capture.trigger_offset_ms
-        ball_speeds = self.extract_ball_speeds(timeline, trigger_offset_ms)
+        ball_speeds = self.extract_ball_speeds(
+            timeline, ball_timestamp_ms, ball_speed_mph
+        )
         spin = self.detect_spin(ball_speeds, timeline.sample_rate_hz)
 
         return ProcessedCapture(

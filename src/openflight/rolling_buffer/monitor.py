@@ -483,6 +483,10 @@ class RollingBufferMonitor:
                             club_timestamp_ms=processed.club_timestamp_ms,
                             trigger_latency_ms=trigger_latency_ms,
                             smash_factor=processed.smash_factor,
+                            spin_rpm=processed.spin.spin_rpm if processed.spin else None,
+                            spin_confidence=processed.spin.confidence if processed.spin else None,
+                            spin_quality=processed.spin.quality if processed.spin else None,
+                            spin_snr=processed.spin.snr if processed.spin else None,
                         )
 
                         # Log accepted trigger event

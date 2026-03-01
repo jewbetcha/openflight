@@ -606,7 +606,7 @@ def on_shot_detected(shot: Shot):
     """Callback when a shot is detected - emit to all clients."""
     global ball_detected, ball_detection_confidence  # pylint: disable=global-statement
 
-    print(f"[DEBUG] Shot callback triggered: {shot.ball_speed_mph:.1f} mph")
+    logger.debug("Shot callback triggered: %.1f mph", shot.ball_speed_mph)
 
     # Try to get launch angle from camera BEFORE emitting shot
     camera_data = None
@@ -626,7 +626,7 @@ def on_shot_detected(shot: Shot):
                     "positions_tracked": len(launch_angle.positions),
                     "launch_detected": camera_tracker.launch_detected,
                 }
-                print(f"[CAMERA] Launch angle: {launch_angle.vertical:.1f}° V, {launch_angle.horizontal:.1f}° H (conf: {launch_angle.confidence:.0%})")
+                logger.info("Launch angle: %.1f° V, %.1f° H (conf: %.0f%%)", launch_angle.vertical, launch_angle.horizontal, launch_angle.confidence * 100)
 
                 # Log camera data to session logger
                 session_logger = get_session_logger()
@@ -645,7 +645,7 @@ def on_shot_detected(shot: Shot):
             ball_detected = False
             ball_detection_confidence = 0.0
     except Exception as e:
-        print(f"[WARN] Camera processing error: {e}")
+        logger.warning("Camera processing error: %s", e)
         camera_data = None
 
     # Emit shot with launch angle data included
@@ -658,9 +658,9 @@ def on_shot_detected(shot: Shot):
         angle_str = ""
         if shot.launch_angle_vertical is not None:
             angle_str = f", Launch: {shot.launch_angle_vertical:.1f}°"
-        print(f"[SHOT] Ball speed: {shot.ball_speed_mph:.1f} mph, Carry: {shot.estimated_carry_yards:.0f} yds{angle_str}")
+        logger.info("Shot: ball=%.1f mph, carry=%.0f yds%s", shot.ball_speed_mph, shot.estimated_carry_yards, angle_str)
     except Exception as e:
-        print(f"[ERROR] Failed to emit shot: {e}")
+        logger.error("Failed to emit shot: %s", e)
         return
 
     # Debug logging (optional)

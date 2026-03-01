@@ -530,6 +530,10 @@ class SessionLogger:
         club_timestamp_ms: Optional[float] = None,
         trigger_latency_ms: Optional[float] = None,
         smash_factor: Optional[float] = None,
+        spin_rpm: Optional[float] = None,
+        spin_confidence: Optional[float] = None,
+        spin_quality: Optional[str] = None,
+        spin_snr: Optional[float] = None,
     ):
         """
         Log raw rolling buffer capture data for offline analysis.
@@ -546,6 +550,10 @@ class SessionLogger:
             club_timestamp_ms: Club signal position in buffer (ms from start)
             trigger_latency_ms: Edge-to-S! latency (ms)
             smash_factor: Ball speed / club speed ratio
+            spin_rpm: Detected spin rate in RPM
+            spin_confidence: Confidence of spin detection (0-1)
+            spin_quality: Quality assessment ("high", "medium", "low")
+            spin_snr: Signal-to-noise ratio of spin detection
         """
         if not self.enabled:
             return
@@ -564,6 +572,10 @@ class SessionLogger:
             "club_timestamp_ms": club_timestamp_ms,
             "trigger_latency_ms": trigger_latency_ms,
             "smash_factor": smash_factor,
+            "spin_rpm": spin_rpm,
+            "spin_confidence": spin_confidence,
+            "spin_quality": spin_quality,
+            "spin_snr": spin_snr,
         })
 
     def log_error(self, error: str, context: Optional[Dict] = None):

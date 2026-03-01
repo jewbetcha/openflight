@@ -219,6 +219,12 @@ def analyze_capture(
         print(f"  Ball speed: {result.ball_speed_mph:.1f} mph")
         print(f"  Club speed: {result.club_speed_mph:.1f} mph" if result.club_speed_mph else "  Club speed: not detected")
         print(f"  Spin: {result.spin}")
+        if result.spin:
+            print(f"    spin_rpm={result.spin.spin_rpm:.0f}  snr={result.spin.snr:.1f}  "
+                  f"quality={result.spin.quality}  confidence={result.spin.confidence:.2f}")
+        # Count ball speed samples used for spin analysis
+        ball_samples = [r for r in timeline_ovr.readings if r.is_outbound and r.speed_mph >= 15.0]
+        print(f"  Ball speed samples for spin analysis: {len(ball_samples)}")
     else:
         print(f"  RESULT: None (no valid shot detected)")
 
@@ -247,6 +253,8 @@ def main():
                        help="Show per-block FFT peaks with bin numbers and magnitudes")
     parser.add_argument("--summary", action="store_true",
                        help="Show only one-line summary per capture")
+    parser.add_argument("--sample-rate", type=int, default=30,
+                       help="Sample rate in ksps (default: 30)")
     args = parser.parse_args()
 
     captures = load_captures(args.session_file)
@@ -262,7 +270,7 @@ def main():
           f"MAGNITUDE_THRESHOLD={RollingBufferProcessor.MAGNITUDE_THRESHOLD}, "
           f"FFT_SIZE={RollingBufferProcessor.FFT_SIZE}")
 
-    processor = RollingBufferProcessor()
+    processor = RollingBufferProcessor(sample_rate=args.sample_rate * 1000)
 
     if args.capture is not None:
         if args.capture < 1 or args.capture > len(captures):
@@ -271,6 +279,10 @@ def main():
         analyze_capture(processor, captures[args.capture - 1], args.capture,
                        fft_detail=args.fft_detail)
         return
+
+    if args.summary:
+        print(f"  {'#':>4s}  {'out':>3s} {'(>15mph':>7s}  {'peak)':>6s}  "
+              f"{'in':>3s} {'(peak)':>7s}  {'ball':>4s}      {'spin':>5s} {'snr':>5s} {'q':>3s}")
 
     for idx, capture_data in enumerate(captures, 1):
         if args.summary:
@@ -291,9 +303,12 @@ def main():
             out_above_15 = sum(1 for r in outbound if r.speed_mph >= 15.0)
             result = processor.process_capture(capture)
             ball = f"{result.ball_speed_mph:.0f}" if result else "-"
+            spin = f"{result.spin.spin_rpm:.0f}" if result and result.spin and result.spin.spin_rpm > 0 else "-"
+            spin_snr = f"{result.spin.snr:.1f}" if result and result.spin and result.spin.snr > 0 else "-"
+            spin_q = result.spin.quality[:3] if result and result.spin and result.spin.spin_rpm > 0 else "-"
             print(f"  #{idx:3d}: out={len(outbound):3d} (>15mph: {out_above_15:3d}, "
                   f"peak {peak_out:5.1f})  in={len(inbound):3d} (peak {peak_in:5.1f})  "
-                  f"ball={ball} mph")
+                  f"ball={ball} mph  spin={spin} snr={spin_snr} q={spin_q}")
         else:
             analyze_capture(processor, capture_data, idx, fft_detail=args.fft_detail)
 

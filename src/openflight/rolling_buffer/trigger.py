@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from ..ops243 import OPS243Radar
 
 # Incremented per capture for log sequencing (not shot number)
-_capture_sequence = 0
 
 logger = logging.getLogger("openflight.rolling_buffer.trigger")
 
@@ -80,26 +79,10 @@ class TriggerStrategy(ABC):
         self._diagnostics.append(entry)
 
     def _log_capture(self, capture: IQCapture, accepted: bool):
-        """Log raw I/Q data for offline analysis (all triggers, not just accepted)."""
-        # Import here to avoid circular dependency
-        from ..session_logger import get_session_logger  # pylint: disable=import-outside-toplevel
+        """No-op: capture logging moved to monitor (with processed speed data).
 
-        session_logger = get_session_logger()
-        if not session_logger:
-            return
-
-        global _capture_sequence  # pylint: disable=global-statement
-        _capture_sequence += 1
-
-        session_logger.log_rolling_buffer_capture(
-            shot_number=_capture_sequence,
-            sample_time=capture.sample_time,
-            trigger_time=capture.trigger_time,
-            i_samples=capture.i_samples,
-            q_samples=capture.q_samples,
-            ball_speed_mph=None,
-            club_speed_mph=None,
-        )
+        Kept as no-op to avoid breaking subclass call sites.
+        """
 
     @abstractmethod
     def wait_for_trigger(
