@@ -27,9 +27,14 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
+
+# Set DISPLAY for X11 on Pi (must be before cv2 import)
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":0"
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
