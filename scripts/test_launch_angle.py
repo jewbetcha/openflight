@@ -159,23 +159,30 @@ def _annotate_frame(
     return annotated
 
 
-def _open_camera(width: int, height: int, framerate: int):
+def _open_camera(width: int, height: int, framerate: int, auto_exposure: bool = True):
     """Open picamera2 or fall back to OpenCV. Returns (camera, type_str)."""
     try:
         from picamera2 import Picamera2
         cam = Picamera2()
+
+        controls = {"FrameRate": framerate}
+        if auto_exposure:
+            # Let the camera handle exposure — works in daylight and indoor
+            controls["AeEnable"] = True
+        else:
+            # IR mode: manual exposure for dark room + IR LEDs
+            controls["AeEnable"] = False
+            controls["ExposureTime"] = 2000
+            controls["AnalogueGain"] = 4.0
+
         video_config = cam.create_video_configuration(
             main={"size": (width, height), "format": "RGB888"},
-            controls={
-                "FrameRate": framerate,
-                "ExposureTime": 2000,
-                "AnalogueGain": 4.0,
-                "AeEnable": False,
-            },
+            controls=controls,
         )
         cam.configure(video_config)
         cam.start()
-        print(f"  Camera: picamera2 at {width}x{height} @ {framerate}fps")
+        ae_mode = "auto-exposure" if auto_exposure else "manual (IR mode)"
+        print(f"  Camera: picamera2 at {width}x{height} @ {framerate}fps ({ae_mode})")
         return cam, "picamera2"
     except (ImportError, RuntimeError) as e:
         print(f"  picamera2 not available ({e}), trying OpenCV webcam...")
@@ -355,10 +362,12 @@ def main():
                         help="Camera distance to ball in mm (default: 2000)")
     parser.add_argument("--focal-length", type=float, default=6.0,
                         help="Lens focal length in mm (default: 6.0)")
-    parser.add_argument("--brightness-threshold", type=int, default=200,
-                        help="IR brightness threshold 0-255 (default: 200)")
+    parser.add_argument("--brightness-threshold", type=int, default=150,
+                        help="Brightness threshold 0-255 (default: 150, use 200 for IR mode)")
     parser.add_argument("--hough-param2", type=int, default=20,
                         help="Hough circle threshold — lower = more detections (default: 20)")
+    parser.add_argument("--ir", action="store_true",
+                        help="IR mode: manual exposure (dark room + IR LEDs). Default is auto-exposure.")
     parser.add_argument("--resolution", type=str, default="640x480",
                         help="Camera resolution WIDTHxHEIGHT (default: 640x480)")
     parser.add_argument("--framerate", type=int, default=120,
@@ -420,7 +429,7 @@ def main():
         camera_type = "mock"
     else:
         print("  Mode: Real camera + GPIO sound trigger")
-        camera, camera_type = _open_camera(width, height, args.framerate)
+        camera, camera_type = _open_camera(width, height, args.framerate, auto_exposure=not args.ir)
         if camera is None:
             print("ERROR: Could not open any camera.")
             sys.exit(1)
