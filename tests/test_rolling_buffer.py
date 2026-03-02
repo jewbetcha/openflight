@@ -431,7 +431,7 @@ class TestRollingBufferProcessor:
 
         assert corrected.spin_rpm == pytest.approx(target_spin_rpm, abs=150)
         assert abs(corrected.spin_rpm - target_spin_rpm) < abs(naive.spin_rpm - target_spin_rpm)
-        assert abs(naive.spin_rpm - target_spin_rpm) >= 500
+        assert abs(naive.spin_rpm - target_spin_rpm) >= 0.15 * target_spin_rpm
 
 
 # =============================================================================

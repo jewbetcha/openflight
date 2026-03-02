@@ -369,7 +369,11 @@ class RollingBufferProcessor:
         speeds = np.array(ball_speeds, dtype=float)
         fft_sample_rate_hz = sample_rate_hz
 
-        if timestamps_ms is not None and len(timestamps_ms) == len(ball_speeds) and sample_rate_hz > 0:
+        if (
+            timestamps_ms is not None
+            and len(timestamps_ms) == len(ball_speeds)
+            and sample_rate_hz > 1.0
+        ):
             timestamps = np.array(timestamps_ms, dtype=float)
             finite_mask = np.isfinite(timestamps) & np.isfinite(speeds)
             timestamps = timestamps[finite_mask]
@@ -387,6 +391,9 @@ class RollingBufferProcessor:
                 keep = np.concatenate(([True], np.diff(timestamps) > 0))
                 timestamps = timestamps[keep]
                 speeds = speeds[keep]
+
+            if len(speeds) < 10:
+                return SpinResult.no_spin_detected("Insufficient ball speed samples")
 
             nominal_dt_ms = 1000.0 / sample_rate_hz
             if len(speeds) >= 10 and nominal_dt_ms > 0 and timestamps[-1] > timestamps[0]:
