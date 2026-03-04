@@ -271,15 +271,16 @@ class Shot:
 
     @property
     def estimated_carry_yards(self) -> float:
-        """
-        Estimated carry distance based on ball speed and club type.
-
-        Uses TrackMan-derived lookup table with interpolation, assuming
-        optimal launch conditions (10-14° launch angle for driver).
-
-        Without launch angle and spin data, actual distance may vary ±10-15%.
-        """
-        return estimate_carry_distance(self.ball_speed_mph, self.club)
+        """Estimated carry distance based on ball speed, club type, and launch angle."""
+        base = estimate_carry_distance(self.ball_speed_mph, self.club)
+        if self.launch_angle_vertical is not None:
+            return adjust_carry_for_launch_angle(
+                base,
+                self.launch_angle_vertical,
+                self.club,
+                self.launch_angle_confidence or 0.2,
+            )
+        return base
 
     @property
     def estimated_carry_range(self) -> tuple:
