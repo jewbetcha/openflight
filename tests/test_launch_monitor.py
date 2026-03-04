@@ -58,6 +58,12 @@ class TestEstimateCarryDistance:
         assert carry > 400
         assert carry < 500
 
+    def test_driver_carry_monotonic_between_160_and_167_mph(self):
+        """Driver carry should not decrease as ball speed increases in this range."""
+        carries = [estimate_carry_distance(speed, ClubType.DRIVER) for speed in range(160, 168)]
+        for previous, current in zip(carries, carries[1:]):
+            assert current >= previous
+
 
 class TestShot:
     """Tests for the Shot dataclass."""

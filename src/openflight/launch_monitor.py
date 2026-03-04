@@ -86,6 +86,15 @@ def estimate_carry_distance(ball_speed_mph: float, club: ClubType = ClubType.DRI
         (200, 360, 389),
         (210, 383, 408),
     ]
+    # Some source rows are mixed (e.g. PGA average vs optimal carry) and can
+    # create local dips in the midpoint curve. Clamp midpoints to a
+    # non-decreasing sequence so carry does not decrease as ball speed rises.
+    monotonic_driver_curve = []
+    max_carry_so_far = 0.0
+    for speed, carry_min, carry_max in DRIVER_TABLE:
+        midpoint = (carry_min + carry_max) / 2
+        max_carry_so_far = max(max_carry_so_far, midpoint)
+        monotonic_driver_curve.append((speed, max_carry_so_far))
 
     # Adjustment factors for different clubs (relative to driver)
     # Based on typical smash factors and launch conditions
@@ -114,27 +123,23 @@ def estimate_carry_distance(ball_speed_mph: float, club: ClubType = ClubType.DRI
     }
 
     # Interpolate from driver table
-    if ball_speed_mph <= DRIVER_TABLE[0][0]:
+    if ball_speed_mph <= monotonic_driver_curve[0][0]:
         # Below minimum - extrapolate linearly
-        ratio = ball_speed_mph / DRIVER_TABLE[0][0]
-        base_carry = (DRIVER_TABLE[0][1] + DRIVER_TABLE[0][2]) / 2
+        ratio = ball_speed_mph / monotonic_driver_curve[0][0]
+        base_carry = monotonic_driver_curve[0][1]
         carry = base_carry * ratio
-    elif ball_speed_mph >= DRIVER_TABLE[-1][0]:
+    elif ball_speed_mph >= monotonic_driver_curve[-1][0]:
         # Above maximum - extrapolate conservatively
         # Use ~1.8 yards per mph above 210 mph
-        base_carry = (DRIVER_TABLE[-1][1] + DRIVER_TABLE[-1][2]) / 2
-        carry = base_carry + (ball_speed_mph - DRIVER_TABLE[-1][0]) * 1.8
+        base_carry = monotonic_driver_curve[-1][1]
+        carry = base_carry + (ball_speed_mph - monotonic_driver_curve[-1][0]) * 1.8
     else:
         # Interpolate between table entries
-        for i in range(len(DRIVER_TABLE) - 1):
-            if DRIVER_TABLE[i][0] <= ball_speed_mph < DRIVER_TABLE[i + 1][0]:
+        for i in range(len(monotonic_driver_curve) - 1):
+            if monotonic_driver_curve[i][0] <= ball_speed_mph < monotonic_driver_curve[i + 1][0]:
                 # Linear interpolation
-                speed_low, carry_low_min, carry_low_max = DRIVER_TABLE[i]
-                speed_high, carry_high_min, carry_high_max = DRIVER_TABLE[i + 1]
-
-                # Use midpoint of ranges
-                carry_low = (carry_low_min + carry_low_max) / 2
-                carry_high = (carry_high_min + carry_high_max) / 2
+                speed_low, carry_low = monotonic_driver_curve[i]
+                speed_high, carry_high = monotonic_driver_curve[i + 1]
 
                 # Interpolate
                 t = (ball_speed_mph - speed_low) / (speed_high - speed_low)
