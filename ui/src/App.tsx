@@ -17,6 +17,9 @@ import {
 } from './components/LaunchDaddy';
 import { ShotProvider } from './state/ShotProvider';
 import { useShotContext } from './state/useShotContext';
+
+import Logo from './logo/Logo';
+
 import './App.css';
 
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
@@ -116,7 +119,7 @@ function AppContent() {
             userSelect: 'none',
           }}
         >
-          {isLaunchDaddyMode ? <LaunchDaddyBrand /> : <span style={{ opacity: 0.3, fontSize: '1.2rem' }}>⛳</span>}
+          {isLaunchDaddyMode ? <LaunchDaddyBrand /> : <Logo size="small" variant="color" />}
         </div>
         <div className="header__controls">
           <ClubPicker selectedClub={selectedClub} onClubChange={handleClubChange} />
