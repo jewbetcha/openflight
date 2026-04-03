@@ -21,6 +21,8 @@ BUFFER_SPLIT=""
 KLD7=false
 KLD7_PORT=""
 KLD7_ORIENTATION=""
+KLD7_SECONDARY_PORT=""
+KLD7_SECONDARY_ORIENTATION=""
 
 # Buffer split presets (pre/post trigger segments out of 32 total)
 # At 20ksps: each segment = 6.4ms, total buffer = 204.8ms
@@ -87,6 +89,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --kld7-orientation)
             KLD7_ORIENTATION="$2"
+            shift 2
+            ;;
+        --kld7-secondary-port)
+            KLD7_SECONDARY_PORT="$2"
+            shift 2
+            ;;
+        --kld7-secondary-orientation)
+            KLD7_SECONDARY_ORIENTATION="$2"
             shift 2
             ;;
         --port|-p)
@@ -196,6 +206,14 @@ fi
 
 if [ -n "$KLD7_ORIENTATION" ]; then
     SERVER_CMD="$SERVER_CMD --kld7-orientation $KLD7_ORIENTATION"
+fi
+
+if [ -n "$KLD7_SECONDARY_PORT" ]; then
+    SERVER_CMD="$SERVER_CMD --kld7-secondary-port $KLD7_SECONDARY_PORT"
+fi
+
+if [ -n "$KLD7_SECONDARY_ORIENTATION" ]; then
+    SERVER_CMD="$SERVER_CMD --kld7-secondary-orientation $KLD7_SECONDARY_ORIENTATION"
 fi
 
 # Start Grafana Alloy for log shipping (if installed and credentials configured)

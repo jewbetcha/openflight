@@ -492,3 +492,116 @@ class TestOnShotDetected:
 
         assert shot.angle_source == "radar"
         assert shot.launch_angle_vertical == pytest.approx(18.7)
+
+    def test_optional_secondary_kld7_adds_horizontal_angle(self, monkeypatch):
+        """A second K-LD7 should add horizontal angle without changing the primary flow."""
+        calls = []
+        logged_buffers = []
+
+        class StubPrimaryTracker:
+            orientation = "vertical"
+
+            def snapshot_buffer(self):
+                return [{"timestamp": 1.0, "tdat": None, "pdat": []}]
+
+            def get_angle_for_shot(self, shot_timestamp=None):
+                calls.append(("primary-ball", shot_timestamp))
+                return KLD7Angle(vertical_deg=18.7, confidence=0.8, num_frames=2)
+
+            def get_club_angle(self, shot_timestamp=None):
+                calls.append(("primary-club", shot_timestamp))
+                return KLD7Angle(vertical_deg=-4.2, confidence=0.7, num_frames=1)
+
+            def reset(self):
+                calls.append(("primary-reset", None))
+
+        class StubSecondaryTracker:
+            orientation = "horizontal"
+
+            def snapshot_buffer(self):
+                return [{"timestamp": 2.0, "tdat": None, "pdat": []}]
+
+            def get_angle_for_shot(self, shot_timestamp=None):
+                calls.append(("secondary-ball", shot_timestamp))
+                return KLD7Angle(horizontal_deg=-3.5, confidence=0.75, num_frames=2)
+
+            def get_club_angle(self, shot_timestamp=None):
+                calls.append(("secondary-club", shot_timestamp))
+                return None
+
+            def reset(self):
+                calls.append(("secondary-reset", None))
+
+        class StubSessionLogger:
+            stats = {"shots_detected": 0}
+
+            def log_kld7_buffer(self, **kwargs):
+                logged_buffers.append(kwargs)
+
+            def log_shot(self, **kwargs):
+                return None
+
+        monkeypatch.setattr(server_module, "kld7_tracker", StubPrimaryTracker())
+        monkeypatch.setattr(server_module, "kld7_tracker_secondary", StubSecondaryTracker(), raising=False)
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: StubSessionLogger())
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        shot = Shot(
+            ball_speed_mph=82.5,
+            club_speed_mph=57.0,
+            timestamp=datetime.now(),
+            impact_timestamp=321.0,
+            club=ClubType.DRIVER,
+        )
+
+        on_shot_detected(shot)
+
+        assert ("primary-ball", 321.0) in calls
+        assert ("secondary-ball", 321.0) in calls
+        assert shot.angle_source == "radar"
+        assert shot.launch_angle_vertical == pytest.approx(18.7)
+        assert shot.launch_angle_horizontal == pytest.approx(-3.5)
+        assert shot.club_angle_deg == pytest.approx(-4.2)
+        assert len(logged_buffers) == 2
+        assert {entry["orientation"] for entry in logged_buffers} == {"vertical", "horizontal"}
+
+    def test_horizontal_kld7_is_preserved_when_vertical_is_estimated(self, monkeypatch):
+        """Horizontal radar data should survive the vertical estimate fallback."""
+        class StubTracker:
+            orientation = "horizontal"
+
+            def snapshot_buffer(self):
+                return []
+
+            def get_angle_for_shot(self, shot_timestamp=None):
+                return KLD7Angle(horizontal_deg=4.4, confidence=0.7, num_frames=2)
+
+            def get_club_angle(self, shot_timestamp=None):
+                return None
+
+            def reset(self):
+                return None
+
+        monkeypatch.setattr(server_module, "kld7_tracker", StubTracker())
+        monkeypatch.setattr(server_module, "kld7_tracker_secondary", None, raising=False)
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        shot = Shot(
+            ball_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.IRON_7,
+        )
+
+        on_shot_detected(shot)
+
+        assert shot.launch_angle_vertical == pytest.approx(20.5)
+        assert shot.launch_angle_horizontal == pytest.approx(4.4)

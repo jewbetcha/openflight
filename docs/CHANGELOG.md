@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Optional second K-LD7 connector for dual-radar setups
+  - `--kld7-secondary-port` and `--kld7-secondary-orientation` server flags
+  - `start-kiosk.sh` support for wiring a second K-LD7 without changing the single-radar flow
 - K-LD7 shot-correlation analysis workflow and theory writeup
   - `scripts/analyze_kld7.py --pair-shots` for offline club-to-ball pairing on `.pkl` captures
   - `docs/kld7-ball-detection-theory.md` with capture findings and detection rationale
