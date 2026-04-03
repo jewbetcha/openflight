@@ -232,9 +232,10 @@ class Shot:
         peak_magnitude: Signal strength of strongest reading
         readings: All raw speed readings for this shot
         club: Club type for distance estimation
-        launch_angle_vertical: Vertical launch angle in degrees (from camera)
-        launch_angle_horizontal: Horizontal launch angle in degrees (from camera)
-        launch_angle_confidence: Confidence in launch angle measurement (0-1)
+        launch_angle_vertical: Vertical launch angle in degrees
+        launch_angle_horizontal: Horizontal launch angle in degrees
+        launch_angle_confidence: Confidence in vertical launch angle measurement (0-1)
+        launch_angle_horizontal_confidence: Confidence in horizontal launch angle measurement (0-1)
         spin_rpm: Spin rate in RPM (from rolling buffer mode)
         spin_confidence: Confidence in spin measurement (0-1)
         carry_spin_adjusted: Carry distance adjusted for spin (yards)
@@ -252,12 +253,14 @@ class Shot:
     launch_angle_vertical: Optional[float] = None
     launch_angle_horizontal: Optional[float] = None
     launch_angle_confidence: Optional[float] = None
+    launch_angle_horizontal_confidence: Optional[float] = None
     spin_rpm: Optional[float] = None
     spin_confidence: Optional[float] = None
     carry_spin_adjusted: Optional[float] = None
     mode: str = "rolling-buffer"
     readings_data: Optional[list] = None
     angle_source: Optional[str] = None  # "radar", "camera", "estimated", or None
+    launch_angle_horizontal_source: Optional[str] = None  # "radar", "camera", "estimated", or None
     club_angle_deg: Optional[float] = None  # Club angle of attack from K-LD7
 
     @property

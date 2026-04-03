@@ -107,6 +107,43 @@ class TestLogTriggerDiagnostic:
         assert entry["response_bytes"] == 0
         assert entry["total_readings"] == 0
 
+
+class TestLogShot:
+    """Tests for shot logging payloads."""
+
+    def test_log_shot_writes_horizontal_provenance_fields(self, tmp_path):
+        """Shot logs should preserve horizontal angle source and confidence separately."""
+        logger = SessionLogger(log_dir=tmp_path, enabled=True)
+        logger.start_session(mode="rolling-buffer", trigger_type="sound-gpio")
+
+        logger.log_shot(
+            ball_speed_mph=100.0,
+            club_speed_mph=70.0,
+            smash_factor=1.43,
+            estimated_carry_yards=180.0,
+            club="7 iron",
+            peak_magnitude=1200.0,
+            readings_count=5,
+            mode="rolling-buffer",
+            launch_angle_vertical=20.5,
+            launch_angle_horizontal=4.4,
+            launch_angle_confidence=0.2,
+            launch_angle_horizontal_confidence=0.7,
+            angle_source="estimated",
+            launch_angle_horizontal_source="radar",
+        )
+
+        lines = logger.session_path.read_text().strip().split("\n")
+        entry = json.loads(lines[-1])
+
+        assert entry["type"] == "shot_detected"
+        assert entry["launch_angle_vertical"] == 20.5
+        assert entry["launch_angle_horizontal"] == 4.4
+        assert entry["launch_angle_confidence"] == 0.2
+        assert entry["launch_angle_horizontal_confidence"] == 0.7
+        assert entry["angle_source"] == "estimated"
+        assert entry["launch_angle_horizontal_source"] == "radar"
+
     def test_stats_tracking(self, tmp_path):
         """Stats should track accepted/rejected counts."""
         logger = SessionLogger(log_dir=tmp_path, enabled=True)

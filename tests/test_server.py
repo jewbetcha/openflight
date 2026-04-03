@@ -88,6 +88,20 @@ class TestShotToDict:
         result = shot_to_dict(shot)
         assert result["angle_source"] is None
 
+    def test_horizontal_angle_fields(self):
+        """shot_to_dict should include horizontal provenance fields."""
+        shot = Shot(
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
+            launch_angle_horizontal=-3.2,
+            launch_angle_horizontal_confidence=0.74,
+            launch_angle_horizontal_source="radar",
+        )
+        result = shot_to_dict(shot)
+        assert result["launch_angle_horizontal"] == -3.2
+        assert result["launch_angle_horizontal_confidence"] == 0.74
+        assert result["launch_angle_horizontal_source"] == "radar"
+
 
 class TestEstimateLaunchAngle:
     """Tests for launch angle estimation from club type and ball speed."""
@@ -605,3 +619,88 @@ class TestOnShotDetected:
 
         assert shot.launch_angle_vertical == pytest.approx(20.5)
         assert shot.launch_angle_horizontal == pytest.approx(4.4)
+        assert shot.launch_angle_confidence == pytest.approx(0.2)
+        assert shot.angle_source == "estimated"
+        assert shot.launch_angle_horizontal_confidence == pytest.approx(0.7)
+        assert shot.launch_angle_horizontal_source == "radar"
+
+    def test_estimate_fallback_does_not_invent_horizontal_angle(self, monkeypatch):
+        """Estimate fallback should leave horizontal angle unknown when unmeasured."""
+        monkeypatch.setattr(server_module, "kld7_tracker", None)
+        monkeypatch.setattr(server_module, "kld7_tracker_secondary", None, raising=False)
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        shot = Shot(
+            ball_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.IRON_7,
+        )
+
+        on_shot_detected(shot)
+
+        assert shot.launch_angle_vertical == pytest.approx(20.5)
+        assert shot.launch_angle_horizontal is None
+        assert shot.angle_source == "estimated"
+        assert shot.launch_angle_horizontal_source is None
+        assert shot.launch_angle_horizontal_confidence is None
+
+    def test_camera_vertical_does_not_override_horizontal_radar(self, monkeypatch):
+        """Camera fallback should keep a measured horizontal radar angle."""
+        class StubTracker:
+            orientation = "horizontal"
+
+            def snapshot_buffer(self):
+                return []
+
+            def get_angle_for_shot(self, shot_timestamp=None):
+                return KLD7Angle(horizontal_deg=6.5, confidence=0.72, num_frames=2)
+
+            def get_club_angle(self, shot_timestamp=None):
+                return None
+
+            def reset(self):
+                return None
+
+        class StubCameraLaunchAngle:
+            vertical = 14.0
+            horizontal = -2.0
+            confidence = 0.81
+            positions = []
+
+        class StubCameraTracker:
+            launch_detected = True
+
+            def calculate_launch_angle(self):
+                return StubCameraLaunchAngle()
+
+            def reset(self):
+                return None
+
+        monkeypatch.setattr(server_module, "kld7_tracker", StubTracker())
+        monkeypatch.setattr(server_module, "kld7_tracker_secondary", None, raising=False)
+        monkeypatch.setattr(server_module, "camera_tracker", StubCameraTracker())
+        monkeypatch.setattr(server_module, "camera_enabled", True)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        shot = Shot(
+            ball_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.IRON_7,
+        )
+
+        on_shot_detected(shot)
+
+        assert shot.launch_angle_vertical == pytest.approx(14.0)
+        assert shot.launch_angle_horizontal == pytest.approx(6.5)
+        assert shot.launch_angle_confidence == pytest.approx(0.81)
+        assert shot.angle_source == "camera"
+        assert shot.launch_angle_horizontal_confidence == pytest.approx(0.72)
+        assert shot.launch_angle_horizontal_source == "radar"

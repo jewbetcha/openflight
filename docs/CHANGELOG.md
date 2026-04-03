@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - K-LD7 launch-angle processing now uses OPS243 impact timestamps for live correlation
 - K-LD7 ball-burst selection now prefers coherent far-target paths instead of averaging all far PDAT detections
 - Live K-LD7 vertical launch angles now fall back to the existing club-and-speed estimate when the radar result is an obvious false positive
+- Dual-radar launch angle data now keeps per-axis source/confidence metadata, and horizontal angle stays `unknown` instead of defaulting to `0.0°` when no sensor measured it
 - Spin detection improved: Hann windowing, zero-padding to 256 points, band-limited search
 - All shot metrics (spin, launch angle, club speed, carry) always shown in UI
 - Shot logging unified — all metrics in single `shot_detected` entry

@@ -127,6 +127,10 @@ export function ShotDisplay({ shot, animate = false }: ShotDisplayProps) {
 
   const displayCarry = shot?.carry_spin_adjusted ?? shot?.estimated_carry_yards ?? 0;
   const carrySubtext = shot?.carry_spin_adjusted ? 'spin-adjusted' : carryRange || undefined;
+  const horizontalAngleSource =
+    shot?.launch_angle_horizontal_source ?? shot?.angle_source ?? undefined;
+  const horizontalAngleConfidence =
+    shot?.launch_angle_horizontal_confidence ?? shot?.launch_angle_confidence ?? null;
 
   if (!shot) {
     return (
@@ -196,9 +200,9 @@ export function ShotDisplay({ shot, animate = false }: ShotDisplayProps) {
               value={shot.launch_angle_horizontal.toFixed(1)}
               unit="°"
               label="Horizontal"
-              subtext={shot.angle_source ?? undefined}
+              subtext={horizontalAngleSource}
               variant="secondary"
-              confidence={getLaunchAngleQuality(shot.launch_angle_confidence)}
+              confidence={getLaunchAngleQuality(horizontalAngleConfidence)}
             />
           )}
           <MetricCard

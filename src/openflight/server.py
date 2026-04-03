@@ -266,7 +266,9 @@ def shot_to_dict(shot: Shot) -> dict:
         "launch_angle_vertical": shot.launch_angle_vertical,
         "launch_angle_horizontal": shot.launch_angle_horizontal,
         "launch_angle_confidence": shot.launch_angle_confidence,
+        "launch_angle_horizontal_confidence": shot.launch_angle_horizontal_confidence,
         "angle_source": shot.angle_source,
+        "launch_angle_horizontal_source": shot.launch_angle_horizontal_source,
         "club_angle_deg": shot.club_angle_deg,
         # Spin data from rolling buffer mode
         "spin_rpm": round(shot.spin_rpm) if shot.spin_rpm else None,
@@ -939,9 +941,8 @@ def _process_kld7_tracker(
             if kld7_angle.horizontal_deg is not None:
                 if shot.launch_angle_horizontal is None:
                     shot.launch_angle_horizontal = kld7_angle.horizontal_deg
-                    if shot.angle_source is None:
-                        shot.angle_source = "radar"
-                        shot.launch_angle_confidence = kld7_angle.confidence
+                    shot.launch_angle_horizontal_confidence = kld7_angle.confidence
+                    shot.launch_angle_horizontal_source = "radar"
                     logger.info(
                         "K-LD7 [%s] horizontal angle: %.1f° (conf: %.0f%%)",
                         tracker_label,
@@ -1039,11 +1040,15 @@ def on_shot_detected(shot: Shot):
         ):
             launch_angle = camera_tracker.calculate_launch_angle()
             if launch_angle:
-                # Update shot object with launch angle data
+                # Fill only missing axes so a measured radar horizontal angle
+                # survives camera-based vertical fallback.
                 shot.launch_angle_vertical = launch_angle.vertical
-                shot.launch_angle_horizontal = launch_angle.horizontal
                 shot.launch_angle_confidence = launch_angle.confidence
                 shot.angle_source = "camera"
+                if shot.launch_angle_horizontal is None:
+                    shot.launch_angle_horizontal = launch_angle.horizontal
+                    shot.launch_angle_horizontal_confidence = launch_angle.confidence
+                    shot.launch_angle_horizontal_source = "camera"
 
                 camera_data = {
                     "launch_angle_vertical": launch_angle.vertical,
@@ -1076,8 +1081,6 @@ def on_shot_detected(shot: Shot):
             spin_rpm=shot.spin_rpm,
         )
         shot.launch_angle_vertical = estimated[0]
-        if shot.launch_angle_horizontal is None:
-            shot.launch_angle_horizontal = 0.0
         shot.launch_angle_confidence = estimated[1]
         shot.angle_source = "estimated"
         logger.info(
@@ -1105,6 +1108,9 @@ def on_shot_detected(shot: Shot):
                 launch_angle_vertical=shot.launch_angle_vertical,
                 launch_angle_horizontal=shot.launch_angle_horizontal,
                 launch_angle_confidence=shot.launch_angle_confidence,
+                launch_angle_horizontal_confidence=shot.launch_angle_horizontal_confidence,
+                angle_source=shot.angle_source,
+                launch_angle_horizontal_source=shot.launch_angle_horizontal_source,
             )
     except Exception as e:
         logger.warning("Failed to log shot: %s", e)
@@ -1365,6 +1371,7 @@ class MockLaunchMonitor:
 
         # Generate club angle of attack (negative for irons, near-zero for driver)
         club_aoa = round(random.gauss(-4.0, 2.5), 1)
+        launch_confidence = round(random.uniform(0.5, 0.95), 2)
 
         shot = Shot(
             ball_speed_mph=ball_speed,
@@ -1375,7 +1382,10 @@ class MockLaunchMonitor:
             spin_confidence=random.choice([0.3, 0.6, 0.7, 0.9]),
             launch_angle_vertical=round(launch_v, 1),
             launch_angle_horizontal=round(launch_h, 1),
-            launch_angle_confidence=round(random.uniform(0.5, 0.95), 2),
+            launch_angle_confidence=launch_confidence,
+            launch_angle_horizontal_confidence=launch_confidence,
+            angle_source="estimated",
+            launch_angle_horizontal_source="estimated",
             club_angle_deg=club_aoa,
             mode="mock",
         )

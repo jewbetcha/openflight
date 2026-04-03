@@ -263,6 +263,9 @@ class SessionLogger:
         launch_angle_vertical: Optional[float] = None,
         launch_angle_horizontal: Optional[float] = None,
         launch_angle_confidence: Optional[float] = None,
+        launch_angle_horizontal_confidence: Optional[float] = None,
+        angle_source: Optional[str] = None,
+        launch_angle_horizontal_source: Optional[str] = None,
     ):
         """
         Log a detected shot with all metrics.
@@ -281,6 +284,9 @@ class SessionLogger:
             spin_quality: Quality assessment ("high", "medium", "low")
             carry_spin_adjusted: Carry distance adjusted for spin (rolling buffer mode only)
             mode: Radar mode ("rolling-buffer" or "mock")
+            launch_angle_horizontal_confidence: Confidence for horizontal launch angle
+            angle_source: Source for vertical launch angle
+            launch_angle_horizontal_source: Source for horizontal launch angle
         """
         if not self.enabled:
             return
@@ -305,6 +311,9 @@ class SessionLogger:
             "launch_angle_vertical": launch_angle_vertical,
             "launch_angle_horizontal": launch_angle_horizontal,
             "launch_angle_confidence": launch_angle_confidence,
+            "launch_angle_horizontal_confidence": launch_angle_horizontal_confidence,
+            "angle_source": angle_source,
+            "launch_angle_horizontal_source": launch_angle_horizontal_source,
         })
 
     def log_camera_data(
