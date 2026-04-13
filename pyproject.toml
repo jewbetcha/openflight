@@ -27,7 +27,7 @@ dependencies = [
     "numpy>=1.20.0",
     "scipy>=1.10.0",
     "trackers @ git+https://github.com/roboflow/trackers.git",
-    "supervision>=0.26.0",
+    "supervision>=0.27.0.post2",
 ]
 
 [project.optional-dependencies]
