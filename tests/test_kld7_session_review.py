@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "analysis"))
 
 import review_kld7_session
 from kld7_session_review_lib import analyze_session, load_session
@@ -17,7 +17,15 @@ NO_KLD7_SESSION_PATH = (
     Path(__file__).parent.parent / "session_logs" / "session_20260310_150412_range.jsonl"
 )
 
+requires_session_data = pytest.mark.skipif(
+    not SESSION_PATH.exists(), reason="session log fixtures not present"
+)
+requires_no_kld7_session = pytest.mark.skipif(
+    not NO_KLD7_SESSION_PATH.exists(), reason="session log fixtures not present"
+)
 
+
+@requires_session_data
 def test_load_session_indexes_shots():
     """Session loader should index the expected shot records."""
     session_meta, shots = load_session(SESSION_PATH)
@@ -31,6 +39,7 @@ def test_load_session_indexes_shots():
     assert "shot" in shots[1]
 
 
+@requires_session_data
 def test_analyze_session_finds_recoverable_profiles():
     """The angle-offset range session should yield multiple strong profiles."""
     _, results = analyze_session(SESSION_PATH)
@@ -42,6 +51,7 @@ def test_analyze_session_finds_recoverable_profiles():
     assert quality_by_shot[8] == "weak"
 
 
+@requires_no_kld7_session
 def test_analyze_session_rejects_logs_without_kld7_buffers():
     """Session review should fail clearly when the session has no K-LD7 buffers."""
     with pytest.raises(ValueError, match="no kld7_buffer entries"):

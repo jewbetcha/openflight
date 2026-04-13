@@ -75,8 +75,8 @@ class RollingBufferProcessor:
     SPIN_BANDPASS_BW_HZ = 700       # ±700 Hz around ball Doppler (must cover max seam freq)
     SPIN_BANDPASS_ORDER = 4          # Butterworth filter order
     SPIN_ENVELOPE_FFT_SIZE = 8192   # Zero-padded FFT for envelope
-    SPIN_MIN_SEAM_HZ = 80.0         # 2400 RPM min (seam = 2x spin)
-    SPIN_MAX_SEAM_HZ = 670.0        # 20100 RPM max
+    SPIN_MIN_SEAM_HZ = 33.0         # ~2000 RPM min (seam = 1x spin)
+    SPIN_MAX_SEAM_HZ = 200.0        # 12000 RPM max
     SPIN_MIN_SAMPLES = 600           # ~20ms minimum ball signal
     SPIN_SNR_HIGH = 8.0              # High confidence threshold
     SPIN_SNR_MEDIUM = 5.0            # Medium confidence threshold
@@ -424,8 +424,8 @@ class RollingBufferProcessor:
         """
         Detect spin rate from amplitude envelope of the ball's Doppler signal.
 
-        The golf ball seam creates amplitude modulation at 2x spin rate as it
-        crosses the radar beam twice per revolution. We isolate the ball's
+        The golf ball seam creates amplitude modulation at 1x spin rate as it
+        crosses the radar beam once per revolution. We isolate the ball's
         Doppler signal with a bandpass filter, extract the amplitude envelope,
         then find the modulation frequency.
 
@@ -527,8 +527,8 @@ class RollingBufferProcessor:
         noise_floor = np.median(valid_mag[valid_mag > 0]) if np.any(valid_mag > 0) else 1.0
         fft_snr = peak_mag / noise_floor if noise_floor > 0 else 0
 
-        # Seam frequency to spin RPM (seam = 2x spin)
-        spin_rpm = (peak_freq / 2) * 60
+        # Seam frequency to spin RPM (seam = 1x spin, one seam crossing per revolution)
+        spin_rpm = peak_freq * 60
 
         # Check minimum cycles in window
         window_seconds = len(ball_envelope) / self.SAMPLE_RATE
@@ -562,7 +562,7 @@ class RollingBufferProcessor:
 
                     if acorr_peak_val >= self.SPIN_AUTOCORR_MIN and acorr_lag > 0:
                         acorr_freq = self.SAMPLE_RATE / acorr_lag
-                        acorr_rpm = (acorr_freq / 2) * 60
+                        acorr_rpm = acorr_freq * 60
 
                         if abs(acorr_rpm - spin_rpm) / max(spin_rpm, 1) < 0.10:
                             autocorr_confirmed = True

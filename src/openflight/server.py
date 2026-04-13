@@ -974,9 +974,16 @@ def on_shot_detected(shot: Shot):
                     if club_angle_v and club_angle_v.vertical_deg is not None:
                         # Negate: the radar sees where the club IS (above center = positive),
                         # but AoA is the club's attack direction (descending = negative).
-                        shot.club_angle_deg = -club_angle_v.vertical_deg
-                        logger.info("[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
-                                     shot.club_angle_deg, club_angle_v.confidence * 100)
+                        candidate_aoa = -club_angle_v.vertical_deg
+                        # Reject physically impossible AoA values.
+                        # Real AoA ranges from ~-15° (steep iron) to ~+8° (ascending driver).
+                        if -15.0 <= candidate_aoa <= 8.0:
+                            shot.club_angle_deg = candidate_aoa
+                            logger.info("[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
+                                         shot.club_angle_deg, club_angle_v.confidence * 100)
+                        else:
+                            logger.warning("[SERVER] Club AoA rejected: %.1f° outside plausible range",
+                                           candidate_aoa)
 
                 kld7_vertical.reset()
 

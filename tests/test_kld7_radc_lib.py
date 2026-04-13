@@ -17,7 +17,7 @@ try:
         to_complex_iq,
     )
 except ImportError:
-    sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+    sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "analysis"))
     from kld7_radc_lib import (
         CFARDetection,
         bin_to_velocity_kmh,
@@ -28,7 +28,7 @@ except ImportError:
     )
 
 # Functions that remain in scripts only
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "analysis"))
 from kld7_radc_lib import (
     ADC_MIDPOINT,
     RADCDetection,

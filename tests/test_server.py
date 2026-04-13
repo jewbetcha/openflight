@@ -448,6 +448,45 @@ class TestOnShotDetected:
         assert shot.angle_source == "estimated"
         assert shot.launch_angle_vertical == pytest.approx(20.5)
 
+    def test_implausible_club_aoa_is_rejected(self, monkeypatch):
+        """A +31° club AoA is physically impossible and should be discarded."""
+        class StubTracker:
+            orientation = "vertical"
+
+            def snapshot_buffer(self):
+                return []
+
+            def get_angle_for_shot(self, shot_timestamp=None, ball_speed_mph=None):
+                return KLD7Angle(vertical_deg=15.0, confidence=0.7, num_frames=2)
+
+            def get_club_angle(self, club_speed_mph=None):
+                # Radar reports -31° vertical → server negates to +31° AoA
+                return KLD7Angle(vertical_deg=-31.0, confidence=0.7, num_frames=2)
+
+            def reset(self):
+                return None
+
+        monkeypatch.setattr(server_module, "kld7_vertical", StubTracker())
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        shot = Shot(
+            ball_speed_mph=115.0,
+            club_speed_mph=80.0,
+            timestamp=datetime.now(),
+            club=ClubType.IRON_7,
+        )
+
+        on_shot_detected(shot)
+
+        assert shot.club_angle_deg is None, (
+            f"AoA of +31° should be rejected, got {shot.club_angle_deg}"
+        )
+
     def test_plausible_kld7_angle_remains_radar_source(self, monkeypatch):
         """Plausible radar angles should continue to override the estimate."""
         class StubTracker:
