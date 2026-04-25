@@ -23,12 +23,15 @@ class IQCapture:
         trigger_time: Radar timestamp when trigger fired
         i_samples: 4096 in-phase samples (raw ADC values, 0-4095)
         q_samples: 4096 quadrature samples (raw ADC values, 0-4095)
+        sample_rate_hz: Capture sample rate in Hz
         timestamp: Python timestamp when capture was received
     """
+
     sample_time: float
     trigger_time: float
     i_samples: List[int]
     q_samples: List[int]
+    sample_rate_hz: int = 30000
     timestamp: float = field(default_factory=lambda: datetime.now().timestamp())
 
     @property
@@ -38,8 +41,8 @@ class IQCapture:
 
     @property
     def duration_ms(self) -> float:
-        """Duration of capture in milliseconds (at 30ksps)."""
-        return (self.num_samples / 30000) * 1000
+        """Duration of capture in milliseconds at the recorded sample rate."""
+        return (self.num_samples / self.sample_rate_hz) * 1000
 
     @property
     def trigger_offset_ms(self) -> float:
@@ -54,6 +57,7 @@ class SpeedReading:
 
     This matches the format used in streaming mode for compatibility.
     """
+
     speed_mph: float
     magnitude: float
     timestamp_ms: float  # Relative to capture start
@@ -77,6 +81,7 @@ class SpeedTimeline:
         sample_rate_hz: Effective sample rate (~937 Hz with 32-step overlap)
         capture: Reference to the original I/Q capture
     """
+
     readings: List[SpeedReading]
     sample_rate_hz: float
     capture: Optional[IQCapture] = None
@@ -128,6 +133,7 @@ class SpinResult:
         snr: Signal-to-noise ratio of the spin peak
         quality: Human-readable quality assessment
     """
+
     spin_rpm: float
     confidence: float
     snr: float
@@ -161,6 +167,7 @@ class ProcessedCapture:
         spin: Spin detection result (may indicate failure)
         capture: Original raw I/Q data
     """
+
     timeline: SpeedTimeline
     ball_speed_mph: float
     ball_timestamp_ms: float

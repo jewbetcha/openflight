@@ -22,7 +22,9 @@ from .types import ProcessedCapture
 logger = logging.getLogger("openflight.rolling_buffer.monitor")
 
 
-def get_optimal_spin_for_ball_speed(ball_speed_mph: float, club: ClubType = ClubType.DRIVER) -> float:
+def get_optimal_spin_for_ball_speed(
+    ball_speed_mph: float, club: ClubType = ClubType.DRIVER
+) -> float:
     """
     Get optimal spin rate for a given ball speed.
 
@@ -279,12 +281,16 @@ class RollingBufferMonitor:
         # Other triggers need rolling buffer mode configured upfront
         if self.trigger_type != "speed":
             # Get pre_trigger_segments from the trigger if available
-            pre_trigger_segments = getattr(self.trigger, 'pre_trigger_segments', 12)
+            pre_trigger_segments = getattr(self.trigger, "pre_trigger_segments", 12)
             self.radar.configure_for_rolling_buffer(
                 pre_trigger_segments=pre_trigger_segments,
                 sample_rate_ksps=self.sample_rate_ksps,
             )
-            logger.info("[MONITOR] Rolling buffer mode configured with S#%d, S=%d", pre_trigger_segments, self.sample_rate_ksps)
+            logger.info(
+                "[MONITOR] Rolling buffer mode configured with S#%d, S=%d",
+                pre_trigger_segments,
+                self.sample_rate_ksps,
+            )
         else:
             logger.info("[MONITOR] Using speed trigger — configuration deferred to trigger")
 
@@ -428,16 +434,23 @@ class RollingBufferMonitor:
                     continue
 
                 # For speed trigger, use the trigger speed as club speed if not found in capture
-                if (self.trigger_type == "speed" and
-                    processed.club_speed_mph is None and
-                    hasattr(self.trigger, 'last_trigger_speed')):
+                if (
+                    self.trigger_type == "speed"
+                    and processed.club_speed_mph is None
+                    and hasattr(self.trigger, "last_trigger_speed")
+                ):
                     trigger_speed = self.trigger.last_trigger_speed
                     if trigger_speed > 0:
                         processed.club_speed_mph = trigger_speed
-                        logger.info("[MONITOR] Using trigger speed as club speed: %.1f mph", trigger_speed)
+                        logger.info(
+                            "[MONITOR] Using trigger speed as club speed: %.1f mph", trigger_speed
+                        )
 
-                logger.debug("[MONITOR] Processed: ball=%.1f mph, club=%s",
-                            processed.ball_speed_mph, processed.club_speed_mph)
+                logger.debug(
+                    "[MONITOR] Processed: ball=%.1f mph, club=%s",
+                    processed.ball_speed_mph,
+                    processed.club_speed_mph,
+                )
 
                 # Create shot
                 shot = self._create_shot(processed)
@@ -448,7 +461,7 @@ class RollingBufferMonitor:
                         "[MONITOR] Shot detected: ball=%.1f mph, club=%s, spin=%s",
                         shot.ball_speed_mph,
                         "%.1f" % shot.club_speed_mph if shot.club_speed_mph else "N/A",
-                        "%.0f" % shot.spin_rpm if shot.spin_rpm else "N/A"
+                        "%.0f" % shot.spin_rpm if shot.spin_rpm else "N/A",
                     )
 
                     # Log raw I/Q data and trigger events to session logger
@@ -507,25 +520,27 @@ class RollingBufferMonitor:
 
                     # Emit diagnostic to UI
                     if self._diagnostic_callback:
-                        self._diagnostic_callback({
-                            "timestamp": datetime.now().isoformat(),
-                            "accepted": True,
-                            "reason": "accepted",
-                            "trigger_type": self.trigger_type,
-                            "latency_ms": trigger_latency_ms,
-                            "response_bytes": 0,
-                            "total_readings": len(processed.timeline.readings),
-                            "outbound_readings": 0,
-                            "inbound_readings": 0,
-                            "peak_outbound_mph": shot.ball_speed_mph,
-                            "peak_inbound_mph": 0,
-                            "all_outbound_speeds": [],
-                            "all_inbound_speeds": [],
-                            "ball_speed_mph": shot.ball_speed_mph,
-                            "club_speed_mph": shot.club_speed_mph,
-                            "spin_rpm": shot.spin_rpm,
-                            "carry_yards": shot.estimated_carry_yards,
-                        })
+                        self._diagnostic_callback(
+                            {
+                                "timestamp": datetime.now().isoformat(),
+                                "accepted": True,
+                                "reason": "accepted",
+                                "trigger_type": self.trigger_type,
+                                "latency_ms": trigger_latency_ms,
+                                "response_bytes": 0,
+                                "total_readings": len(processed.timeline.readings),
+                                "outbound_readings": 0,
+                                "inbound_readings": 0,
+                                "peak_outbound_mph": shot.ball_speed_mph,
+                                "peak_inbound_mph": 0,
+                                "all_outbound_speeds": [],
+                                "all_inbound_speeds": [],
+                                "ball_speed_mph": shot.ball_speed_mph,
+                                "club_speed_mph": shot.club_speed_mph,
+                                "spin_rpm": shot.spin_rpm,
+                                "carry_yards": shot.estimated_carry_yards,
+                            }
+                        )
 
                     if self._shot_callback:
                         callback_start = time.time()
@@ -538,13 +553,18 @@ class RollingBufferMonitor:
                             len(self._shots),
                             shot.ball_speed_mph,
                             "%.1f" % shot.club_speed_mph if shot.club_speed_mph else "N/A",
-                            "%.0f" % shot.estimated_carry_yards if shot.estimated_carry_yards else "N/A",
-                            trigger_latency_ms, process_ms, callback_ms, total_ms,
+                            "%.0f" % shot.estimated_carry_yards
+                            if shot.estimated_carry_yards
+                            else "N/A",
+                            trigger_latency_ms,
+                            process_ms,
+                            callback_ms,
+                            total_ms,
                         )
                 else:
                     logger.info(
                         "[MONITOR] Shot validation failed: ball=%.1f mph (min 15 mph)",
-                        processed.ball_speed_mph if processed else 0
+                        processed.ball_speed_mph if processed else 0,
                     )
                     # Emit diagnostic for shot validation failure
                     diag = {
@@ -618,11 +638,19 @@ class RollingBufferMonitor:
         # The UI shows confidence indicators so the user can judge
         spin_rpm = processed.spin.spin_rpm if has_any_spin else None
         spin_confidence = processed.spin.confidence if has_any_spin else None
+        impact_timestamp = None
+        capture = processed.capture or processed.timeline.capture
+        if capture is not None:
+            capture_start_timestamp = capture.timestamp - (
+                capture.trigger_time - capture.sample_time
+            )
+            impact_timestamp = capture_start_timestamp + (processed.ball_timestamp_ms / 1000.0)
 
         # Create shot with extended fields
         shot = Shot(
             ball_speed_mph=processed.ball_speed_mph,
             timestamp=datetime.now(),
+            impact_timestamp=impact_timestamp,
             club_speed_mph=processed.club_speed_mph,
             peak_magnitude=None,  # Not directly available in rolling buffer mode
             readings=[],  # Raw readings not stored (use ProcessedCapture instead)
@@ -686,11 +714,7 @@ class RollingBufferMonitor:
         smash_factors = [s.smash_factor for s in self._shots if s.smash_factor]
 
         # Get spin data
-        spin_rpms = [
-            s.spin_rpm
-            for s in self._shots
-            if s.spin_rpm is not None
-        ]
+        spin_rpms = [s.spin_rpm for s in self._shots if s.spin_rpm is not None]
 
         return {
             "shot_count": len(self._shots),

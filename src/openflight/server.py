@@ -9,6 +9,7 @@ import logging
 import os
 import random
 import statistics
+import sys
 import threading
 import time
 from datetime import datetime
@@ -235,9 +236,10 @@ def radar_launch_is_plausible(
         club_speed_mph=club_speed_mph,
         spin_rpm=spin_rpm,
     )
-    allowed_delta_deg = _radar_launch_base_delta_deg(club) + (
-        1.0 - estimate_conf
-    ) * _RADAR_SANITY_LOW_CONF_BONUS_DEG
+    allowed_delta_deg = (
+        _radar_launch_base_delta_deg(club)
+        + (1.0 - estimate_conf) * _RADAR_SANITY_LOW_CONF_BONUS_DEG
+    )
     delta_deg = abs(radar_angle_deg - expected_launch_deg)
 
     return delta_deg <= allowed_delta_deg, {
@@ -298,8 +300,11 @@ def api_shutdown():
     logger.info("[SERVER] Shutdown requested via REST API")
 
     import threading
+
     def _shutdown():
-        import time as _time, os
+        import os
+        import time as _time
+
         _time.sleep(0.5)
         # Clean up before exit
         try:
@@ -399,14 +404,21 @@ def init_kld7(port=None, orientation="vertical", angle_offset_deg=0.0, base_freq
         from openflight.kld7 import KLD7Tracker
 
         tracker = KLD7Tracker(
-            port=port, orientation=orientation,
-            angle_offset_deg=angle_offset_deg, base_freq=base_freq,
+            port=port,
+            orientation=orientation,
+            angle_offset_deg=angle_offset_deg,
+            base_freq=base_freq,
             buffer_seconds=6.0,
         )
         if tracker.connect():
             tracker.start()
-            logger.info("[SERVER] K-LD7 %s initialized (port=%s, offset=%.1f°, RBFR=%d)",
-                         orientation, port or "auto", angle_offset_deg, base_freq)
+            logger.info(
+                "[SERVER] K-LD7 %s initialized (port=%s, offset=%.1f°, RBFR=%d)",
+                orientation,
+                port or "auto",
+                angle_offset_deg,
+                base_freq,
+            )
             session_log = get_session_logger()
             if session_log:
                 session_log.log_connection(
@@ -893,8 +905,11 @@ def handle_shutdown():
     socketio.emit("shutdown_ack", {"message": "Shutting down..."})
 
     import threading
+
     def _shutdown():
-        import time as _time, os
+        import os
+        import time as _time
+
         _time.sleep(0.5)
         try:
             if kld7_vertical:
@@ -945,7 +960,8 @@ def on_shot_detected(shot: Shot):
                         shot.angle_source = "radar"
                         logger.info(
                             "[SERVER] Vertical angle: %.1f° (conf=%.0f%%, %d frames)",
-                            kld7_angle.vertical_deg, kld7_angle.confidence * 100,
+                            kld7_angle.vertical_deg,
+                            kld7_angle.confidence * 100,
                             kld7_angle.num_frames,
                         )
                     else:
@@ -967,7 +983,9 @@ def on_shot_detected(shot: Shot):
                             "detection_class": kld7_angle.detection_class,
                             "magnitude": kld7_angle.magnitude,
                             "num_frames": kld7_angle.num_frames,
-                        } if kld7_angle else None,
+                        }
+                        if kld7_angle
+                        else None,
                     )
                 # Club angle of attack (same RADC buffer, club speed from OPS)
                 if shot.club_speed_mph:
@@ -980,11 +998,16 @@ def on_shot_detected(shot: Shot):
                         # Real AoA ranges from ~-15° (steep iron) to ~+8° (ascending driver).
                         if -15.0 <= candidate_aoa <= 8.0:
                             shot.club_angle_deg = candidate_aoa
-                            logger.info("[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
-                                         shot.club_angle_deg, club_angle_v.confidence * 100)
+                            logger.info(
+                                "[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
+                                shot.club_angle_deg,
+                                club_angle_v.confidence * 100,
+                            )
                         else:
-                            logger.warning("[SERVER] Club AoA rejected: %.1f° outside plausible range",
-                                           candidate_aoa)
+                            logger.warning(
+                                "[SERVER] Club AoA rejected: %.1f° outside plausible range",
+                                candidate_aoa,
+                            )
 
                 kld7_vertical.reset()
 
@@ -1004,7 +1027,8 @@ def on_shot_detected(shot: Shot):
                             shot.launch_angle_confidence = kld7_angle_h.confidence
                         logger.info(
                             "[SERVER] Horizontal angle: %.1f° (conf=%.0f%%, %d frames)",
-                            kld7_angle_h.horizontal_deg, kld7_angle_h.confidence * 100,
+                            kld7_angle_h.horizontal_deg,
+                            kld7_angle_h.confidence * 100,
                             kld7_angle_h.num_frames,
                         )
                     else:
@@ -1024,23 +1048,34 @@ def on_shot_detected(shot: Shot):
                             "detection_class": kld7_angle_h.detection_class,
                             "magnitude": kld7_angle_h.magnitude,
                             "num_frames": kld7_angle_h.num_frames,
-                        } if kld7_angle_h else None,
+                        }
+                        if kld7_angle_h
+                        else None,
                     )
                 # Club path (same RADC buffer, club speed from OPS)
                 if shot.club_speed_mph:
-                    club_angle_h = kld7_horizontal.get_club_angle(club_speed_mph=shot.club_speed_mph)
+                    club_angle_h = kld7_horizontal.get_club_angle(
+                        club_speed_mph=shot.club_speed_mph
+                    )
                     if club_angle_h and club_angle_h.horizontal_deg is not None:
                         shot.club_path_deg = club_angle_h.horizontal_deg
-                        logger.info("[SERVER] Club path: %.1f° (conf=%.0f%%)",
-                                     club_angle_h.horizontal_deg, club_angle_h.confidence * 100)
+                        logger.info(
+                            "[SERVER] Club path: %.1f° (conf=%.0f%%)",
+                            club_angle_h.horizontal_deg,
+                            club_angle_h.confidence * 100,
+                        )
 
                 kld7_horizontal.reset()
 
             # Derive spin axis from face angle (H. launch) minus club path
             if shot.launch_angle_horizontal is not None and shot.club_path_deg is not None:
                 shot.spin_axis_deg = round(shot.launch_angle_horizontal - shot.club_path_deg, 1)
-                logger.info("[SERVER] Spin axis: %+.1f° (face=%+.1f° - path=%+.1f°)",
-                             shot.spin_axis_deg, shot.launch_angle_horizontal, shot.club_path_deg)
+                logger.info(
+                    "[SERVER] Spin axis: %+.1f° (face=%+.1f° - path=%+.1f°)",
+                    shot.spin_axis_deg,
+                    shot.launch_angle_horizontal,
+                    shot.club_path_deg,
+                )
 
             if kld7_vertical or kld7_horizontal:
                 kld7_ms = (time.time() - kld7_start) * 1000
@@ -1053,7 +1088,12 @@ def on_shot_detected(shot: Shot):
     # Skip if K-LD7 already provided vertical angle
     camera_data = None
     try:
-        if camera_tracker and camera_enabled and shot.mode != "mock" and shot.launch_angle_vertical is None:
+        if (
+            camera_tracker
+            and camera_enabled
+            and shot.mode != "mock"
+            and shot.launch_angle_vertical is None
+        ):
             launch_angle = camera_tracker.calculate_launch_angle()
             if launch_angle:
                 # Update shot object with launch angle data
@@ -1097,18 +1137,25 @@ def on_shot_detected(shot: Shot):
         shot.launch_angle_confidence = estimated[1]
         shot.angle_source = "estimated"
         logger.info(
-            "[SERVER] Angle source: estimated (%.1f°, conf=%.0f%%)", estimated[0], estimated[1] * 100
+            "[SERVER] Angle source: estimated (%.1f°, conf=%.0f%%)",
+            estimated[0],
+            estimated[1] * 100,
         )
 
     # Compute spin-adjusted carry using measured spin (if reliable) or club average
     _MIN_RELIABLE_SPIN_CONF = 0.6
     if shot.carry_spin_adjusted is None and shot.mode != "mock":
         has_reliable_spin = (
-            shot.spin_rpm and shot.spin_rpm > 0
+            shot.spin_rpm
+            and shot.spin_rpm > 0
             and shot.spin_confidence is not None
             and shot.spin_confidence >= _MIN_RELIABLE_SPIN_CONF
         )
-        spin_for_carry = shot.spin_rpm if has_reliable_spin else get_optimal_spin_for_ball_speed(shot.ball_speed_mph, shot.club)
+        spin_for_carry = (
+            shot.spin_rpm
+            if has_reliable_spin
+            else get_optimal_spin_for_ball_speed(shot.ball_speed_mph, shot.club)
+        )
         shot.carry_spin_adjusted = estimate_carry_with_spin(
             shot.ball_speed_mph,
             spin_for_carry,
@@ -1117,7 +1164,8 @@ def on_shot_detected(shot: Shot):
         )
         logger.info(
             "[SERVER] Spin-adjusted carry: %.0f yds (spin: %.0f rpm%s)",
-            shot.carry_spin_adjusted, spin_for_carry,
+            shot.carry_spin_adjusted,
+            spin_for_carry,
             "" if shot.spin_rpm and shot.spin_rpm > 0 else " avg",
         )
 
@@ -1241,8 +1289,12 @@ def start_monitor(
 
     monitor.connect()
 
-    logger.info("[SERVER] Starting monitor: mode=%s, trigger=%s, sample_rate=%dksps",
-                "mock" if mock else "rolling-buffer", trigger_type, sample_rate_ksps)
+    logger.info(
+        "[SERVER] Starting monitor: mode=%s, trigger=%s, sample_rate=%dksps",
+        "mock" if mock else "rolling-buffer",
+        trigger_type,
+        sample_rate_ksps,
+    )
 
     # Start session logging
     session_logger = get_session_logger()
@@ -1261,7 +1313,7 @@ def start_monitor(
             session_logger.log_connection(
                 device="ops243",
                 port=port or "auto",
-                baud=getattr(monitor.radar, 'baud', 0) if hasattr(monitor, 'radar') else 0,
+                baud=getattr(monitor.radar, "baud", 0) if hasattr(monitor, "radar") else 0,
                 firmware=radar_info.get("Version"),
             )
 
@@ -1581,7 +1633,9 @@ def main():
         "--kld7", action="store_true", help="Enable K-LD7 vertical angle radar (launch angle)"
     )
     parser.add_argument(
-        "--kld7-port", default=None, help="K-LD7 vertical serial port (auto-detect if not specified)"
+        "--kld7-port",
+        default=None,
+        help="K-LD7 vertical serial port (auto-detect if not specified)",
     )
     parser.add_argument(
         "--kld7-angle-offset",
@@ -1590,11 +1644,11 @@ def main():
         help="K-LD7 vertical angle offset in degrees (default: 0.0)",
     )
     parser.add_argument(
-        "--kld7-horizontal", action="store_true", help="Enable K-LD7 horizontal angle radar (club path)"
+        "--kld7-horizontal",
+        action="store_true",
+        help="Enable K-LD7 horizontal angle radar (club path)",
     )
-    parser.add_argument(
-        "--kld7-horizontal-port", default=None, help="K-LD7 horizontal serial port"
-    )
+    parser.add_argument("--kld7-horizontal-port", default=None, help="K-LD7 horizontal serial port")
     parser.add_argument(
         "--kld7-horizontal-offset",
         type=float,
@@ -1674,18 +1728,32 @@ def main():
 
     # Initialize K-LD7 angle radars (if enabled)
     if args.kld7:
-        if init_kld7(port=args.kld7_port, orientation="vertical",
-                     angle_offset_deg=args.kld7_angle_offset, base_freq=0):
-            offset_str = f", offset: {args.kld7_angle_offset:+.1f}°" if args.kld7_angle_offset else ""
+        if init_kld7(
+            port=args.kld7_port,
+            orientation="vertical",
+            angle_offset_deg=args.kld7_angle_offset,
+            base_freq=0,
+        ):
+            offset_str = (
+                f", offset: {args.kld7_angle_offset:+.1f}°" if args.kld7_angle_offset else ""
+            )
             print(f"K-LD7 vertical radar enabled (launch angle{offset_str})")
         else:
             print("ERROR: K-LD7 vertical requested but failed to connect. Exiting.")
             sys.exit(1)
 
     if args.kld7_horizontal:
-        if init_kld7(port=args.kld7_horizontal_port, orientation="horizontal",
-                     angle_offset_deg=args.kld7_horizontal_offset, base_freq=2):
-            offset_str = f", offset: {args.kld7_horizontal_offset:+.1f}°" if args.kld7_horizontal_offset else ""
+        if init_kld7(
+            port=args.kld7_horizontal_port,
+            orientation="horizontal",
+            angle_offset_deg=args.kld7_horizontal_offset,
+            base_freq=2,
+        ):
+            offset_str = (
+                f", offset: {args.kld7_horizontal_offset:+.1f}°"
+                if args.kld7_horizontal_offset
+                else ""
+            )
             print(f"K-LD7 horizontal radar enabled (club path{offset_str})")
         else:
             print("ERROR: K-LD7 horizontal requested but failed to connect. Exiting.")

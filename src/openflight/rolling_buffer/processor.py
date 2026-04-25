@@ -73,17 +73,17 @@ class RollingBufferProcessor:
 
     # Spin detection via amplitude envelope demodulation.
     # The ball seam modulates the radar return at 2x spin rate.
-    SPIN_BANDPASS_BW_HZ = 700       # ±700 Hz around ball Doppler (must cover max seam freq)
-    SPIN_BANDPASS_ORDER = 4          # Butterworth filter order
-    SPIN_ENVELOPE_FFT_SIZE = 8192   # Zero-padded FFT for envelope
-    SPIN_MIN_SEAM_HZ = 33.0         # ~2000 RPM min (seam = 1x spin)
-    SPIN_MAX_SEAM_HZ = 200.0        # 12000 RPM max
-    SPIN_MIN_SAMPLES = 600           # ~20ms minimum ball signal
-    SPIN_SNR_HIGH = 8.0              # High confidence threshold
-    SPIN_SNR_MEDIUM = 5.0            # Medium confidence threshold
-    SPIN_SNR_MIN = 3.0               # Minimum to report
-    SPIN_AUTOCORR_MIN = 0.3          # Minimum normalized correlation
-    SPIN_MIN_CYCLES = 2              # Minimum seam cycles to report
+    SPIN_BANDPASS_BW_HZ = 700  # ±700 Hz around ball Doppler (must cover max seam freq)
+    SPIN_BANDPASS_ORDER = 4  # Butterworth filter order
+    SPIN_ENVELOPE_FFT_SIZE = 8192  # Zero-padded FFT for envelope
+    SPIN_MIN_SEAM_HZ = 33.0  # ~2000 RPM min (seam = 1x spin)
+    SPIN_MAX_SEAM_HZ = 200.0  # 12000 RPM max
+    SPIN_MIN_SAMPLES = 600  # ~20ms minimum ball signal
+    SPIN_SNR_HIGH = 8.0  # High confidence threshold
+    SPIN_SNR_MEDIUM = 5.0  # Medium confidence threshold
+    SPIN_SNR_MIN = 3.0  # Minimum to report
+    SPIN_AUTOCORR_MIN = 0.3  # Minimum normalized correlation
+    SPIN_MIN_CYCLES = 2  # Minimum seam cycles to report
 
     def __init__(self, sample_rate: int = 30000):
         """Initialize processor with pre-computed window function.
@@ -95,7 +95,11 @@ class RollingBufferProcessor:
         self.SAMPLE_RATE = sample_rate
         self.hanning_window = np.hanning(self.WINDOW_SIZE)
 
-    def parse_capture(self, response: str) -> Optional[IQCapture]:
+    def parse_capture(
+        self,
+        response: str,
+        capture_timestamp: Optional[float] = None,
+    ) -> Optional[IQCapture]:
         """
         Parse S! command response into IQCapture object.
 
@@ -138,12 +142,16 @@ class RollingBufferProcessor:
                     continue
 
             if all(v is not None for v in [sample_time, trigger_time, i_samples, q_samples]):
-                return IQCapture(
-                    sample_time=sample_time,
-                    trigger_time=trigger_time,
-                    i_samples=i_samples,
-                    q_samples=q_samples,
-                )
+                capture_kwargs = {
+                    "sample_time": sample_time,
+                    "trigger_time": trigger_time,
+                    "i_samples": i_samples,
+                    "q_samples": q_samples,
+                    "sample_rate_hz": self.SAMPLE_RATE,
+                }
+                if capture_timestamp is not None:
+                    capture_kwargs["timestamp"] = capture_timestamp
+                return IQCapture(**capture_kwargs)
 
             # Log what's missing
             missing = []
@@ -553,15 +561,19 @@ class RollingBufferProcessor:
         logger.info(
             "[PROCESSOR] Spin envelope: peak=%.1f Hz (%.0f RPM), SNR=%.1f, "
             "cycles=%.1f, window=%.0fms, samples=%d",
-            peak_freq, spin_rpm, fft_snr, seam_cycles,
-            window_seconds * 1000, len(ball_envelope),
+            peak_freq,
+            spin_rpm,
+            fft_snr,
+            seam_cycles,
+            window_seconds * 1000,
+            len(ball_envelope),
         )
 
         # --- Fallback: Autocorrelation for marginal FFT ---
         autocorr_confirmed = False
         if fft_snr < self.SPIN_SNR_MEDIUM and fft_snr >= self.SPIN_SNR_MIN:
             norm = np.correlate(windowed, windowed, mode="full")
-            norm = norm[len(norm) // 2:]  # positive lags only
+            norm = norm[len(norm) // 2 :]  # positive lags only
             if norm[0] > 0:
                 norm = norm / norm[0]
 
@@ -584,7 +596,8 @@ class RollingBufferProcessor:
                             autocorr_confirmed = True
                             logger.info(
                                 "[PROCESSOR] Spin autocorrelation confirms: %.0f RPM (corr=%.2f)",
-                                acorr_rpm, acorr_peak_val,
+                                acorr_rpm,
+                                acorr_peak_val,
                             )
                         elif acorr_peak_val >= 0.4:
                             spin_rpm = acorr_rpm
@@ -592,7 +605,8 @@ class RollingBufferProcessor:
                             autocorr_confirmed = True
                             logger.info(
                                 "[PROCESSOR] Spin autocorrelation override: %.0f RPM (corr=%.2f)",
-                                acorr_rpm, acorr_peak_val,
+                                acorr_rpm,
+                                acorr_peak_val,
                             )
 
         # --- Quality assessment ---
@@ -707,6 +721,7 @@ class RollingBufferProcessor:
 
         # Bin to 1-mph buckets, find the mode
         from collections import Counter
+
         binned = Counter(round(s) for s in speeds)
 
         # The ball is the highest-speed cluster with significant repetition.
@@ -725,7 +740,12 @@ class RollingBufferProcessor:
         # Log if max speed differs significantly from mode (outlier rejected)
         max_speed = max(speeds)
         if max_speed > ball_bin + 10:
-            logger.info("[PROCESSOR] Ball speed outlier rejected: max=%.1f, mode=%.1f mph (%d occurrences)", max_speed, float(ball_bin), frequent[0][1])
+            logger.info(
+                "[PROCESSOR] Ball speed outlier rejected: max=%.1f, mode=%.1f mph (%d occurrences)",
+                max_speed,
+                float(ball_bin),
+                frequent[0][1],
+            )
 
         # Return the actual max speed within ±2 mph of the mode bin
         # for sub-mph precision
@@ -754,7 +774,11 @@ class RollingBufferProcessor:
             return None
 
         ball_speed_mph = self._find_consistent_ball_speed(std_outbound)
-        logger.info("[PROCESSOR] Ball speed: %.1f mph (mode-based, %d outbound readings)", ball_speed_mph, len(std_outbound))
+        logger.info(
+            "[PROCESSOR] Ball speed: %.1f mph (mode-based, %d outbound readings)",
+            ball_speed_mph,
+            len(std_outbound),
+        )
 
         # Process with overlapping FFT for high-resolution timeline (needed for spin)
         timeline = self.process_overlapping(capture)
@@ -766,10 +790,7 @@ class RollingBufferProcessor:
         # Find the ball in the overlapping timeline at the standard-detected speed
         # (within tolerance) to get the precise timestamp for spin analysis
         outbound = [r for r in timeline.readings if r.is_outbound]
-        ball_candidates = [
-            r for r in outbound
-            if abs(r.speed_mph - ball_speed_mph) <= 3.0
-        ]
+        ball_candidates = [r for r in outbound if abs(r.speed_mph - ball_speed_mph) <= 3.0]
         if ball_candidates:
             ball_reading = max(ball_candidates, key=lambda r: r.magnitude)
         elif outbound:
@@ -788,7 +809,11 @@ class RollingBufferProcessor:
             timeline, ball_speed_mph, ball_timestamp_ms
         )
         if club_speed_mph is not None:
-            logger.info("[PROCESSOR] Club speed: %.1f mph at %.1fms before ball", club_speed_mph, ball_timestamp_ms - club_timestamp_ms)
+            logger.info(
+                "[PROCESSOR] Club speed: %.1f mph at %.1fms before ball",
+                club_speed_mph,
+                ball_timestamp_ms - club_timestamp_ms,
+            )
         else:
             logger.debug("[PROCESSOR] No club speed found (ball=%.1f mph)", ball_speed_mph)
 
@@ -797,7 +822,9 @@ class RollingBufferProcessor:
 
         logger.info(
             "[PROCESSOR] Spin result: %.0f RPM, SNR=%.2f, quality=%s",
-            spin.spin_rpm, spin.snr, spin.quality,
+            spin.spin_rpm,
+            spin.snr,
+            spin.quality,
         )
 
         return ProcessedCapture(

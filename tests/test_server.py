@@ -1,14 +1,16 @@
 """Tests for server module."""
 
+import argparse
 import json
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-from openflight.launch_monitor import Shot, ClubType
-from openflight.kld7.types import KLD7Angle
 from openflight import server as server_module
+from openflight.kld7.types import KLD7Angle
+from openflight.launch_monitor import ClubType, Shot
 from openflight.server import (
     MockLaunchMonitor,
     estimate_launch_angle,
@@ -65,7 +67,6 @@ class TestShotToDict:
         assert result["ball_speed_mph"] == 150.5  # 1 decimal
         assert result["club_speed_mph"] == 103.8  # 1 decimal
         assert result["smash_factor"] == 1.45  # 2 decimals
-
 
     def test_angle_source_field(self):
         """shot_to_dict should include angle_source."""
@@ -187,9 +188,7 @@ class TestEstimateLaunchAngle:
 
     def test_spin_with_smash_raises_confidence(self):
         """Providing both club speed and spin should raise confidence to 0.5."""
-        _, conf = estimate_launch_angle(
-            ClubType.DRIVER, 143, club_speed_mph=96.6, spin_rpm=2500
-        )
+        _, conf = estimate_launch_angle(ClubType.DRIVER, 143, club_speed_mph=96.6, spin_rpm=2500)
         assert conf == 0.5
 
     def test_spin_alone_confidence(self):
@@ -258,6 +257,56 @@ class TestMockLaunchMonitor:
         shot = monitor.simulate_shot()
 
         assert shot.club == ClubType.IRON_7
+
+
+class TestMain:
+    """Tests for server startup and shutdown paths."""
+
+    def test_main_exits_cleanly_when_kld7_init_fails(self, monkeypatch):
+        """Requesting K-LD7 should exit with status 1 if initialization fails."""
+        args = argparse.Namespace(
+            port=None,
+            mock=False,
+            host="127.0.0.1",
+            web_port=8080,
+            debug=False,
+            radar_log=False,
+            show_raw=False,
+            no_camera=True,
+            camera_model=None,
+            camera_imgsz=256,
+            hough_param2=33,
+            hough_param1=48,
+            hough_min_radius=4,
+            hough_max_radius=43,
+            hough_min_dist=266,
+            roboflow_model=None,
+            roboflow_api_key=None,
+            session_location="range",
+            log_dir=None,
+            no_logging=True,
+            trigger="polling",
+            sound_pre_trigger=16,
+            sample_rate=30,
+            kld7=True,
+            kld7_port=None,
+            kld7_angle_offset=0.0,
+            kld7_horizontal=False,
+            kld7_horizontal_port=None,
+            kld7_horizontal_offset=0.0,
+        )
+        start_monitor = Mock()
+
+        monkeypatch.setattr("argparse.ArgumentParser.parse_args", lambda self: args)
+        monkeypatch.setattr(server_module, "init_kld7", lambda **kwargs: False)
+        monkeypatch.setattr(server_module, "init_session_logger", Mock())
+        monkeypatch.setattr(server_module, "start_monitor", start_monitor)
+
+        with pytest.raises(SystemExit) as exc_info:
+            server_module.main()
+
+        assert exc_info.value.code == 1
+        start_monitor.assert_not_called()
 
     def test_get_shots(self):
         """Get shots should return copy of shots list."""
@@ -401,7 +450,9 @@ class TestOnShotDetected:
         monkeypatch.setattr(server_module, "monitor", None)
         monkeypatch.setattr(server_module, "debug_mode", False)
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
-        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: emitted.append((args, kwargs)))
+        monkeypatch.setattr(
+            server_module.socketio, "emit", lambda *args, **kwargs: emitted.append((args, kwargs))
+        )
 
         shot = Shot(
             ball_speed_mph=150.0,
@@ -417,6 +468,7 @@ class TestOnShotDetected:
 
     def test_implausible_kld7_angle_falls_back_to_estimate(self, monkeypatch):
         """Radar angles that conflict with club+speed should not override the estimate."""
+
         class StubTracker:
             orientation = "vertical"
 
@@ -450,6 +502,7 @@ class TestOnShotDetected:
 
     def test_implausible_club_aoa_is_rejected(self, monkeypatch):
         """A +31° club AoA is physically impossible and should be discarded."""
+
         class StubTracker:
             orientation = "vertical"
 
@@ -489,6 +542,7 @@ class TestOnShotDetected:
 
     def test_plausible_kld7_angle_remains_radar_source(self, monkeypatch):
         """Plausible radar angles should continue to override the estimate."""
+
         class StubTracker:
             orientation = "vertical"
 

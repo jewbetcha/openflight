@@ -8,9 +8,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from openflight.kld7.types import KLD7Angle, KLD7Frame
 from openflight.kld7.tracker import KLD7Tracker
-from openflight.launch_monitor import Shot, ClubType
+from openflight.kld7.types import KLD7Angle, KLD7Frame
+from openflight.launch_monitor import Shot
 from openflight.server import shot_to_dict
 
 # Path to real captured K-LD7 data (golf swings + body movement)
@@ -33,12 +33,16 @@ class TestKLD7Types:
         assert len(frame_with_radc.radc) == 3072
 
     def test_kld7_angle_vertical(self):
-        angle = KLD7Angle(vertical_deg=12.5, distance_m=2.0, magnitude=5000, confidence=0.8, num_frames=3)
+        angle = KLD7Angle(
+            vertical_deg=12.5, distance_m=2.0, magnitude=5000, confidence=0.8, num_frames=3
+        )
         assert angle.vertical_deg == 12.5
         assert angle.horizontal_deg is None
 
     def test_kld7_angle_horizontal(self):
-        angle = KLD7Angle(horizontal_deg=-3.2, distance_m=1.5, magnitude=4000, confidence=0.7, num_frames=2)
+        angle = KLD7Angle(
+            horizontal_deg=-3.2, distance_m=1.5, magnitude=4000, confidence=0.7, num_frames=2
+        )
         assert angle.horizontal_deg == -3.2
         assert angle.vertical_deg is None
 
@@ -58,15 +62,19 @@ class TestKLD7TrackerRingBuffer:
         tracker = self._make_tracker()
         now = time.time()
         for i in range(5):
-            tracker._add_frame(KLD7Frame(
-                timestamp=now + i * 0.03, tdat=None, pdat=[],
-            ))
+            tracker._add_frame(
+                KLD7Frame(
+                    timestamp=now + i * 0.03,
+                    tdat=None,
+                    pdat=[],
+                )
+            )
         assert len(tracker._ring_buffer) == 5
 
     def test_ring_buffer_max_size(self):
         tracker = self._make_tracker()
         tracker.max_buffer_frames = 10
-        tracker._ring_buffer = __import__('collections').deque(maxlen=10)
+        tracker._ring_buffer = __import__("collections").deque(maxlen=10)
         now = time.time()
         for i in range(20):
             tracker._add_frame(KLD7Frame(timestamp=now + i * 0.03, tdat=None, pdat=[]))
@@ -82,7 +90,13 @@ class TestKLD7TrackerRingBuffer:
     def test_snapshot_buffer(self):
         tracker = self._make_tracker()
         now = time.time()
-        tracker._add_frame(KLD7Frame(timestamp=now, tdat={"distance": 1.0, "speed": 5.0, "angle": 0.0, "magnitude": 3000}, pdat=[]))
+        tracker._add_frame(
+            KLD7Frame(
+                timestamp=now,
+                tdat={"distance": 1.0, "speed": 5.0, "angle": 0.0, "magnitude": 3000},
+                pdat=[],
+            )
+        )
         snap = tracker.snapshot_buffer()
         assert len(snap) == 1
         assert snap[0]["tdat"]["distance"] == 1.0
@@ -121,11 +135,13 @@ class TestKLD7RealData:
         for f in raw_frames:
             t = f["timestamp"] - t0
             if 0.4 <= t <= 4.0:
-                tracker._add_frame(KLD7Frame(
-                    timestamp=f["timestamp"],
-                    tdat=f.get("tdat"),
-                    pdat=f.get("pdat", []),
-                ))
+                tracker._add_frame(
+                    KLD7Frame(
+                        timestamp=f["timestamp"],
+                        tdat=f.get("tdat"),
+                        pdat=f.get("pdat", []),
+                    )
+                )
         assert tracker.get_angle_for_shot() is None
 
     def test_quiet_period_produces_no_results(self):
@@ -136,11 +152,13 @@ class TestKLD7RealData:
         for f in raw_frames:
             t = f["timestamp"] - t0
             if 19.0 <= t <= 24.0:
-                tracker._add_frame(KLD7Frame(
-                    timestamp=f["timestamp"],
-                    tdat=f.get("tdat"),
-                    pdat=f.get("pdat", []),
-                ))
+                tracker._add_frame(
+                    KLD7Frame(
+                        timestamp=f["timestamp"],
+                        tdat=f.get("tdat"),
+                        pdat=f.get("pdat", []),
+                    )
+                )
         assert tracker.get_angle_for_shot() is None
 
 
@@ -149,8 +167,11 @@ class TestKLD7Integration:
 
     def test_angle_attaches_to_shot_vertical(self):
         shot = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
-            launch_angle_vertical=12.5, launch_angle_confidence=0.8, angle_source="radar",
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
+            launch_angle_vertical=12.5,
+            launch_angle_confidence=0.8,
+            angle_source="radar",
         )
         result = shot_to_dict(shot)
         assert result["launch_angle_vertical"] == 12.5
@@ -158,8 +179,11 @@ class TestKLD7Integration:
 
     def test_angle_attaches_to_shot_horizontal(self):
         shot = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
-            launch_angle_horizontal=-3.5, launch_angle_confidence=0.7, angle_source="radar",
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
+            launch_angle_horizontal=-3.5,
+            launch_angle_confidence=0.7,
+            angle_source="radar",
         )
         result = shot_to_dict(shot)
         assert result["launch_angle_horizontal"] == -3.5
@@ -167,14 +191,18 @@ class TestKLD7Integration:
     def test_carry_adjusts_for_vertical_angle(self):
         shot_no_angle = Shot(ball_speed_mph=150.0, timestamp=datetime.now())
         shot_with_angle = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
-            launch_angle_vertical=15.0, launch_angle_confidence=0.8, angle_source="radar",
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
+            launch_angle_vertical=15.0,
+            launch_angle_confidence=0.8,
+            angle_source="radar",
         )
         assert shot_no_angle.estimated_carry_yards != shot_with_angle.estimated_carry_yards
 
     def test_club_angle_in_shot_dict(self):
         shot = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
             club_angle_deg=-5.5,
         )
         result = shot_to_dict(shot)
@@ -183,8 +211,12 @@ class TestKLD7Integration:
     def test_full_tracker_to_shot_flow(self):
         """Full flow: KLD7Angle manually attached to Shot appears in shot_to_dict."""
         angle = KLD7Angle(
-            vertical_deg=18.0, horizontal_deg=None,
-            confidence=0.85, num_frames=3, magnitude=5.2, detection_class="ball",
+            vertical_deg=18.0,
+            horizontal_deg=None,
+            confidence=0.85,
+            num_frames=3,
+            magnitude=5.2,
+            detection_class="ball",
         )
 
         shot = Shot(ball_speed_mph=150.0, timestamp=datetime.now())
@@ -211,7 +243,7 @@ class TestRADCAngleExtraction:
 
     def _make_radc_payload_with_tone(self, velocity_kmh, angle_deg=10.0, amplitude=5000):
         """Create a synthetic RADC payload with a tone at the given velocity."""
-        from openflight.kld7.radc import ANTENNA_SPACING_M, WAVELENGTH_M, SAMPLES_PER_CHANNEL
+        from openflight.kld7.radc import ANTENNA_SPACING_M, SAMPLES_PER_CHANNEL, WAVELENGTH_M
 
         n = SAMPLES_PER_CHANNEL  # 256
         max_speed_kmh = 100.0
@@ -232,8 +264,12 @@ class TestRADCAngleExtraction:
         # F2A channel: same tone shifted by angle-dependent phase
         angle_rad = np.radians(angle_deg)
         steering_phase = 2 * np.pi * ANTENNA_SPACING_M * np.sin(angle_rad) / WAVELENGTH_M
-        f2a_i = (amplitude * np.cos(phase_per_sample * t + steering_phase) + 32768).astype(np.uint16)
-        f2a_q = (amplitude * np.sin(phase_per_sample * t + steering_phase) + 32768).astype(np.uint16)
+        f2a_i = (amplitude * np.cos(phase_per_sample * t + steering_phase) + 32768).astype(
+            np.uint16
+        )
+        f2a_q = (amplitude * np.sin(phase_per_sample * t + steering_phase) + 32768).astype(
+            np.uint16
+        )
 
         # F1B channel: zeros (not used for angle)
         zeros = np.full(n, 32768, dtype=np.uint16)
@@ -289,10 +325,12 @@ class TestRADCAngleExtraction:
         now = time.time()
 
         for i in range(3):
-            tracker._add_frame(KLD7Frame(
-                timestamp=now + i * 0.033,
-                pdat=[{"distance": 4.2, "speed": 25.0, "angle": 15.0, "magnitude": 2500}],
-            ))
+            tracker._add_frame(
+                KLD7Frame(
+                    timestamp=now + i * 0.033,
+                    pdat=[{"distance": 4.2, "speed": 25.0, "angle": 15.0, "magnitude": 2500}],
+                )
+            )
 
         result = tracker.get_angle_for_shot(ball_speed_mph=None)
         assert result is None
@@ -321,3 +359,39 @@ class TestRADCAngleExtraction:
         result = tracker.get_angle_for_shot(ball_speed_mph=ball_speed_mph)
         assert result is not None
         assert result.vertical_deg == pytest.approx(15.0, abs=3.0)
+
+    def test_shot_timestamp_filters_to_nearby_frames(self, monkeypatch):
+        """A provided shot timestamp should narrow RADC extraction to the nearby burst."""
+        tracker = self._make_tracker()
+        tracker._add_frame(KLD7Frame(timestamp=100.00, radc=b"early-1"))
+        tracker._add_frame(KLD7Frame(timestamp=100.03, radc=b"early-2"))
+        tracker._add_frame(KLD7Frame(timestamp=100.80, radc=b"late-1"))
+        tracker._add_frame(KLD7Frame(timestamp=100.83, radc=b"late-2"))
+
+        captured_frames = []
+
+        def fake_extract_launch_angle(frames, **kwargs):
+            captured_frames.append(frames)
+            return [
+                {
+                    "launch_angle_deg": 12.0,
+                    "ball_speed_mph": kwargs["ops243_ball_speed_mph"],
+                    "avg_snr_db": 8.0,
+                    "confidence": 0.8,
+                    "frame_count": len(frames),
+                }
+            ]
+
+        monkeypatch.setattr(
+            "openflight.kld7.radc.extract_launch_angle",
+            fake_extract_launch_angle,
+        )
+
+        result = tracker.get_angle_for_shot(shot_timestamp=100.82, ball_speed_mph=72.0)
+
+        assert result is not None
+        assert len(captured_frames) == 1
+        assert captured_frames[0] == [
+            {"timestamp": 100.80, "radc": b"late-1"},
+            {"timestamp": 100.83, "radc": b"late-2"},
+        ]

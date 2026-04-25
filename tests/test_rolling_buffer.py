@@ -1,36 +1,36 @@
 """Tests for rolling_buffer module."""
 
 import math
-import pytest
-import numpy as np
 from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+
+import numpy as np
+import pytest
 
 from openflight.launch_monitor import ClubType, Shot
 from openflight.rolling_buffer import (
     # Types
     IQCapture,
+    ManualTrigger,
+    PollingTrigger,
+    ProcessedCapture,
+    RollingBufferMonitor,
+    # Processor
+    RollingBufferProcessor,
     SpeedReading,
     SpeedTimeline,
     SpinResult,
-    ProcessedCapture,
-    # Processor
-    RollingBufferProcessor,
-    # Triggers
-    TriggerStrategy,
-    PollingTrigger,
     ThresholdTrigger,
-    ManualTrigger,
+    # Triggers
     create_trigger,
     # Monitor functions
     estimate_carry_with_spin,
     get_optimal_spin_for_ball_speed,
 )
 
-
 # =============================================================================
 # Tests for Optimal Spin Calculation
 # =============================================================================
+
 
 class TestGetOptimalSpinForBallSpeed:
     """Tests for the optimal spin rate calculation based on ball speed."""
@@ -99,6 +99,7 @@ class TestGetOptimalSpinForBallSpeed:
 # Tests for Carry Distance with Spin
 # =============================================================================
 
+
 class TestEstimateCarryWithSpin:
     """Tests for the spin-adjusted carry distance calculation."""
 
@@ -158,14 +159,10 @@ class TestEstimateCarryWithSpin:
         spin = 2600
 
         # Good contact: 150 mph ball / 100 mph club = 1.50 smash
-        carry_good = estimate_carry_with_spin(
-            ball_speed, spin, ClubType.DRIVER, club_speed_mph=100
-        )
+        carry_good = estimate_carry_with_spin(ball_speed, spin, ClubType.DRIVER, club_speed_mph=100)
 
         # Poor contact: 150 mph ball / 115 mph club = 1.30 smash
-        carry_poor = estimate_carry_with_spin(
-            ball_speed, spin, ClubType.DRIVER, club_speed_mph=115
-        )
+        carry_poor = estimate_carry_with_spin(ball_speed, spin, ClubType.DRIVER, club_speed_mph=115)
 
         assert carry_poor < carry_good
 
@@ -176,7 +173,10 @@ class TestEstimateCarryWithSpin:
 
         carry_no_club = estimate_carry_with_spin(ball_speed, spin, ClubType.DRIVER)
         carry_with_club = estimate_carry_with_spin(
-            ball_speed, spin, ClubType.DRIVER, club_speed_mph=101  # 1.48 smash - optimal
+            ball_speed,
+            spin,
+            ClubType.DRIVER,
+            club_speed_mph=101,  # 1.48 smash - optimal
         )
 
         # Should be very close (club speed at optimal smash has minimal effect)
@@ -210,6 +210,7 @@ class TestEstimateCarryWithSpin:
 # Tests for Rolling Buffer Types
 # =============================================================================
 
+
 class TestIQCapture:
     """Tests for IQCapture dataclass."""
 
@@ -227,6 +228,18 @@ class TestIQCapture:
         assert capture.sample_time == 0.136
         assert len(capture.i_samples) == 4096
         assert len(capture.q_samples) == 4096
+
+    def test_duration_ms_uses_capture_sample_rate(self):
+        """Duration should respect non-default sample rates."""
+        capture = IQCapture(
+            sample_time=0.164,
+            trigger_time=0.0,
+            i_samples=[100] * 4096,
+            q_samples=[100] * 4096,
+            sample_rate_hz=25000,
+        )
+
+        assert capture.duration_ms == pytest.approx((4096 / 25000) * 1000)
 
 
 class TestSpeedReading:
@@ -314,9 +327,43 @@ class TestSpinResult:
         assert result.quality == "low"
 
 
+class TestRollingBufferMonitor:
+    """Tests for RollingBufferMonitor shot creation."""
+
+    def _make_monitor(self):
+        monitor = RollingBufferMonitor.__new__(RollingBufferMonitor)
+        monitor._current_club = ClubType.DRIVER
+        return monitor
+
+    def test_create_shot_sets_impact_timestamp_from_capture_timing(self):
+        """Impact timestamp should be reconstructed from the capture timing data."""
+        monitor = self._make_monitor()
+        capture = IQCapture(
+            sample_time=10.000,
+            trigger_time=10.050,
+            i_samples=[100] * 4096,
+            q_samples=[100] * 4096,
+            timestamp=1_700_000_000.250,
+        )
+        timeline = SpeedTimeline(readings=[], sample_rate_hz=937.5, capture=capture)
+        processed = ProcessedCapture(
+            timeline=timeline,
+            ball_speed_mph=152.0,
+            ball_timestamp_ms=30.0,
+            club_speed_mph=101.0,
+            capture=capture,
+        )
+
+        shot = monitor._create_shot(processed)
+
+        assert shot is not None
+        assert shot.impact_timestamp == pytest.approx(1_700_000_000.230)
+
+
 # =============================================================================
 # Tests for Rolling Buffer Processor
 # =============================================================================
+
 
 class TestRollingBufferProcessor:
     """Tests for the FFT-based rolling buffer processor."""
@@ -341,6 +388,7 @@ class TestRollingBufferProcessor:
         q_samples = [2048 + int(100 * math.cos(2 * math.pi * i / 128)) for i in range(4096)]
 
         import json
+
         response = (
             '{"sample_time": 0.136}\n'
             '{"trigger_time": 0.0}\n'
@@ -355,6 +403,7 @@ class TestRollingBufferProcessor:
         assert len(capture.q_samples) == 4096
         assert capture.sample_time == 0.136
         assert capture.trigger_time == 0.0
+        assert capture.sample_rate_hz == processor.SAMPLE_RATE
 
     def test_parse_capture_invalid_json(self, processor):
         """Parser should handle invalid JSON gracefully."""
@@ -372,8 +421,12 @@ class TestRollingBufferProcessor:
         # 1500 Hz → bin ~205 → ~20.9 mph, safely above the mask.
         # I=sin, Q=cos produces a negative-frequency (inbound) tone.
         doppler_freq = 1500  # Hz - corresponds to ~20.9 mph
-        i_samples = [2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
-        q_samples = [2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
+        i_samples = [
+            2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)
+        ]
+        q_samples = [
+            2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)
+        ]
 
         capture = IQCapture(
             sample_time=0.136,
@@ -393,8 +446,12 @@ class TestRollingBufferProcessor:
     def test_process_overlapping_higher_resolution(self, processor):
         """Overlapping processing should give more readings than standard."""
         doppler_freq = 1500  # Hz - ~20.9 mph, above DC mask
-        i_samples = [2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
-        q_samples = [2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)]
+        i_samples = [
+            2048 + int(500 * math.sin(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)
+        ]
+        q_samples = [
+            2048 + int(500 * math.cos(2 * math.pi * doppler_freq * i / 30000)) for i in range(4096)
+        ]
 
         capture = IQCapture(
             sample_time=0.136,
@@ -417,6 +474,7 @@ class TestRollingBufferProcessor:
 # =============================================================================
 # Tests for Trigger Strategies
 # =============================================================================
+
 
 class TestTriggerFactory:
     """Tests for the trigger factory function."""
@@ -516,6 +574,7 @@ class TestManualTrigger:
 # Tests for Shot with Spin Fields
 # =============================================================================
 
+
 class TestShotWithSpin:
     """Tests for Shot dataclass spin-related fields."""
 
@@ -601,6 +660,7 @@ class TestShotWithSpin:
 # Integration Tests
 # =============================================================================
 
+
 class TestCarryCalculationIntegration:
     """Integration tests for the complete carry calculation pipeline."""
 
@@ -610,9 +670,6 @@ class TestCarryCalculationIntegration:
         ball_speed = 167  # Tour average
         club_speed = 113  # Tour average
         spin = 2686  # Tour average
-
-        # Calculate optimal spin for validation
-        optimal_spin = get_optimal_spin_for_ball_speed(ball_speed, ClubType.DRIVER)
 
         # Calculate carry
         carry = estimate_carry_with_spin(
@@ -629,14 +686,10 @@ class TestCarryCalculationIntegration:
     def test_amateur_shot_comparison(self):
         """Compare amateur vs Tour carry distances."""
         # Amateur: 140 mph ball, 95 mph club, 3000 rpm spin (slightly high)
-        amateur_carry = estimate_carry_with_spin(
-            140, 3000, ClubType.DRIVER, club_speed_mph=95
-        )
+        amateur_carry = estimate_carry_with_spin(140, 3000, ClubType.DRIVER, club_speed_mph=95)
 
         # Tour: 167 mph ball, 113 mph club, 2686 rpm spin (optimal)
-        tour_carry = estimate_carry_with_spin(
-            167, 2686, ClubType.DRIVER, club_speed_mph=113
-        )
+        tour_carry = estimate_carry_with_spin(167, 2686, ClubType.DRIVER, club_speed_mph=113)
 
         # Tour should be significantly longer (at least 30 yards more)
         assert tour_carry > amateur_carry + 30
@@ -669,6 +722,7 @@ class TestCarryCalculationIntegration:
 # =============================================================================
 # Tests for Trigger Diagnostics
 # =============================================================================
+
 
 class TestTriggerStrategyDiagnostics:
     """Tests for the diagnostic accumulation in TriggerStrategy."""
@@ -795,6 +849,7 @@ class TestTriggerStrategyDiagnostics:
 # Tests for FFT Dual-Peak Extraction and DC Mask
 # =============================================================================
 
+
 class TestDualPeakExtraction:
     """Tests for dual-peak FFT processing and DC mask."""
 
@@ -823,13 +878,11 @@ class TestDualPeakExtraction:
 
         # Outbound = positive frequency, Inbound = negative frequency
         # I + jQ: positive freq => I=cos, Q=sin; negative freq => I=cos, Q=-sin
-        i_signal = (
-            500 * np.cos(2 * np.pi * outbound_freq * t)
-            + 400 * np.cos(2 * np.pi * inbound_freq * t)
+        i_signal = 500 * np.cos(2 * np.pi * outbound_freq * t) + 400 * np.cos(
+            2 * np.pi * inbound_freq * t
         )
-        q_signal = (
-            500 * np.sin(2 * np.pi * outbound_freq * t)
-            - 400 * np.sin(2 * np.pi * inbound_freq * t)
+        q_signal = 500 * np.sin(2 * np.pi * outbound_freq * t) - 400 * np.sin(
+            2 * np.pi * inbound_freq * t
         )
 
         # Offset to simulate ADC midpoint
@@ -890,14 +943,8 @@ class TestDualPeakExtraction:
         club_freq = (40 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
         ball_freq = (120 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
 
-        i_signal = (
-            400 * np.cos(2 * np.pi * club_freq * t)
-            + 300 * np.cos(2 * np.pi * ball_freq * t)
-        )
-        q_signal = (
-            400 * np.sin(2 * np.pi * club_freq * t)
-            + 300 * np.sin(2 * np.pi * ball_freq * t)
-        )
+        i_signal = 400 * np.cos(2 * np.pi * club_freq * t) + 300 * np.cos(2 * np.pi * ball_freq * t)
+        q_signal = 400 * np.sin(2 * np.pi * club_freq * t) + 300 * np.sin(2 * np.pi * ball_freq * t)
 
         i_block = (i_signal + 2048).astype(np.float64)
         q_block = (q_signal + 2048).astype(np.float64)
@@ -944,13 +991,11 @@ class TestDualPeakExtraction:
         # Weaker outbound (ball) at 120 mph, amplitude 300
         outbound_freq = (120 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
 
-        i_signal = (
-            300 * np.cos(2 * np.pi * outbound_freq * t)
-            + 800 * np.cos(2 * np.pi * inbound_freq * t)
+        i_signal = 300 * np.cos(2 * np.pi * outbound_freq * t) + 800 * np.cos(
+            2 * np.pi * inbound_freq * t
         )
-        q_signal = (
-            300 * np.sin(2 * np.pi * outbound_freq * t)
-            - 800 * np.sin(2 * np.pi * inbound_freq * t)
+        q_signal = 300 * np.sin(2 * np.pi * outbound_freq * t) - 800 * np.sin(
+            2 * np.pi * inbound_freq * t
         )
 
         i_samples = (i_signal + 2048).astype(int).tolist()
@@ -982,6 +1027,7 @@ class TestDualPeakExtraction:
 # Tests for _find_peaks
 # =============================================================================
 
+
 class TestFindPeaks:
     """Tests for the _find_peaks local maxima finder."""
 
@@ -995,7 +1041,7 @@ class TestFindPeaks:
 
         magnitude = np.zeros(2048)
         magnitude[500] = 100.0  # Clear peak
-        magnitude[499] = 20.0   # Neighbors lower
+        magnitude[499] = 20.0  # Neighbors lower
         magnitude[501] = 20.0
 
         peaks = processor._find_peaks(magnitude, start=1, end=2048)
@@ -1101,6 +1147,7 @@ class TestFindPeaks:
 # Tests for find_club_speed with concurrent readings
 # =============================================================================
 
+
 class TestFindClubSpeedOverlap:
     """Tests for find_club_speed searching concurrent timestamps."""
 
@@ -1192,6 +1239,7 @@ class TestFindClubSpeedOverlap:
 # Tests for Multi-Peak Integration (end-to-end)
 # =============================================================================
 
+
 class TestMultiPeakIntegration:
     """End-to-end test: process_capture with synthetic club+ball I/Q."""
 
@@ -1210,14 +1258,8 @@ class TestMultiPeakIntegration:
         club_freq = (60 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
         ball_freq = (80 / processor.MPS_TO_MPH) * 2 / processor.WAVELENGTH_M
 
-        i_signal = (
-            400 * np.cos(2 * np.pi * club_freq * t)
-            + 300 * np.cos(2 * np.pi * ball_freq * t)
-        )
-        q_signal = (
-            400 * np.sin(2 * np.pi * club_freq * t)
-            + 300 * np.sin(2 * np.pi * ball_freq * t)
-        )
+        i_signal = 400 * np.cos(2 * np.pi * club_freq * t) + 300 * np.cos(2 * np.pi * ball_freq * t)
+        q_signal = 400 * np.sin(2 * np.pi * club_freq * t) + 300 * np.sin(2 * np.pi * ball_freq * t)
 
         i_samples = (i_signal + 2048).astype(int).tolist()
         q_samples = (q_signal + 2048).astype(int).tolist()
@@ -1246,6 +1288,7 @@ class TestMultiPeakIntegration:
 # Tests for extract_ball_speeds (spin detection fix)
 # =============================================================================
 
+
 class TestExtractBallSpeeds:
     """Tests for the updated extract_ball_speeds using ball position instead of trigger offset."""
 
@@ -1264,18 +1307,20 @@ class TestExtractBallSpeeds:
 
     def test_finds_ball_readings_at_ball_timestamp(self):
         """Ball readings at ball_timestamp_ms are included."""
-        timeline = self._make_timeline([
-            # Ball signal at t=10-60ms
-            (75.0, 10.0, 10.0, "outbound"),
-            (74.5, 9.0, 20.0, "outbound"),
-            (75.2, 8.0, 30.0, "outbound"),
-            (74.8, 7.0, 40.0, "outbound"),
-            (75.1, 6.0, 50.0, "outbound"),
-            # Club signal earlier
-            (55.0, 15.0, 0.0, "outbound"),
-            # Inbound noise
-            (30.0, 5.0, 25.0, "inbound"),
-        ])
+        timeline = self._make_timeline(
+            [
+                # Ball signal at t=10-60ms
+                (75.0, 10.0, 10.0, "outbound"),
+                (74.5, 9.0, 20.0, "outbound"),
+                (75.2, 8.0, 30.0, "outbound"),
+                (74.8, 7.0, 40.0, "outbound"),
+                (75.1, 6.0, 50.0, "outbound"),
+                # Club signal earlier
+                (55.0, 15.0, 0.0, "outbound"),
+                # Inbound noise
+                (30.0, 5.0, 25.0, "inbound"),
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
             timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0
@@ -1285,15 +1330,19 @@ class TestExtractBallSpeeds:
 
     def test_filters_by_speed_band(self):
         """Only readings within speed tolerance of ball_speed_mph are included."""
-        timeline = self._make_timeline([
-            (75.0, 10.0, 10.0, "outbound"),  # In band
-            (74.0, 9.0, 20.0, "outbound"),   # In band
-            (55.0, 15.0, 15.0, "outbound"),  # Out of band (club speed)
-            (90.0, 5.0, 25.0, "outbound"),   # Out of band (too fast)
-        ])
+        timeline = self._make_timeline(
+            [
+                (75.0, 10.0, 10.0, "outbound"),  # In band
+                (74.0, 9.0, 20.0, "outbound"),  # In band
+                (55.0, 15.0, 15.0, "outbound"),  # Out of band (club speed)
+                (90.0, 5.0, 25.0, "outbound"),  # Out of band (too fast)
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
             speed_tolerance_mph=5.0,
         )
         assert len(speeds) == 2
@@ -1302,43 +1351,55 @@ class TestExtractBallSpeeds:
 
     def test_respects_window(self):
         """Only readings within window_ms after ball_timestamp_ms are included."""
-        timeline = self._make_timeline([
-            (75.0, 10.0, 10.0, "outbound"),
-            (74.5, 9.0, 30.0, "outbound"),
-            (75.2, 8.0, 50.0, "outbound"),
-            (74.8, 7.0, 80.0, "outbound"),  # Outside 50ms window
-            (75.1, 6.0, 100.0, "outbound"),  # Outside 50ms window
-        ])
+        timeline = self._make_timeline(
+            [
+                (75.0, 10.0, 10.0, "outbound"),
+                (74.5, 9.0, 30.0, "outbound"),
+                (75.2, 8.0, 50.0, "outbound"),
+                (74.8, 7.0, 80.0, "outbound"),  # Outside 50ms window
+                (75.1, 6.0, 100.0, "outbound"),  # Outside 50ms window
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
             window_ms=50,
         )
         assert len(speeds) == 3
 
     def test_excludes_inbound_readings(self):
         """Inbound readings are always excluded."""
-        timeline = self._make_timeline([
-            (75.0, 10.0, 10.0, "outbound"),
-            (74.0, 9.0, 20.0, "inbound"),   # Same speed band but inbound
-        ])
+        timeline = self._make_timeline(
+            [
+                (75.0, 10.0, 10.0, "outbound"),
+                (74.0, 9.0, 20.0, "inbound"),  # Same speed band but inbound
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
         )
         assert len(speeds) == 1
 
     def test_excludes_readings_before_ball_timestamp(self):
         """Readings before ball_timestamp_ms are excluded."""
-        timeline = self._make_timeline([
-            (75.0, 10.0, 0.0, "outbound"),   # Before ball_timestamp
-            (74.5, 9.0, 5.0, "outbound"),    # Before ball_timestamp
-            (75.2, 8.0, 10.0, "outbound"),   # At ball_timestamp (included)
-            (74.8, 7.0, 20.0, "outbound"),   # After (included)
-        ])
+        timeline = self._make_timeline(
+            [
+                (75.0, 10.0, 0.0, "outbound"),  # Before ball_timestamp
+                (74.5, 9.0, 5.0, "outbound"),  # Before ball_timestamp
+                (75.2, 8.0, 10.0, "outbound"),  # At ball_timestamp (included)
+                (74.8, 7.0, 20.0, "outbound"),  # After (included)
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
         )
         assert len(speeds) == 2
 
@@ -1347,20 +1408,26 @@ class TestExtractBallSpeeds:
         timeline = self._make_timeline([])
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
         )
         assert speeds == []
 
     def test_custom_speed_tolerance(self):
         """Custom speed_tolerance_mph is respected."""
-        timeline = self._make_timeline([
-            (75.0, 10.0, 10.0, "outbound"),
-            (72.0, 9.0, 20.0, "outbound"),  # Within ±5 but not ±2
-            (74.0, 8.0, 30.0, "outbound"),  # Within ±2
-        ])
+        timeline = self._make_timeline(
+            [
+                (75.0, 10.0, 10.0, "outbound"),
+                (72.0, 9.0, 20.0, "outbound"),  # Within ±5 but not ±2
+                (74.0, 8.0, 30.0, "outbound"),  # Within ±2
+            ]
+        )
         processor = RollingBufferProcessor()
         speeds = processor.extract_ball_speeds(
-            timeline, ball_timestamp_ms=10.0, ball_speed_mph=75.0,
+            timeline,
+            ball_timestamp_ms=10.0,
+            ball_speed_mph=75.0,
             speed_tolerance_mph=2.0,
         )
         assert len(speeds) == 2  # 75.0 and 74.0 only
@@ -1401,11 +1468,15 @@ class TestSpinDetectionIntegration:
     def test_spin_detected_7iron(self):
         """7-iron at 7000 RPM should be reliably detected."""
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=120, spin_rpm=7000, modulation_depth=0.03,
+            base_speed_mph=120,
+            spin_rpm=7000,
+            modulation_depth=0.03,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         processor = RollingBufferProcessor()
         result = processor.process_capture(capture)
@@ -1423,11 +1494,15 @@ class TestSpinDetectionIntegration:
         the spin algorithm independent of the speed timeline.
         """
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=160, spin_rpm=3000, modulation_depth=0.03,
+            base_speed_mph=160,
+            spin_rpm=3000,
+            modulation_depth=0.03,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         processor = RollingBufferProcessor()
         result = processor.detect_spin(capture, ball_speed_mph=160, ball_timestamp_ms=5.0)
@@ -1437,11 +1512,15 @@ class TestSpinDetectionIntegration:
     def test_spin_detected_wedge(self):
         """Wedge at 10000 RPM."""
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=90, spin_rpm=10000, modulation_depth=0.05,
+            base_speed_mph=90,
+            spin_rpm=10000,
+            modulation_depth=0.05,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         processor = RollingBufferProcessor()
         result = processor.process_capture(capture)
@@ -1466,24 +1545,30 @@ class TestSpinDetectionIntegration:
         q_samples = (200 * np.sin(phase) + 2048).astype(int).clip(0, 4095).tolist()
 
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         processor = RollingBufferProcessor()
         result = processor.process_capture(capture)
         assert result is not None
         assert result.spin is not None
-        assert result.spin.spin_rpm == 0 or result.spin.quality not in ("high", "medium"), \
+        assert result.spin.spin_rpm == 0 or result.spin.quality not in ("high", "medium"), (
             f"Unexpected spin: {result.spin.spin_rpm} RPM, quality={result.spin.quality}"
+        )
 
     def test_spin_result_is_populated(self):
         """process_capture should always populate the spin field."""
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=130, spin_rpm=5000,
+            base_speed_mph=130,
+            spin_rpm=5000,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         processor = RollingBufferProcessor()
         result = processor.process_capture(capture)
@@ -1494,6 +1579,7 @@ class TestSpinDetectionIntegration:
 # =============================================================================
 # Tests for Spin Validation Gates
 # =============================================================================
+
 
 class TestSpinValidationGates:
     """Tests for spin detection validation: RPM ceiling, confidence tiers, modulation floor."""
@@ -1527,27 +1613,33 @@ class TestSpinValidationGates:
         """
         processor = RollingBufferProcessor()
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=100, spin_rpm=18000, modulation_depth=0.05,
+            base_speed_mph=100,
+            spin_rpm=18000,
+            modulation_depth=0.05,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         result = processor.detect_spin(capture, ball_speed_mph=100, ball_timestamp_ms=5.0)
-        assert result.spin_rpm == 0, (
-            f"18000 RPM should be rejected, got {result.spin_rpm} RPM"
-        )
+        assert result.spin_rpm == 0, f"18000 RPM should be rejected, got {result.spin_rpm} RPM"
 
     def test_medium_snr_low_cycles_gets_reduced_confidence(self):
         """SNR >= 5 but < 3 seam cycles should score 0.5, not 0.7."""
         processor = RollingBufferProcessor()
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=130, spin_rpm=4000, modulation_depth=0.04,
+            base_speed_mph=130,
+            spin_rpm=4000,
+            modulation_depth=0.04,
             num_samples=700,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.003,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.003,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         result = processor.detect_spin(capture, ball_speed_mph=130, ball_timestamp_ms=1.0)
         if result.spin_rpm > 0:
@@ -1559,11 +1651,15 @@ class TestSpinValidationGates:
         """Modulation depth < 1% should cap confidence at 0.5 max."""
         processor = RollingBufferProcessor()
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=130, spin_rpm=5000, modulation_depth=0.008,
+            base_speed_mph=130,
+            spin_rpm=5000,
+            modulation_depth=0.008,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         result = processor.detect_spin(capture, ball_speed_mph=130, ball_timestamp_ms=5.0)
         if result.spin_rpm > 0:
@@ -1575,14 +1671,16 @@ class TestSpinValidationGates:
         """Clean spin with good SNR and many cycles should still score >= 0.8."""
         processor = RollingBufferProcessor()
         i_samples, q_samples = self._make_iq_with_seam_modulation(
-            base_speed_mph=120, spin_rpm=7000, modulation_depth=0.03,
+            base_speed_mph=120,
+            spin_rpm=7000,
+            modulation_depth=0.03,
         )
         capture = IQCapture(
-            sample_time=0.0, trigger_time=0.068,
-            i_samples=i_samples, q_samples=q_samples,
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=i_samples,
+            q_samples=q_samples,
         )
         result = processor.detect_spin(capture, ball_speed_mph=120, ball_timestamp_ms=5.0)
         assert result.spin_rpm > 0, f"Should detect spin, got quality={result.quality}"
-        assert result.confidence >= 0.8, (
-            f"Strong spin should score >= 0.8, got {result.confidence}"
-        )
+        assert result.confidence >= 0.8, f"Strong spin should score >= 0.8, got {result.confidence}"
