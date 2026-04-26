@@ -34,9 +34,9 @@ OpenFlight is an open-source golf launch monitor that uses Doppler radar to meas
 | Raspberry Pi 5 | Runs everything | $60 |
 | 7" Touchscreen | Shows shot data | $46 |
 | SparkFun SEN-14262 | Sound trigger for spin detection | $18 |
-| K-LD7 + EVAL Board (×2) | Launch angle + club path | $400 |
+| K-LD7 (×2) + FTDI adapters | Launch angle + club path | $140 |
 | Power supply + accessories | | $27 |
-| **Total** | | **~$800** |
+| **Total** | | **~$540** |
 
 > The K-LD7 angle radars are optional. Without them you still get ball speed, club speed, smash factor, spin rate, and estimated carry. See the [full parts list](docs/PARTS.md) for details and links.
 
