@@ -881,6 +881,9 @@ def static_files(path):
 @app.route("/api/shutdown", methods=["POST"])
 def api_shutdown():
     """Cleanly shut down the server via REST API."""
+    body = request.get_json(silent=True) or {}
+    if body.get("token") != _ADMIN_TOKEN:
+        return {"error": "Unauthorized"}, 403
     logger.info("[SERVER] Shutdown requested via REST API")
     threading.Thread(target=_shutdown_process_after_delay, daemon=True).start()
     return {"status": "shutting_down"}, 200
@@ -1135,15 +1138,18 @@ def generate_mjpeg():
 @app.route("/camera/stream")
 def camera_stream():
     """MJPEG stream endpoint."""
+    if request.args.get("token") != _CAMERA_TOKEN:
+        return "Unauthorized", 401
     if not camera_enabled or not camera_streaming:
         return "Camera not available", 503
-
     return Response(generate_mjpeg(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 @socketio.on("toggle_camera")
-def handle_toggle_camera():
+def handle_toggle_camera(data=None):
     """Toggle camera on/off."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     global camera_enabled  # pylint: disable=global-statement
 
     if not camera:
@@ -1166,8 +1172,10 @@ def handle_toggle_camera():
 
 
 @socketio.on("toggle_camera_stream")
-def handle_toggle_camera_stream():
+def handle_toggle_camera_stream(data=None):
     """Toggle camera streaming on/off."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     global camera_streaming  # pylint: disable=global-statement
 
     if not camera or not camera_enabled:
@@ -1328,6 +1336,8 @@ def _get_trigger_status() -> dict:
 def handle_connect():
     """Handle client connection."""
     print("Client connected")
+    if request.remote_addr in ("127.0.0.1", "::1"):
+        socketio.emit("admin_token", {"token": _ADMIN_TOKEN, "camera_token": _CAMERA_TOKEN}, to=request.sid)
     if monitor:
         stats = monitor.get_session_stats()
         shots = [shot_to_dict(s) for s in monitor.get_shots()]
@@ -1362,6 +1372,8 @@ def handle_get_trigger_status():
 @socketio.on("set_club")
 def handle_set_club(data):
     """Handle club selection change."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     club_name = data.get("club", "driver")
     try:
         club = ClubType(club_name)
@@ -1373,16 +1385,20 @@ def handle_set_club(data):
 
 
 @socketio.on("clear_session")
-def handle_clear_session():
+def handle_clear_session(data=None):
     """Clear all recorded shots."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     if monitor:
         monitor.clear_session()
         socketio.emit("session_cleared")
 
 
 @socketio.on("get_session")
-def handle_get_session():
+def handle_get_session(data=None):
     """Get current session data."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     if monitor:
         stats = monitor.get_session_stats()
         shots = [shot_to_dict(s) for s in monitor.get_shots()]
@@ -1390,17 +1406,21 @@ def handle_get_session():
 
 
 @socketio.on("simulate_shot")
-def handle_simulate_shot():
+def handle_simulate_shot(data=None):
     """Simulate a shot (only works in mock mode)."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     if monitor and isinstance(monitor, MockLaunchMonitor):
         monitor.simulate_shot()
 
 
 @socketio.on("toggle_debug")
-def handle_toggle_debug():
+def handle_toggle_debug(data=None):
     """Toggle debug mode on/off."""
     global debug_mode  # pylint: disable=global-statement
 
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     debug_mode = not debug_mode
 
     if debug_mode:
@@ -1444,6 +1464,9 @@ def handle_get_radar_config():
 def handle_set_radar_config(data):
     """Update radar configuration."""
     global radar_config  # pylint: disable=global-statement
+
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
 
     if not monitor or mock_mode:
         log_session_error(
@@ -1509,12 +1532,29 @@ def handle_set_radar_config(data):
             context={"stage": "set_radar_config", "requested": data},
             exc=e,
         )
-        socketio.emit("radar_config_error", {"error": str(e)})
+        socketio.emit("radar_config_error", {"error": "Failed to apply radar config"})
+
+
+_ALLOWED_A11Y_KEYS: frozenset = frozenset({"reduceMotion", "highContrast", "largeText"})
+
+
+@socketio.on("client_prefs")
+def handle_client_prefs(data=None):
+    """Receive preference update from mobile app and broadcast to kiosk UI."""
+    if not isinstance(data, dict):
+        return
+    a11y_raw = data.get("accessibility")
+    if not isinstance(a11y_raw, dict):
+        return
+    sanitized = {k: bool(v) for k, v in a11y_raw.items() if k in _ALLOWED_A11Y_KEYS}
+    socketio.emit("accessibility_prefs_update", {"accessibility": sanitized})
 
 
 @socketio.on("shutdown")
-def handle_shutdown():
+def handle_shutdown(data=None):
     """Cleanly shut down the server and all hardware."""
+    if not isinstance(data, dict) or data.get("token") != _ADMIN_TOKEN:
+        return
     logger.info("[SERVER] Shutdown requested from UI (WebSocket)")
     socketio.emit("shutdown_ack", {"message": "Shutting down..."})
     threading.Thread(target=_shutdown_process_after_delay, daemon=True).start()

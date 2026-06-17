@@ -144,8 +144,9 @@ class TestSessionErrorLogging:
             lambda event, payload: emitted.append((event, payload)),
         )
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module, "_ADMIN_TOKEN", "test-token")
 
-        server_module.handle_set_radar_config({"min_speed": 99})
+        server_module.handle_set_radar_config({"min_speed": 99, "token": "test-token"})
 
         assert logged_errors
         assert logged_errors[0][0] == "Radar config update failed"
@@ -163,8 +164,9 @@ class TestSessionErrorLogging:
             lambda error, **kwargs: logged_errors.append((error, kwargs)),
         )
         monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+        monkeypatch.setattr(server_module, "_ADMIN_TOKEN", "test-token")
 
-        server_module.handle_set_radar_config({"min_speed": 99})
+        server_module.handle_set_radar_config({"min_speed": 99, "token": "test-token"})
 
         assert logged_errors
         assert "not connected" in logged_errors[0][0]
