@@ -8,6 +8,8 @@ import json
 import logging
 import os
 import random
+import secrets
+import socket as _net
 import statistics
 import sys
 import threading
@@ -16,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from flask import Flask, Response, send_from_directory
+from flask import Flask, Response, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -58,8 +60,42 @@ app = Flask(__name__, static_folder=str(FRONTEND_DIST_DIR), static_url_path="")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
+# ------------------------------------------------------------------
+# BLE pairing secret — persisted across restarts so the mobile app
+# only needs to scan the QR once.  Stored chmod 600 in ~/.openflight/.
+# ------------------------------------------------------------------
+_PAIRING_KEY_FILE = Path.home() / ".openflight" / "pairing.key"
+
+
+def _load_or_create_pairing_secret() -> bytes:
+    _PAIRING_KEY_FILE.parent.mkdir(exist_ok=True)
+    if _PAIRING_KEY_FILE.exists():
+        _PAIRING_KEY_FILE.chmod(0o600)  # enforce on every load, not just creation
+        try:
+            return bytes.fromhex(_PAIRING_KEY_FILE.read_text().strip())
+        except ValueError:
+            pass  # corrupted — regenerate
+    raw = secrets.token_bytes(32)
+    _PAIRING_KEY_FILE.write_text(raw.hex())
+    _PAIRING_KEY_FILE.chmod(0o600)
+    return raw
+
+
+_PAIRING_SECRET: bytes = _load_or_create_pairing_secret()
+
+
+def _get_local_ip() -> str:
+    """Return the primary LAN IP used to reach the outside world."""
+    try:
+        with _net.socket(_net.AF_INET, _net.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:  # pylint: disable=broad-except
+        return "127.0.0.1"
+
 # Global state
 monitor = None
+ble_server = None
 mock_mode: bool = False
 debug_mode: bool = False
 debug_log_file = None
@@ -858,6 +894,35 @@ def static_files(path):
     return send_from_directory(app.static_folder, path)
 
 
+@app.route("/api/pair-qr")
+def api_pair_qr():
+    """Return the QR payload for BLE pairing.
+
+    Only callable from localhost (the kiosk browser on the Pi itself) so the
+    pairing secret is never served over the LAN.  The kiosk renders the
+    payload as a QR code; the mobile app scans it once and stores the secret
+    in the device Keychain/Keystore — no further network calls required.
+    """
+    # Only the socket-level peer address matters — X-Forwarded-For is
+    # trivially spoofable by any LAN host and must never gate a secret endpoint.
+    remote = request.remote_addr or ""
+    is_local = remote in ("127.0.0.1", "::1")
+    if not is_local:
+        return {"error": "Forbidden"}, 403
+    try:
+        host_str = request.host or ""
+        host_port = int(host_str.split(":")[-1]) if ":" in host_str else 8080
+        return {
+            "v": 1,
+            "s": _PAIRING_SECRET.hex(),
+            "h": _get_local_ip(),
+            "p": host_port,
+        }, 200
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("[SERVER] pair-qr error: %s", exc)
+        return {"error": f"Server error: {exc}"}, 503
+
+
 @app.route("/api/shutdown", methods=["POST"])
 def api_shutdown():
     """Cleanly shut down the server via REST API."""
@@ -1358,6 +1423,8 @@ def handle_clear_session():
     if monitor:
         monitor.clear_session()
         socketio.emit("session_cleared")
+        if ble_server is not None:
+            ble_server.notify_event({"event": "session_cleared"})
 
 
 @socketio.on("get_session")
@@ -1959,6 +2026,8 @@ def on_shot_detected(shot: Shot):
         shot_data = shot_to_dict(shot)
         stats = monitor.get_session_stats() if monitor else {}
         socketio.emit("shot", {"shot": shot_data, "stats": stats})
+        if ble_server is not None:
+            ble_server.notify_shot(shot_data)
 
         # Log shot info
         angle_str = ""
@@ -2339,6 +2408,33 @@ class MockLaunchMonitor:
         self._current_club = club
 
 
+def _handle_ble_command(cmd: dict) -> None:
+    """Dispatch commands received from BLE central devices."""
+    command = cmd.get("cmd")
+    if command == "get_session" and monitor:
+        shots_list = [shot_to_dict(s) for s in monitor.get_shots()]
+        for shot_data in shots_list:
+            if ble_server is not None:
+                ble_server.notify_shot(shot_data)
+            time.sleep(0.05)
+    elif command == "clear_session" and monitor:
+        monitor.clear_session()
+        socketio.emit("session_cleared")
+        if ble_server is not None:
+            ble_server.notify_event({"event": "session_cleared"})
+    elif command == "set_club":
+        club_name = cmd.get("club", "")
+        try:
+            club = ClubType(club_name)
+            if monitor:
+                monitor.set_club(club)
+        except ValueError:
+            pass
+    elif command == "set_prefs":
+        prefs_payload = {k: v for k, v in cmd.items() if k != "cmd"}
+        socketio.emit("accessibility_prefs_update", prefs_payload)
+
+
 def main():
     """Run the server."""
     import argparse  # pylint: disable=import-outside-toplevel
@@ -2414,6 +2510,11 @@ def main():
         "--log-dir", help="Directory for session logs (default: ~/openflight_sessions)"
     )
     parser.add_argument("--no-logging", action="store_true", help="Disable session logging")
+    parser.add_argument(
+        "--ble",
+        action="store_true",
+        help="Enable Bluetooth LE GATT server (Pi only, requires bless package)",
+    )
     parser.add_argument(
         "--ballistics",
         action="store_true",
@@ -2754,6 +2855,19 @@ def main():
     if args.mock:
         print("Running in MOCK mode - no radar required")
         print("Simulate shots via WebSocket or API")
+
+    if args.ble:
+        global ble_server  # pylint: disable=global-statement
+        from .ble_server import BLEServer  # pylint: disable=import-outside-toplevel
+
+        ble_server = BLEServer(on_command=_handle_ble_command, pairing_secret=_PAIRING_SECRET)
+        if ble_server.start():
+            print("Bluetooth LE server started — advertising as 'OpenFlight'")
+            print(f"  Pairing secret stored at: {_PAIRING_KEY_FILE}")
+            print("  Show the kiosk Settings -> Pair Mobile to display the QR code")
+        else:
+            print("WARNING: Bluetooth LE server failed to start — continuing without BLE")
+            ble_server = None
 
     print(f"Server starting at http://{args.host}:{args.web_port}")
     print()
