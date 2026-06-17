@@ -8,6 +8,8 @@ import json
 import logging
 import os
 import random
+import re
+import secrets
 import statistics
 import sys
 import threading
@@ -16,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from flask import Flask, Response, send_from_directory
+from flask import Flask, Response, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -55,8 +57,26 @@ except ImportError:
 
 
 app = Flask(__name__, static_folder=str(FRONTEND_DIST_DIR), static_url_path="")
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# Restrict CORS to RFC 1918 private ranges and localhost only.
+# Flask-SocketIO inherits this when cors_allowed_origins is omitted.
+# React Native clients that omit Origin entirely are not subject to CORS (no browser).
+_LAN_ORIGIN_RE = re.compile(
+    r"^https?://(localhost|127\.0\.0\.1"
+    r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+    r"|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+    r"|192\.168\.\d{1,3}\.\d{1,3})"
+    r"(:\d{1,5})?$"
+)
+_cors_allow = lambda o: bool(_LAN_ORIGIN_RE.match(o or ""))  # noqa: E731
+CORS(app, origins=_cors_allow)
+socketio = SocketIO(app, async_mode="threading", cors_allowed_origins=_cors_allow)
+
+# Generated at startup; printed to console for operator use
+_ADMIN_TOKEN: str = secrets.token_hex(16)
+# Separate token for the MJPEG stream endpoint — appears in URL query params
+# (and therefore server access logs), so kept distinct from the admin token.
+_CAMERA_TOKEN: str = secrets.token_hex(16)
 
 # Global state
 monitor = None
