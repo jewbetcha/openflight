@@ -1,13 +1,15 @@
 """Tests for the kiosk entry script experiment flag wiring."""
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _dry_run(*args: str):
     import subprocess
 
-    repo_root = __file__.rsplit("/tests/", 1)[0]
     return subprocess.run(
         ["bash", "scripts/start-kiosk.sh", *args, "--dry-run"],
-        cwd=repo_root,
+        cwd=_REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
@@ -63,10 +65,7 @@ def test_plain_kld7_keeps_legacy_angle_path():
 
 def test_startup_applies_kld7_latency_setup_before_server_start():
     """Kiosk startup should attempt the FTDI latency setup for K-LD7 sessions."""
-    from pathlib import Path
-
-    repo_root = Path(__file__).resolve().parents[1]
-    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+    script = (_REPO_ROOT / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
 
     setup_idx = script.index("\nconfigure_kld7_latency\n")
     server_start_idx = script.index("$SERVER_CMD &")
