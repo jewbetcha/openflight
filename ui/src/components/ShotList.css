@@ -1,188 +1,515 @@
-/* Shot List */
+/* ── ShotList ────────────────────────────────────────────────────────────────
+   Horizontal-scroll data table with column picker panel and quality coloring.
+   Design tokens match SettingsPanel / StatsView vocabulary.
+   ─────────────────────────────────────────────────────────────────────────── */
+
 .shot-list {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
+  animation: view-enter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .shot-list--empty {
-  display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
-.shot-list__rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  flex: 1;
-}
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
 
-/* Shot Row */
-.shot-row {
+.sl-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.06);
-  border-radius: var(--radius-md);
-  min-height: 60px;
-  transition: all var(--transition-smooth);
+  padding: 0 var(--space-sm) var(--space-xs);
+  flex-shrink: 0;
 }
 
-.shot-row:hover {
-  background: var(--color-bg-elevated);
-  border-color: rgba(212, 175, 55, 0.15);
-}
-
-.shot-row__number {
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 500;
+.sl-toolbar__count {
   color: var(--text-muted);
-  min-width: 2.5rem;
-}
-
-.shot-row__club {
   font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-gold);
-  background: rgba(212, 175, 55, 0.12);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  min-width: 3.5rem;
-  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.shot-row__stat {
+.sl-col-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  flex: 1;
-  max-width: 4.5rem;
-}
-
-.shot-row__value {
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 400;
-  color: var(--color-cream);
-  line-height: 1;
-}
-
-.shot-row__label {
-  font-size: 0.625rem;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(245, 240, 230, 0.06);
+  border: 1px solid rgba(245, 240, 230, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  min-height: 32px;
+  touch-action: manipulation;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sl-col-btn:hover {
+  background: rgba(245, 240, 230, 0.1);
+  border-color: rgba(245, 240, 230, 0.28);
+  color: var(--color-cream);
+}
+
+.sl-col-btn:active {
+  transform: scale(0.97);
+}
+
+.sl-col-btn__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: rgba(var(--gold-rgb), 0.22);
+  border-radius: 999px;
+  color: var(--color-gold);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+/* ── Table scroll wrap ───────────────────────────────────────────────────── */
+
+.sl-table-wrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Remove mask when scrolled fully right (handled via JS alternative; this is a CSS hint) */
+.sl-table-wrap::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.sl-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sl-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(var(--gold-rgb), 0.25);
+  border-radius: 999px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.sl-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+/* ── Header row ──────────────────────────────────────────────────────────── */
+
+.sl-th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0 8px 6px;
+  background: var(--color-bg);
+  border-bottom: 1px solid rgba(245, 240, 230, 0.12);
   color: var(--text-muted);
-  text-transform: uppercase;
+  font-size: 0.5625rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  margin-top: 2px;
+  text-align: right;
+  white-space: nowrap;
+  text-transform: uppercase;
+  min-width: 58px;
 }
 
-/* Primary stat (ball speed) */
-.shot-row__stat:first-of-type .shot-row__value {
-  color: var(--color-gold);
+.sl-th--num {
+  text-align: center;
+  min-width: 30px;
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background: var(--color-bg);
 }
 
-/* Carry stat */
-.shot-row__stat--carry .shot-row__value {
-  color: var(--color-gold);
+.sl-th--club {
+  text-align: left;
+  min-width: 58px;
+  position: sticky;
+  left: 30px;
+  z-index: 20;
+  background: var(--color-bg);
+  /* subtle separator after pinned zone */
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
 }
 
-/* Pagination */
+/* ── Data rows ───────────────────────────────────────────────────────────── */
+
+.sl-tr {
+  border-bottom: 1px solid rgba(245, 240, 230, 0.05);
+  transition: background 0.1s ease;
+}
+
+.sl-tr:hover {
+  background: rgba(245, 240, 230, 0.035);
+}
+
+.sl-tr:last-child {
+  border-bottom: none;
+}
+
+/* ── Data cells ──────────────────────────────────────────────────────────── */
+
+.sl-td {
+  padding: 0 8px;
+  height: var(--touch-min); /* Apple HIG minimum interactive height */
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sl-td--num {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--color-bg);
+}
+
+.sl-td--club {
+  text-align: left;
+  position: sticky;
+  left: 30px;
+  z-index: 5;
+  background: var(--color-bg);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Keep sticky bg in sync on hover */
+.sl-tr:hover .sl-td--num,
+.sl-tr:hover .sl-td--club {
+  background: rgba(245, 240, 230, 0.035);
+}
+
+/* ── Cell content layout ─────────────────────────────────────────────────── */
+
+.sl-cell {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.sl-cell__value {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-cream);
+  transition: color 0.15s ease;
+}
+
+.sl-cell__unit {
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  align-self: flex-end;
+  margin-bottom: 1px;
+}
+
+/* Quality indicator dot (after the value) */
+.sl-cell__dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+  opacity: 0.9;
+}
+
+/* ── Club chip ───────────────────────────────────────────────────────────── */
+
+.sl-club-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  background: rgba(245, 240, 230, 0.07);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
-  padding-top: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
   flex-shrink: 0;
+  border-top: 1px solid rgba(245, 240, 230, 0.08);
 }
 
 .pagination__button {
-  padding: var(--space-sm) var(--space-lg);
+  padding: 5px 12px;
+  min-height: 36px;
   background: transparent;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(var(--gold-rgb), 0.25);
   border-radius: var(--radius-sm);
   color: var(--color-gold);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all var(--transition-smooth);
-  min-height: 42px;
-  min-width: 80px;
   touch-action: manipulation;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.pagination__button:hover:not(:disabled) {
+  background: rgba(var(--gold-rgb), 0.1);
 }
 
 .pagination__button:active:not(:disabled) {
-  transform: scale(0.95);
-  background: rgba(212, 175, 55, 0.1);
+  transform: scale(0.97);
 }
 
 .pagination__button:disabled {
   opacity: 0.3;
-  cursor: not-allowed;
+  cursor: default;
   color: var(--text-muted);
   border-color: rgba(245, 240, 230, 0.1);
 }
 
 .pagination__info {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  min-width: 3rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
   text-align: center;
 }
 
-/* Landscape 7" screen (800x480) */
-@media (max-height: 500px) {
-  .shot-list__rows {
-    gap: var(--space-xs);
+/* ── Column Picker Panel ─────────────────────────────────────────────────── */
+/* HIG Sheet pattern: slides in from trailing edge */
+
+.sl-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  animation: sl-backdrop-in 0.18s ease forwards;
+}
+
+@keyframes sl-backdrop-in {
+  to { opacity: 1; }
+}
+
+.sl-picker {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 300;
+  width: 264px;
+  background: var(--color-bg-elevated);
+  border-left: 1px solid rgba(var(--gold-rgb), 0.22);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+}
+
+.sl-picker--open {
+  transform: translateX(0);
+}
+
+.sl-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-bottom: 1px solid rgba(245, 240, 230, 0.1);
+  flex-shrink: 0;
+}
+
+.sl-picker__title {
+  color: var(--color-gold);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sl-picker__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sl-picker__reset {
+  padding: 4px 9px;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sl-picker__reset:hover {
+  background: rgba(245, 240, 230, 0.08);
+  color: var(--color-cream);
+}
+
+.sl-picker__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sl-picker__close:hover {
+  background: rgba(245, 240, 230, 0.08);
+  color: var(--color-cream);
+}
+
+/* Scrollable body */
+.sl-picker__body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--space-md);
+}
+
+.sl-picker__body::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sl-picker__body::-webkit-scrollbar-thumb {
+  background: rgba(var(--gold-rgb), 0.2);
+  border-radius: 999px;
+}
+
+.sl-picker__section-label {
+  color: var(--text-muted);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: var(--space-sm) 0 2px;
+}
+
+.sl-picker__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(245, 240, 230, 0.06);
+  cursor: default;
+  min-height: var(--touch-min);
+  box-sizing: border-box;
+}
+
+.sl-picker__col-name {
+  color: var(--color-cream);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.sl-picker__footer {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid rgba(245, 240, 230, 0.1);
+  flex-shrink: 0;
+}
+
+.sl-picker__done {
+  width: 100%;
+  padding: 10px;
+  background: rgba(var(--gold-rgb), 0.18);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: var(--radius-sm);
+  color: var(--color-gold);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--transition-fast);
+}
+
+.sl-picker__done:hover {
+  background: rgba(var(--gold-rgb), 0.26);
+}
+
+.sl-picker__done:active {
+  transform: scale(0.98);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .shot-list {
+    animation: none;
   }
 
-  .shot-row {
-    padding: var(--space-sm) var(--space-md);
-    min-height: 50px;
+  .sl-picker {
+    transition: none;
   }
 
-  .shot-row__number {
-    font-size: 0.8125rem;
-    min-width: 2rem;
+  .sl-picker-backdrop {
+    animation: none;
+    opacity: 1;
   }
 
-  .shot-row__club {
-    font-size: 0.6875rem;
-    min-width: 3rem;
-    padding: 2px var(--space-xs);
+  .sl-col-btn,
+  .sl-tr,
+  .pagination__button {
+    transition: none;
+  }
+}
+
+/* ── 7-inch kiosk landscape (compact height) ─────────────────────────────── */
+
+@media (max-height: 520px) {
+  .sl-td {
+    height: 38px;
   }
 
-  .shot-row__value {
-    font-size: 1.125rem;
-  }
-
-  .shot-row__label {
-    font-size: 0.5625rem;
-  }
-
-  .shot-row__stat {
-    max-width: 4rem;
+  .sl-picker__row {
+    min-height: 38px;
+    padding: 6px 0;
   }
 
   .pagination {
-    padding-top: var(--space-sm);
-    gap: var(--space-sm);
+    padding: 4px var(--space-sm);
   }
 
   .pagination__button {
-    padding: var(--space-xs) var(--space-md);
-    min-height: 38px;
-    min-width: 70px;
-    font-size: 0.75rem;
+    min-height: 30px;
+    padding: 4px 10px;
   }
 }

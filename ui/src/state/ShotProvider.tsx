@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import type { Shot } from '../types/shot';
-import { ShotContext } from './shotContext';
+import { ShotDataContext, ShotActionsContext } from './shotContext';
 
-/** Duration to keep isNewShot true — covers the longest animation (shot-glow: 2s) */
+/** Duration to keep isNewShot true - covers the longest animation (shot-glow: 2s) */
 const NEW_SHOT_DURATION_MS = 2500;
 
 export function ShotProvider({ children }: { children: ReactNode }) {
@@ -31,7 +31,7 @@ export function ShotProvider({ children }: { children: ReactNode }) {
     if (newShots.length > 0) {
       setLatestShot(newShots[newShots.length - 1]);
     }
-    // Session restore — don't trigger animations
+    // Session restore - don't trigger animations
   }, []);
 
   const clearShots = useCallback(() => {
@@ -41,19 +41,21 @@ export function ShotProvider({ children }: { children: ReactNode }) {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
+  // Memoized so the data value is referentially stable between renders that
+  // don't change shots, and the actions value is stable for the whole lifetime
+  // (callbacks are useCallback'd), letting action-only consumers skip re-renders.
+  const data = useMemo(
+    () => ({ latestShot, shots, isNewShot, shotVersion }),
+    [latestShot, shots, isNewShot, shotVersion],
+  );
+  const actions = useMemo(
+    () => ({ addShot, setShots, clearShots }),
+    [addShot, setShots, clearShots],
+  );
+
   return (
-    <ShotContext.Provider
-      value={{
-        latestShot,
-        shots,
-        isNewShot,
-        shotVersion,
-        addShot,
-        setShots,
-        clearShots,
-      }}
-    >
-      {children}
-    </ShotContext.Provider>
+    <ShotActionsContext.Provider value={actions}>
+      <ShotDataContext.Provider value={data}>{children}</ShotDataContext.Provider>
+    </ShotActionsContext.Provider>
   );
 }

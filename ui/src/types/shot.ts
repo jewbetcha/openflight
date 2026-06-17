@@ -19,8 +19,16 @@ export interface Shot {
   spin_rpm: number | null;
   spin_confidence: number | null;
   spin_quality: 'high' | 'medium' | 'low' | null;
-  spin_source: 'measured' | 'calculated' | null;
+  // Provenance of spin_rpm: 'calculated' (kinematic estimate) vs measured radar
+  spin_source?: 'measured' | 'calculated' | string | null;
   carry_spin_adjusted: number | null;
+  // Computed trajectory / geometry fields (sent by server)
+  apex_height_yards?: number | null;
+  total_distance_yards?: number | null;
+  carry_side_yards?: number | null;
+  curve_yards?: number | null;
+  face_to_path_deg?: number | null;
+  is_mishit?: boolean;
 }
 
 export interface SessionStats {
@@ -32,6 +40,10 @@ export interface SessionStats {
   avg_club_speed: number | null;
   avg_smash_factor: number | null;
   avg_carry_est: number;
+  max_carry?: number;
+  min_carry?: number;
+  std_dev_carry?: number | null;
+  avg_launch_angle?: number | null;
   // Rolling buffer mode spin stats
   avg_spin_rpm?: number | null;
   spin_detection_rate?: number;
@@ -95,11 +107,13 @@ export function computeStats(shots: Shot[]): SessionStats {
   const ballSpeeds = shots.map((s) => s.ball_speed_mph);
   const clubSpeeds = shots.map((s) => s.club_speed_mph).filter((v): v is number => v !== null);
   const smashFactors = shots.map((s) => s.smash_factor).filter((v): v is number => v !== null);
-  const carries = shots.map((s) => s.estimated_carry_yards);
+  const carries = shots.map((s) => s.carry_spin_adjusted ?? s.estimated_carry_yards);
+  const spinRpms = shots.map((s) => s.spin_rpm).filter((v): v is number => v !== null);
+  const launchAngles = shots.map((s) => s.launch_angle_vertical).filter((v): v is number => v !== null);
 
   const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
   const stdDev = (arr: number[]) => {
-    if (arr.length < 2) return 0;
+    if (arr.length < 2) return null;
     const m = mean(arr);
     return Math.sqrt(arr.reduce((sum, x) => sum + (x - m) ** 2, 0) / (arr.length - 1));
   };
@@ -109,10 +123,15 @@ export function computeStats(shots: Shot[]): SessionStats {
     avg_ball_speed: mean(ballSpeeds),
     max_ball_speed: Math.max(...ballSpeeds),
     min_ball_speed: Math.min(...ballSpeeds),
-    std_dev: stdDev(ballSpeeds),
+    std_dev: stdDev(ballSpeeds) ?? 0,
     avg_club_speed: clubSpeeds.length > 0 ? mean(clubSpeeds) : null,
     avg_smash_factor: smashFactors.length > 0 ? mean(smashFactors) : null,
     avg_carry_est: mean(carries),
+    max_carry: Math.max(...carries),
+    min_carry: Math.min(...carries),
+    std_dev_carry: stdDev(carries),
+    avg_launch_angle: launchAngles.length > 0 ? mean(launchAngles) : null,
+    avg_spin_rpm: spinRpms.length > 0 ? mean(spinRpms) : null,
   };
 }
 
