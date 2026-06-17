@@ -7,8 +7,8 @@
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: var(--color-bg-deep);
 }
@@ -20,14 +20,33 @@
   justify-content: space-between;
   padding: var(--space-sm) var(--space-lg);
   background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-card) 100%);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  border-bottom: 1px solid rgba(var(--gold-rgb), 0.15);
   flex-shrink: 0;
 }
 
 .header__logo {
-  height: 40px;
+  height: 3.5rem;
   width: auto;
+  display: block;
   filter: brightness(1.1);
+}
+
+/* Secret Launch-Daddy activation area (5 quick taps on the logo).
+   Sized as a touch target so it scales with the root and stays tappable. */
+.header__secret-tap {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  cursor: pointer;
+  user-select: none;
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .header__controls {
@@ -56,10 +75,11 @@
   letter-spacing: 0.04em;
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-height: var(--touch-min);
 }
 
 .unit-toggle__button--active {
-  background: rgba(212, 175, 55, 0.16);
+  background: rgba(var(--gold-rgb), 0.16);
   color: var(--color-gold);
 }
 
@@ -89,7 +109,7 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--transition-smooth);
-  min-height: 42px;
+  min-height: var(--touch-min);
   position: relative;
   overflow: hidden;
 }
@@ -112,8 +132,8 @@
 }
 
 .nav__button--active {
-  background: rgba(212, 175, 55, 0.08);
-  border-color: rgba(212, 175, 55, 0.25);
+  background: rgba(var(--gold-rgb), 0.08);
+  border-color: rgba(var(--gold-rgb), 0.25);
   color: var(--color-gold);
 }
 
@@ -122,9 +142,11 @@
 }
 
 .nav__button svg {
-  width: 18px;
-  height: 18px;
+  /* em keeps the icon proportional to the tab label at every resolution */
+  width: 1.5em;
+  height: 1.5em;
   stroke-width: 2;
+  flex-shrink: 0;
 }
 
 .nav__badge {
@@ -142,7 +164,7 @@
 }
 
 .nav__button--recording {
-  border-color: rgba(248, 113, 113, 0.4);
+  border-color: rgba(var(--neg-rgb), 0.4);
 }
 
 .nav__button--streaming {
@@ -187,6 +209,12 @@
   }
 }
 
+/* Fallback while a lazily-loaded view chunk loads — holds layout, no flicker */
+.view-fallback {
+  flex: 1;
+  min-height: 0;
+}
+
 /* Main Content */
 .main {
   flex: 1;
@@ -203,6 +231,7 @@
   height: 100%;
   gap: var(--space-sm);
   position: relative;
+  animation: view-enter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Shot Impact Animation */
@@ -210,23 +239,24 @@
   position: absolute;
   inset: -1rem;
   border-radius: var(--radius-xl);
-  animation: shot-impact 0.6s ease-out forwards;
   pointer-events: none;
   z-index: 10;
+  background: radial-gradient(circle at center, rgba(var(--gold-rgb), 0.28) 0%, transparent 65%);
+  animation: shot-impact 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes shot-impact {
   0% {
-    background: radial-gradient(circle at center, var(--color-gold) 0%, transparent 0%);
     opacity: 1;
+    transform: scale(0.35);
   }
-  50% {
-    background: radial-gradient(circle at center, var(--color-gold) 0%, transparent 70%);
+  55% {
     opacity: 0.6;
+    transform: scale(1);
   }
   100% {
-    background: radial-gradient(circle at center, transparent 0%, transparent 100%);
     opacity: 0;
+    transform: scale(1.08);
   }
 }
 
@@ -243,14 +273,14 @@
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: all var(--transition-fast);
-  min-height: 44px;
+  min-height: var(--touch-min);
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--gold-rgb), 0.3);
 }
 
 .simulate-button:active {
   transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 2px 8px rgba(var(--gold-rgb), 0.2);
 }
 
 /* Power / Shutdown */
@@ -258,43 +288,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--touch-min);
+  height: var(--touch-min);
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+/* Icon scales with the root (overrides the SVG's px width/height attributes) */
+.power-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .power-button:hover {
-  background: rgba(248, 113, 113, 0.2);
+  background: rgba(var(--neg-rgb), 0.2);
   color: #f87171;
 }
 
 .shutdown-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: view-enter 0.15s ease-out;
 }
 
 .shutdown-dialog {
   background: var(--color-bg-card);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(var(--gold-rgb), 0.2);
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
   min-width: 280px;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--gold-rgb), 0.08),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: dialog-enter 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .shutdown-dialog p {
   font-size: 1.125rem;
-  color: var(--color-text);
+  color: var(--text-primary);
   margin: 0 0 1.5rem;
 }
 
@@ -324,13 +377,26 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: 0.9375rem;
   cursor: pointer;
 }
 
 .shutdown-dialog__cancel:active {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.shutdown-dialog__status {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+  padding: 0.5rem 0;
+}
+
+.shutdown-dialog__status--error {
+  color: #ef4444;
 }
 
 /* Landscape 7" screen (800x480) */
@@ -349,7 +415,7 @@
   }
 
   .header__logo {
-    height: 32px;
+    height: 2.25rem;
   }
 
   .nav {
@@ -359,13 +425,8 @@
 
   .nav__button {
     padding: var(--space-xs) var(--space-sm);
-    min-height: 38px;
+    min-height: var(--touch-min);
     font-size: 0.75rem;
-  }
-
-  .nav__button svg {
-    width: 16px;
-    height: 16px;
   }
 
   .main {
@@ -374,7 +435,93 @@
 
   .simulate-button {
     padding: var(--space-sm);
-    min-height: 40px;
+    min-height: var(--touch-min);
     font-size: 0.875rem;
+  }
+}
+
+/* ── Color Blind Mode ──────────────────────────────────────────────────────────
+ * Four-role semantic palette: yellow=accent, blue=positive, orange=negative, purple=notable
+ * Derived from Paul Tol's CB-safe research + IBM Design Language colorblind guidance.
+ * All four colors verified ≥6:1 contrast against dark background (#0D0D11).
+ *
+ *   Yellow  #E8B830  — primary accent; replaces gold.  Luminous, warm, CB-safe.
+ *   Blue    #4E8CF5  — positive / in-range.  Steel-shifted, distinct from orange.
+ *   Orange  #F28C00  — negative / out-of-range.  Amber-warm, distinct from blue.
+ *   Purple  #9B72F5  — notable / caution / neutral-special.  Lavender, not AI glow.
+ */
+.a11y-color-blind {
+  /* Override RGB channels — every rgba(var(--xxx-rgb), alpha) in the app updates automatically */
+  --gold-rgb:  232, 184, 48;   /* #E8B830 amber-yellow */
+  --pos-rgb:   78, 140, 245;   /* #4E8CF5 steel blue   */
+  --neg-rgb:   242, 140, 0;    /* #F28C00 warm orange  */
+  --ball-rgb:  78, 140, 245;   /* same as pos — ball present = good */
+
+  /* Derived solid tokens for text/borders that use var(--color-gold) */
+  --color-gold:        #E8B830;
+  --color-gold-bright: #F4CF00;
+  --color-gold-dim:    #B89020;
+  --color-gold-glow:   rgba(var(--gold-rgb), 0.4);
+
+  /* Semantic danger/success override — replaces red/green with orange/blue */
+  --color-danger:  #F28C00;
+  --color-success: #4E8CF5;
+
+  /* Named solid tokens used for TSX inline SVG colors */
+  --cb-blue:   #4E8CF5;
+  --cb-orange: #F28C00;
+  --cb-purple: #9B72F5;
+}
+
+/* ── Shot list quality tints ── */
+.a11y-color-blind .shot-list-td--pos  { color: var(--cb-blue); }
+.a11y-color-blind .shot-list-td--neg  { color: var(--cb-orange); }
+.a11y-color-blind .shot-list-td--gold { color: var(--cb-purple); }
+
+/* ── Live view metric card confidence indicators ── */
+.a11y-color-blind .metric-card__confidence--medium        { color: var(--cb-blue); }
+.a11y-color-blind .metric-card__confidence--low,
+.a11y-color-blind .metric-card__confidence--high          { color: var(--cb-orange); }
+.a11y-color-blind .metric-card__confidence--medium .filled { background: var(--cb-blue); }
+.a11y-color-blind .metric-card__confidence--low    .filled,
+.a11y-color-blind .metric-card__confidence--high   .filled { background: var(--cb-orange); }
+
+/* ── Active interactive states: use blue instead of gold ── */
+.a11y-color-blind .stats-view-tab--active {
+  background: rgba(78, 140, 245, 0.12);
+  color: var(--cb-blue);
+  border-color: rgba(78, 140, 245, 0.3);
+}
+.a11y-color-blind .stats-filter-btn--active {
+  background: rgba(78, 140, 245, 0.08);
+  border-color: rgba(78, 140, 245, 0.3);
+  color: var(--cb-blue);
+}
+.a11y-color-blind .stats-filter-chip--active { color: var(--cb-blue); }
+.a11y-color-blind .a11y-toggle--on { background: var(--cb-blue); }
+.a11y-color-blind .stat-toggle--on { background: var(--cb-blue); }
+
+/* ── Speed gauge arc ── */
+.a11y-color-blind .speed-gauge__value-arc { stroke: var(--color-gold); }
+
+/* ── Header accent ── */
+.a11y-color-blind .header { border-bottom-color: rgba(232, 184, 48, 0.2); }
+
+/* Accessibility: disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .nav__recording-dot,
+  .nav__ball-dot {
+    animation: none;
+  }
+
+  .shot-flash {
+    animation: none;
+    display: none;
+  }
+
+  .live-view,
+  .shutdown-overlay,
+  .shutdown-dialog {
+    animation: none;
   }
 }

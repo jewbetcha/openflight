@@ -1,0 +1,141 @@
+/* ============================================================================
+   OpenFlight — Responsive scale tokens (single source of truth)
+   ----------------------------------------------------------------------------
+   Two independent scaling systems, deliberately decoupled:
+
+   1. FLUID ROOT (rem baseline) — drives all generic, rem-authored chrome and
+      interactive screens (header, nav, buttons, Stats, History, Settings,
+      Debug, ClubPicker). One lever scales everything that isn't pixel-tuned.
+      Floor keeps the 7" kiosk compact; cap protects near-viewed 4K monitors.
+      A `.tv` class (Tizen/webOS UA or ?tv=1) raises the ceiling for 10-foot
+      across-the-room viewing.
+
+   2. TUNED RAMP (--t-* tokens, expressed in px) — hand-stepped per resolution
+      for the live ShotDisplay. Kept in PX on purpose so it does NOT compound
+      with the fluid root (rem × root would double-scale and overflow these
+      tightly-fitted layouts). Edit the steps here, in ONE place.
+   ============================================================================ */
+
+/* ── 1. Fluid root font-size + scalable touch target ─────────────────────── */
+:root {
+  /* 1024px→~14px (7" compact) · 1920px→~18px · 2560px→21px · 3840px+→26px cap */
+  font-size: clamp(14px, 0.45vw + 9.5px, 26px);
+
+  /* Apple HIG 44px floor that also rides the root scale, capped so remote-
+     focus targets on a TV stay sane. Use via min-height/min-width. */
+  --touch-min: clamp(44px, 2.75rem, 96px);
+}
+
+/* 10-foot UI: enlarge interactive touch/focus targets for D-pad navigation.
+   NOTE: we deliberately do NOT bump the root font-size here. The /display
+   scoreboard and the live ShotDisplay are tuned in vw + rem against a 16px
+   root (their clamp() minimums and card min-heights are rem-based); a root
+   bump inflates those and overflows the fixed-height layouts on a TV. The
+   base fluid clamp above already scales the chrome up to its 26px cap. */
+html.tv {
+  --touch-min: clamp(56px, 3.5rem, 96px);
+}
+
+/* ── 2. Tuned type ramp (px — immune to the fluid root above) ─────────────── *
+ * Resolutions: default(<720p) · 720p · 1080p@150% · 1080p · 1440p · 4K · 8K
+ * The 7" kiosk (max-height:500px) override at the bottom wins over width rules.
+ * --------------------------------------------------------------------------- */
+
+/* Default / phone / small tablet (< 720p) */
+:root {
+  --t-quad-value: 28px;  --t-quad-unit: 13px;  --t-quad-label: 10px; --t-quad-sub: 9px;
+  --t-gauge-value: 26px; --t-gauge-unit: 11px; --t-gauge-label: 9px;
+  --t-metric-value: 22px; --t-metric-unit: 11px; --t-metric-deg: 9px;
+  --t-metric-label: 11px; --t-metric-sub: 9px;  --t-metric-conf: 9px;
+
+  --t-shots-row-h: 44px; --t-shots-val: 12px; --t-shots-th: 8px;
+  --t-shots-th-unit: 7px; --t-shots-num: 10px; --t-shots-club: 10px;
+}
+
+/* 720p — 1280×720 */
+@media (min-width: 1280px) and (min-height: 680px) {
+  :root {
+    --t-quad-value: 36px;  --t-quad-unit: 15px;  --t-quad-label: 11px; --t-quad-sub: 10px;
+    --t-gauge-value: 32px; --t-gauge-unit: 12px; --t-gauge-label: 10px;
+    --t-metric-value: 30px; --t-metric-unit: 14px; --t-metric-deg: 12px;
+    --t-metric-label: 14px; --t-metric-sub: 12px; --t-metric-conf: 12px;
+
+    --t-shots-row-h: 52px; --t-shots-val: 15px; --t-shots-th: 10px;
+    --t-shots-th-unit: 9px; --t-shots-num: 12px; --t-shots-club: 12px;
+  }
+}
+
+/* 1080p — fires at 1600px to catch 2K displays at 150% Windows scaling */
+@media (min-width: 1600px) {
+  :root {
+    --t-quad-value: 52px;  --t-quad-unit: 20px;  --t-quad-label: 14px; --t-quad-sub: 12px;
+    --t-gauge-value: 44px; --t-gauge-unit: 16px; --t-gauge-label: 13px;
+    --t-metric-value: 40px; --t-metric-unit: 17px; --t-metric-deg: 15px;
+    --t-metric-label: 16px; --t-metric-sub: 15px; --t-metric-conf: 15px;
+
+    --t-shots-row-h: 60px; --t-shots-val: 17px; --t-shots-th: 11px;
+    --t-shots-th-unit: 10px; --t-shots-num: 14px; --t-shots-club: 14px;
+  }
+}
+
+/* 2K / native 1080p — 1920px CSS */
+@media (min-width: 1920px) {
+  :root {
+    --t-quad-value: 56px;  --t-quad-unit: 21px;  --t-quad-label: 15px; --t-quad-sub: 13px;
+    --t-gauge-value: 46px; --t-gauge-unit: 17px; --t-gauge-label: 14px;
+    --t-metric-value: 44px; --t-metric-unit: 18px; --t-metric-deg: 16px;
+    --t-metric-label: 17px; --t-metric-sub: 16px; --t-metric-conf: 16px;
+
+    --t-shots-row-h: 72px; --t-shots-val: 20px; --t-shots-th: 13px;
+    --t-shots-th-unit: 12px; --t-shots-num: 16px; --t-shots-club: 16px;
+  }
+}
+
+/* 1440p — 2560×1440 */
+@media (min-width: 2560px) {
+  :root {
+    --t-quad-value: 64px;  --t-quad-unit: 24px;  --t-quad-label: 16px; --t-quad-sub: 14px;
+    --t-gauge-value: 56px; --t-gauge-unit: 18px; --t-gauge-label: 15px;
+    --t-metric-value: 52px; --t-metric-unit: 20px; --t-metric-deg: 17px;
+    --t-metric-label: 19px; --t-metric-sub: 17px; --t-metric-conf: 17px;
+
+    --t-shots-row-h: 88px; --t-shots-val: 24px; --t-shots-th: 15px;
+    --t-shots-th-unit: 14px; --t-shots-num: 18px; --t-shots-club: 18px;
+  }
+}
+
+/* 4K — 3840×2160 */
+@media (min-width: 3840px) {
+  :root {
+    --t-quad-value: 96px;  --t-quad-unit: 36px;  --t-quad-label: 22px; --t-quad-sub: 20px;
+    --t-gauge-value: 80px; --t-gauge-unit: 26px; --t-gauge-label: 22px;
+    --t-metric-value: 68px; --t-metric-unit: 26px; --t-metric-deg: 22px;
+    --t-metric-label: 24px; --t-metric-sub: 22px; --t-metric-conf: 22px;
+
+    --t-shots-row-h: 128px; --t-shots-val: 36px; --t-shots-th: 22px;
+    --t-shots-th-unit: 20px; --t-shots-num: 26px; --t-shots-club: 26px;
+  }
+}
+
+/* 8K — 7680×4320 */
+@media (min-width: 7680px) {
+  :root {
+    --t-quad-value: 144px; --t-quad-unit: 54px;  --t-quad-label: 32px; --t-quad-sub: 28px;
+    --t-gauge-value: 120px; --t-gauge-unit: 40px; --t-gauge-label: 32px;
+    --t-metric-value: 104px; --t-metric-unit: 40px; --t-metric-deg: 34px;
+    --t-metric-label: 36px; --t-metric-sub: 34px; --t-metric-conf: 34px;
+
+    --t-shots-row-h: 192px; --t-shots-val: 54px; --t-shots-th: 32px;
+    --t-shots-th-unit: 30px; --t-shots-num: 40px; --t-shots-club: 40px;
+  }
+}
+
+/* 7" kiosk — 800×480 (wins over all width-based rules above) */
+@media (max-height: 500px) {
+  :root {
+    --t-quad-value: 24px;  --t-quad-unit: 11px;  --t-quad-label: 8px;  --t-quad-sub: 8px;
+    --t-gauge-value: 22px; --t-gauge-unit: 9px;  --t-gauge-label: 8px;
+    --t-metric-value: 16px; --t-metric-unit: 8px; --t-metric-deg: 7px;
+    --t-metric-label: 8px;  --t-metric-sub: 7px;  --t-metric-conf: 7px;
+  }
+}
