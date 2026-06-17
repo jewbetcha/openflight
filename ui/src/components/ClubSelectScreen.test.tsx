@@ -30,12 +30,13 @@ describe('ClubSelectScreen', () => {
     expect(html).toContain('Woods');
   });
 
-  it('marks the selected club with the selected modifier class', () => {
+  it('marks the current club for assistive tech, with no visual pre-highlight', () => {
     const html = render('7-iron');
-    // The 7-iron button carries the selected modifier...
-    expect(html).toMatch(/club-select__option club-select__option--selected[^>]*>7i</);
-    // ...and exactly one option is selected.
-    expect(html.match(/club-select__option--selected/g)).toHaveLength(1);
+    // no gold pre-highlight on load
+    expect(html).not.toContain('club-select__option--selected');
+    // current club still conveyed to screen readers via aria-pressed
+    expect(html).toMatch(/aria-pressed="true"[^>]*>7i</);
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
   });
 
   it('renders a close (dismiss) button instead of a skip button', () => {

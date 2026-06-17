@@ -261,33 +261,11 @@ button {
   -webkit-backdrop-filter: blur(12px) saturate(1.15);
 }
 
-/* D-pad focus ring — larger than mouse focus, gold to match brand. In TV mode
-   every focus move is remote-driven, so the ring must ALWAYS be visible; the
-   :focus-visible heuristic is suppressed here on purpose (WCAG 2.4.7). A
-   forced-colors fallback keeps the indicator under High Contrast. */
-.tv :focus,
-.tv :focus-visible {
-  outline: 3px solid var(--color-gold);
-  outline-offset: 4px;
-  box-shadow: 0 0 0 6px rgba(var(--gold-rgb), 0.15);
-  /* Lift the focused element so its offset ring paints above adjacent siblings
-     (e.g. neighbouring club tiles in a grid) instead of behind them. */
-  position: relative;
-  z-index: 1;
-}
-
-@media (forced-colors: active) {
-  .tv :focus,
-  .tv :focus-visible {
-    outline: 3px solid Highlight;
-    outline-offset: 2px;
-  }
-}
-
-/* Focus ring while navigating by key/remote in EITHER display profile — a
-   monitor may have a remote, and the `.tv` ring above only covers TV mode.
-   `using-dpad` is toggled by useSpatialNavigation (set on nav, cleared on
-   pointer use), so mouse/touch users don't see persistent rings. */
+/* Gold focus ring for remote/keyboard navigation in both display profiles (a
+   monitor may have a remote too); useSpatialNavigation sets `using-dpad` on nav
+   and clears it on the next pointer use, so mouse/touch users never see a stuck
+   ring; tv mode used to force it always-on, leaving a gold ring on every mouse
+   click and shoving the focused panel around; forced-colors fallback below */
 html.using-dpad :focus {
   outline: 3px solid var(--color-gold);
   outline-offset: 4px;

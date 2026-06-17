@@ -68,6 +68,14 @@
   transform: scale(0.92);
 }
 
+/* Remote focus ring sets position: relative to lift tiles above neighbours;
+   pin the X absolute so focus can't drop it into flow at the panel top-left
+   (descendant selector outranks the global html.using-dpad :focus rule) */
+.club-select .club-select__close:focus,
+.club-select .club-select__close:focus-visible {
+  position: absolute;
+}
+
 .club-select__title {
   margin: 0;
   /* Leave room for the corner X so the centered title can't collide with it. */
@@ -132,13 +140,6 @@
 
 .club-select__option:active {
   transform: scale(0.95);
-}
-
-.club-select__option--selected {
-  background: rgba(var(--gold-rgb), 0.15);
-  border-color: var(--color-gold);
-  color: var(--color-gold);
-  box-shadow: 0 0 12px rgba(var(--gold-rgb), 0.2);
 }
 
 /* Reduce motion */

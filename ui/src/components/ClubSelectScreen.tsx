@@ -28,7 +28,7 @@ export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectS
   return (
     <div className="club-select" role="dialog" aria-modal="true" aria-label={t('selectClubTitle')}>
       <div className="club-select__panel">
-        <button className="club-select__close" onClick={onSkip} aria-label={t('a11yCloseClubSelect')}>
+        <button type="button" className="club-select__close" onClick={onSkip} aria-label={t('a11yCloseClubSelect')}>
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -50,8 +50,9 @@ export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectS
             <div className="club-select__grid">
               {clubs.map((club) => (
                 <button
+                  type="button"
                   key={club.id}
-                  className={`club-select__option ${selectedClub === club.id ? 'club-select__option--selected' : ''}`}
+                  className="club-select__option"
                   onClick={() => onSelect(club.id)}
                   aria-pressed={selectedClub === club.id}
                   // Land remote focus on the current club so the D-pad enters the
