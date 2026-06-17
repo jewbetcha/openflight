@@ -1,0 +1,336 @@
+/* Accessibility Panel */
+.a11y-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.a11y-trigger:hover,
+.a11y-trigger--active {
+  background: rgba(245, 240, 230, 0.08);
+  border-color: rgba(245, 240, 230, 0.24);
+  color: var(--color-cream);
+}
+
+/* Icon scales with the root (overrides the SVG's px width/height attributes) */
+.a11y-trigger svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Panel */
+.a11y-panel {
+  position: fixed;
+  top: 3.75rem;
+  right: var(--space-md);
+  z-index: 200;
+  width: 300px;
+  max-height: calc(100dvh - 4.5rem);
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+  border: 1px solid rgba(var(--gold-rgb), 0.22);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(var(--gold-rgb), 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.97);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.a11y-panel--open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.a11y-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.a11y-panel__title {
+  color: var(--color-gold);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.a11y-panel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Apple HIG: 44pt minimum hit target. */
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.a11y-panel__close:hover {
+  background: rgba(245, 240, 230, 0.08);
+  color: var(--color-cream);
+}
+
+.a11y-panel__section-label {
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.a11y-panel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(245, 240, 230, 0.07);
+  cursor: default;
+}
+
+.a11y-panel__row--last {
+  border-bottom: none;
+}
+
+.a11y-panel__row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.a11y-panel__row-label {
+  color: var(--color-cream);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.a11y-panel__row-sub {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Unit toggle inside settings panel */
+.a11y-unit-toggle {
+  display: flex;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(245, 240, 230, 0.15);
+  overflow: hidden;
+}
+
+.a11y-unit-toggle__btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.a11y-unit-toggle__btn + .a11y-unit-toggle__btn {
+  border-left: 1px solid rgba(245, 240, 230, 0.15);
+}
+
+.a11y-unit-toggle__btn--active {
+  background: rgba(var(--gold-rgb), 0.18);
+  color: var(--color-gold);
+}
+
+/* Toggle switch */
+.a11y-toggle {
+  flex-shrink: 0;
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(245, 240, 230, 0.12);
+  border: 1px solid rgba(245, 240, 230, 0.18);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* Apple HIG: guarantee a 44pt hit target without enlarging the 40×24 visual
+   track — a transparent centered overlay extends the tappable/clickable area. */
+.a11y-toggle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--touch-min));
+  height: var(--touch-min);
+  transform: translate(-50%, -50%);
+}
+
+.a11y-toggle--on {
+  background: rgba(var(--gold-rgb), 0.35);
+  border-color: var(--color-gold-dim);
+}
+
+.a11y-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(245, 240, 230, 0.5);
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), background 0.2s;
+}
+
+.a11y-toggle--on .a11y-toggle__thumb {
+  transform: translateX(16px);
+  background: var(--color-gold);
+}
+
+/* Column layout for rows with combo grid */
+.a11y-panel__row--col {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 6-combo unit grid */
+.a11y-combo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: var(--space-xs);
+}
+
+.a11y-combo-btn {
+  padding: 5px 4px;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-align: center;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.a11y-combo-btn:hover {
+  background: rgba(245, 240, 230, 0.06);
+  color: var(--color-cream);
+}
+
+.a11y-combo-btn--active {
+  background: rgba(var(--gold-rgb), 0.18);
+  border-color: var(--color-gold-dim);
+  color: var(--color-gold);
+}
+
+/* Custom language dropdown button */
+.a11y-lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(245, 240, 230, 0.06);
+  border: 1px solid rgba(245, 240, 230, 0.18);
+  border-radius: var(--radius-sm);
+  color: var(--color-cream);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.a11y-lang-btn:hover {
+  background: rgba(245, 240, 230, 0.1);
+  border-color: rgba(245, 240, 230, 0.3);
+}
+
+/* Portal dropdown list */
+.a11y-lang-dropdown {
+  position: fixed;
+  z-index: 9999;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: #1c1c1e;
+  border: 1px solid rgba(var(--gold-rgb), 0.3);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(var(--gold-rgb), 0.08);
+  max-height: 280px;
+  overflow-y: auto;
+  min-width: 160px;
+}
+
+.a11y-lang-option {
+  padding: 9px 12px;
+  color: rgba(245, 240, 230, 0.7);
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  user-select: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.a11y-lang-option:hover {
+  background: rgba(245, 240, 230, 0.08);
+  color: var(--color-cream);
+}
+
+.a11y-lang-option--selected {
+  color: var(--color-gold);
+  background: rgba(var(--gold-rgb), 0.14);
+  font-weight: 600;
+}
+
+.a11y-panel__pair {
+  margin-bottom: var(--space-sm);
+}
+
+.a11y-panel__footer {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  margin-top: var(--space-md);
+  text-align: center;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a11y-panel {
+    transition: none;
+  }
+  .a11y-toggle,
+  .a11y-toggle__thumb {
+    transition: none;
+  }
+}
+
+@media (max-height: 500px) {
+  .a11y-panel {
+    top: 3rem;
+    max-height: calc(100dvh - 3.5rem);
+    overflow-y: auto;
+  }
+}

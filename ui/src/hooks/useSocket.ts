@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type { Shot, SessionStats, SessionState, TriggerDiagnostic, TriggerStatus } from '../types/shot';
-import { useShotContext } from '../state/useShotContext';
+import { useShotActions } from '../state/useShotActions';
 import { getServerOrigin } from '../utils/serverOrigin';
+import type { A11yPrefs } from '../state/useAccessibilitySettings';
 
 const SOCKET_URL = getServerOrigin();
 
@@ -49,13 +50,15 @@ export interface DebugShotLog {
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
-  const { addShot, setShots, clearShots } = useShotContext();
+  const { addShot, setShots, clearShots } = useShotActions();
 
   // Keep stable refs so socket event handlers always see the latest callbacks
   // without needing to re-register listeners when they change.
   const addShotRef = useRef(addShot);
   const setShotsRef = useRef(setShots);
   const clearShotsRef = useRef(clearShots);
+  const adminTokenRef = useRef('');
+  const cameraTokenRef = useRef('');
 
   useEffect(() => {
     addShotRef.current = addShot;
@@ -64,6 +67,8 @@ export function useSocket() {
   }, [addShot, setShots, clearShots]);
 
   const [connected, setConnected] = useState(false);
+  const [adminToken, setAdminToken] = useState('');
+  const [cameraToken, setCameraToken] = useState('');
   const [mockMode, setMockMode] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [debugReadings, setDebugReadings] = useState<DebugReading[]>([]);
@@ -82,6 +87,8 @@ export function useSocket() {
     ball_detected: false,
     ball_confidence: 0,
   });
+  const [remoteA11yPrefs, setRemoteA11yPrefs] = useState<Partial<A11yPrefs> | null>(null);
+
   // Trigger diagnostics state
   const [triggerDiagnostics, setTriggerDiagnostics] = useState<TriggerDiagnostic[]>([]);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>({
@@ -102,13 +109,30 @@ export function useSocket() {
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setConnected(true);
-      newSocket.emit('get_session');
       newSocket.emit('get_trigger_status');
+    });
+
+    newSocket.on('admin_token', (data: { token: string; camera_token?: string }) => {
+      adminTokenRef.current = data.token;
+      setAdminToken(data.token);
+      if (data.camera_token) {
+        cameraTokenRef.current = data.camera_token;
+        setCameraToken(data.camera_token);
+      }
     });
 
     newSocket.on('disconnect', () => {
       console.log('Disconnected from server');
       setConnected(false);
+    });
+
+    // Phone/tablet web-remote: a relayed D-pad key. Re-broadcast as a window
+    // event so the spatial-navigation bridge can synthesize the matching
+    // keystroke (keeps socket plumbing decoupled from focus/DOM logic).
+    newSocket.on('remote_key', (data: { key?: string }) => {
+      if (data?.key) {
+        window.dispatchEvent(new CustomEvent('openflight:remotekey', { detail: data.key }));
+      }
     });
 
     newSocket.on('shot', (data: { shot: Shot; stats: SessionStats }) => {
@@ -211,6 +235,16 @@ export function useSocket() {
       setTriggerStatus(data);
     });
 
+    newSocket.on('accessibility_prefs_update', (data: unknown) => {
+      if (data && typeof data === 'object') {
+        const p = data as Record<string, unknown>;
+        const a11y = p.accessibility;
+        if (a11y && typeof a11y === 'object') {
+          setRemoteA11yPrefs(a11y as Partial<A11yPrefs>);
+        }
+      }
+    });
+
     socketRef.current = newSocket;
 
     return () => {
@@ -220,40 +254,53 @@ export function useSocket() {
   }, []);
 
   const clearSession = useCallback(() => {
-    socketRef.current?.emit('clear_session');
+    socketRef.current?.emit('clear_session', { token: adminTokenRef.current });
   }, []);
 
   const setClub = useCallback((club: string) => {
-    socketRef.current?.emit('set_club', { club });
+    socketRef.current?.emit('set_club', { club, token: adminTokenRef.current });
   }, []);
 
   const simulateShot = useCallback(() => {
-    socketRef.current?.emit('simulate_shot');
+    socketRef.current?.emit('simulate_shot', { token: adminTokenRef.current });
   }, []);
 
   const toggleDebug = useCallback(() => {
-    socketRef.current?.emit('toggle_debug');
+    socketRef.current?.emit('toggle_debug', { token: adminTokenRef.current });
   }, []);
 
   const updateRadarConfig = useCallback((config: Partial<RadarConfig>) => {
-    socketRef.current?.emit('set_radar_config', config);
+    socketRef.current?.emit('set_radar_config', { ...config, token: adminTokenRef.current });
   }, []);
 
   // Camera controls
   const toggleCamera = useCallback(() => {
-    socketRef.current?.emit('toggle_camera');
+    socketRef.current?.emit('toggle_camera', { token: adminTokenRef.current });
   }, []);
 
   const toggleCameraStream = useCallback(() => {
-    socketRef.current?.emit('toggle_camera_stream');
+    socketRef.current?.emit('toggle_camera_stream', { token: adminTokenRef.current });
   }, []);
 
-  const shutdown = useCallback(() => {
-    fetch('/api/shutdown', { method: 'POST' }).catch(() => {});
+  const shutdown = useCallback((): Promise<boolean> => {
+    return fetch('/api/shutdown', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: adminTokenRef.current }),
+    })
+      .then((res) => res.ok)
+      .catch(() => false);
+  }, []);
+
+  /** Phone/tablet web-remote (/remote route) → relay a D-pad key to the display. */
+  const sendRemoteKey = useCallback((key: 'up' | 'down' | 'left' | 'right' | 'ok' | 'back') => {
+    socketRef.current?.emit('remote_key', { key });
   }, []);
 
   return {
     connected,
+    adminToken,
+    cameraToken,
     mockMode,
     debugMode,
     debugReadings,
@@ -262,6 +309,7 @@ export function useSocket() {
     cameraStatus,
     triggerDiagnostics,
     triggerStatus,
+    remoteA11yPrefs,
     clearSession,
     setClub,
     simulateShot,
@@ -270,5 +318,6 @@ export function useSocket() {
     toggleCamera,
     toggleCameraStream,
     shutdown,
+    sendRemoteKey,
   };
 }
