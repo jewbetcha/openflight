@@ -16,6 +16,18 @@ Sp = r*omega / v. Fits are consistent with Bearman & Harvey (1976) and
 Kensrud & Smith (2018) measurements for dimpled golf balls in the
 post-drag-crisis regime (Re ~ 5e4 to 2e5). Spin decay follows
 Kiratidis & Leinweber (2018) at ~4%/s.
+
+FUTURE ENHANCEMENTS
+The radar measures launch kinematics only; the effects below need a sensor,
+user input, or ball database. Each has a hook (search "ENHANCEMENT"), commented
+out until the data exists. Ranked by impact:
+
+1. Wind. Use air-relative v_air = v - w, not ground v. Needs anemometer/input.
+2. Air density rho (temp/pressure/humidity/altitude). Scales drag and lift.
+3. Per-ball Cd/Cl. ~0.02 coeff ≈ ~18 m spread. Needs ball DB or back-fit.
+4. Per-ball spin-down rate (~4%/s, construction-dependent).
+5. Exact ball mass/diameter (vary within USGA tolerance).
+6. Reverse Magnus: Cl < 0 near Re ~5-7e4 (chips). Needs Cl(Re, Sp) table.
 """
 
 import math
@@ -32,31 +44,46 @@ M_TO_YD = 1.09361
 # Using the max — not an average — so carry estimates are upper-bounded by
 # the rules rather than by a guess at the specific ball in play.
 BALL_MASS_KG = 0.04593
-BALL_RADIUS_M = 0.02135
+BALL_RADIUS_M = 0.021335  # USGA min diameter 1.68 in → 42.67 mm
 BALL_AREA_M2 = math.pi * BALL_RADIUS_M ** 2
 AIR_DENSITY_STD = 1.225  # kg/m³ at sea level, 15 °C ISA
 
-# Cd = CD_BASE + CD_SPIN_COEFF * Sp
-#   Linear rise with spin parameter Sp = r·ω/v.
-# Cl = CL_SATURATION * Sp / (CL_HALF_SP + Sp)
-#   Hill-type saturating form: Cl → CL_SATURATION as Sp → ∞,
-#   reaches CL_SATURATION/2 at Sp = CL_HALF_SP.
-# These are simple parametric forms consistent with Bearman & Harvey (1976)
-# and Kensrud & Smith (2018) for dimpled balls past the drag crisis
-# (Re ~ 5e4–2e5), which covers the full range of realistic golf shots.
-CD_BASE = 0.205
-CD_SPIN_COEFF = 0.18
-CL_SATURATION = 0.32
-CL_HALF_SP = 0.15
+# Cd = CD0 + CD1·Sp + CD2·Sp²
+# Cl = CL0 + CL1·Sp + CL2·Sp²
+#   Quadratic polynomials in the spin parameter Sp = r·ω/v
+#   (Quintavalla/USGA form, Ferguson–McNally least-squares fit for dimpled
+#   balls past the drag crisis, Re ~ 5e4–2e5). These cover the full range of
+#   realistic golf shots and reproduce TrackMan carry bands to within a few
+#   yards; see the regression tests in tests/test_ballistics.py.
+CD0, CD1, CD2 = 0.1304, 0.9287, -0.8259
+CL0, CL1, CL2 = 0.0504, 1.2031, -1.1490
+
+# ENHANCEMENT 2 (air density). `simulate` takes `air_density`; pass rho from a
+# sensor instead of AIR_DENSITY_STD. Uncomment when sensors exist:
+#
+# def air_density_from_environment(temp_c, pressure_pa, relative_humidity):
+#     """Humid-air density (kg/m³); RH in 0..1."""
+#     t_k = temp_c + 273.15
+#     p_sat = 610.78 * math.exp(17.27 * temp_c / (temp_c + 237.3))  # Tetens
+#     p_v = relative_humidity * p_sat
+#     p_d = pressure_pa - p_v
+#     return p_d / (287.058 * t_k) + p_v / (461.495 * t_k)  # R_dry, R_vapor
 
 # Exponential spin decay: ω(t) = ω₀·exp(-rate·t).
 # ~4%/s per Kiratidis & Leinweber (2018); small but matters over ~6 s flights.
+# ENHANCEMENT 4 (per-ball decay): override via `simulate(..., spin_decay_rate=)`
+# once a ball is selected or back-fitted from logged trajectories.
 SPIN_DECAY_RATE = 0.04
 
+# ENHANCEMENT 5 (ball mass/diameter): override BALL_MASS_KG / BALL_RADIUS_M
+# (recompute BALL_AREA_M2) from a ball table once the user picks their ball.
+# ENHANCEMENT 3 (per-ball Cd/Cl): replace CD*/CL* from a ball DB or a fit over
+# logged launch+carry pairs; _cd/_cl keep the same shape.
+
 GRAVITY = 9.81
-# 500 Hz integration. RK4 error is O(dt⁵) so this is effectively exact for
-# the timescales involved; larger dt starts to visibly shorten long drives.
-DT_SECONDS = 0.002
+# 1000 Hz integration. RK4 local error is O(dt⁵) so this is effectively exact
+# for the timescales involved; larger dt starts to visibly shorten long drives.
+DT_SECONDS = 0.001
 # Safety cap — real shots terminate in 5–9 s; anything longer implies the
 # solver went unstable or physical inputs are pathological.
 MAX_FLIGHT_SECONDS = 15.0
@@ -106,6 +133,8 @@ class LaunchConditions:
 
 @dataclass
 class TrajectoryPoint:
+    """One sampled point along the simulated ball flight"""
+
     t: float
     x: float
     y: float
@@ -116,6 +145,8 @@ class TrajectoryPoint:
 
 @dataclass
 class Trajectory:
+    """A simulated ball flight and its summary metrics"""
+
     points: list[TrajectoryPoint]
     carry_yards: float
     apex_yards: float
@@ -172,11 +203,15 @@ def resolve_launch(shot: Shot) -> Optional[LaunchConditions]:
 
 
 def _cd(sp: float) -> float:
-    return CD_BASE + CD_SPIN_COEFF * sp
+    return CD0 + CD1 * sp + CD2 * sp * sp
 
 
 def _cl(sp: float) -> float:
-    return CL_SATURATION * sp / (CL_HALF_SP + sp) if sp > 0 else 0.0
+    # ENHANCEMENT 6 (reverse Magnus): Cl turns negative near Re ~5-7e4 (chips).
+    # A Cl(Re, Sp) table would cover it; until then clamp Cl at 0 for sp <= 0.
+    if sp <= 0:
+        return 0.0
+    return CL0 + CL1 * sp + CL2 * sp * sp
 
 
 def _derivatives(
@@ -187,6 +222,12 @@ def _derivatives(
 ) -> tuple:
     """d/dt of (x, y, z, vx, vy, vz) under gravity + drag + Magnus."""
     _, _, _, vx, vy, vz = state
+
+    # ENHANCEMENT 1 (wind). Aero forces use air-relative velocity. Add a `wind`
+    # arg and uncomment; keep ground velocity for the position derivatives:
+    #
+    #   wx, wy, wz = wind
+    #   vx, vy, vz = vx - wx, vy - wy, vz - wz
     v = math.sqrt(vx * vx + vy * vy + vz * vz)
     # At v ≈ 0 both drag and Magnus vanish (F ∝ v²) and division below
     # would be unsafe. Should only happen at the instantaneous apex of a
@@ -296,8 +337,7 @@ def simulate(
         omega *= math.exp(-SPIN_DECAY_RATE * dt)
 
         _, _, z, _, _, _ = new_state
-        if z > max_z:
-            max_z = z
+        max_z = max(max_z, z)
 
         # Ground contact. Linear interpolation between prev and new state
         # is sufficient because dt (2 ms) is tiny relative to the timescale

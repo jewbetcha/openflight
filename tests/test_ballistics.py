@@ -103,6 +103,38 @@ class TestSimulate:
             f"7-iron carry {traj.carry_yards:.1f} yd outside plausible range"
         )
 
+    def test_driver_matches_trackman_band(self):
+        # Tight regression band locking the Ferguson-McNally coefficient fit.
+        # 167 mph / 10.5° / 2700 RPM → TrackMan carry ~270-285 yd, ~6 s flight.
+        cond = LaunchConditions(
+            ball_speed_mph=167.0,
+            launch_angle_v=10.5,
+            launch_angle_h=0.0,
+            spin_rpm=2700,
+            spin_axis_deg=0.0,
+            spin_source="measured",
+        )
+        traj = simulate(cond)
+        assert 268 <= traj.carry_yards <= 286, (
+            f"Driver carry {traj.carry_yards:.1f} yd outside TrackMan band"
+        )
+        assert 5.8 <= traj.flight_time_s <= 7.2
+
+    def test_iron_matches_trackman_band(self):
+        # 120 mph / 16° / 6800 RPM → TrackMan carry ~165-175 yd.
+        cond = LaunchConditions(
+            ball_speed_mph=120.0,
+            launch_angle_v=16.0,
+            launch_angle_h=0.0,
+            spin_rpm=6800,
+            spin_axis_deg=0.0,
+            spin_source="measured",
+        )
+        traj = simulate(cond)
+        assert 160 <= traj.carry_yards <= 178, (
+            f"7-iron carry {traj.carry_yards:.1f} yd outside TrackMan band"
+        )
+
     def test_higher_launch_produces_higher_apex(self):
         low = simulate(_driver(launch=8.0))
         high = simulate(_driver(launch=15.0))
@@ -138,8 +170,8 @@ class TestSimulate:
     def test_spin_decays_over_flight(self):
         traj = simulate(_driver(spin_rpm=3000))
         final_spin = traj.points[-1].spin_rpm
-        # 4%/s for ~6s flight → ~80% of initial
-        assert 2300 < final_spin < 2900
+        # 4%/s over a ~6.5-7s flight → ~75% of initial
+        assert 2200 < final_spin < 2900
 
     def test_flight_time_reasonable(self):
         traj = simulate(_driver())
