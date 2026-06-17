@@ -17,6 +17,12 @@ NO_CAMERA=true  # Camera disabled by default (K-LD7 radar handles angle)
 TRACKMAN_TEST=false
 SESSION_LOCATION=""
 DRY_RUN=false
+# View-mode hint passed to the UI to seed the first-run Interactive/Scoreboard
+# chooser (the user's saved choice always wins). Auto-detected from EDID/CEC
+# unless an explicit --interactive / --scoreboard override is given, or
+# --no-view-detect disables it.
+VIEW_HINT=""
+VIEW_DETECT=true
 # Rolling buffer mode is the only mode (streaming mode removed)
 TRIGGER="sound"  # Default: hardware sound trigger (SEN-14262 → HOST_INT)
 SOUND_PRE_TRIGGER=""
@@ -216,6 +222,20 @@ while [[ $# -gt 0 ]]; do
         --port|-p)
             PORT="$2"
             shift 2
+            ;;
+        --interactive|--tv)
+            VIEW_HINT="interactive"
+            VIEW_DETECT=false
+            shift
+            ;;
+        --scoreboard|--monitor|--display)
+            VIEW_HINT="scoreboard"
+            VIEW_DETECT=false
+            shift
+            ;;
+        --no-view-detect|--no-display-detect)
+            VIEW_DETECT=false
+            shift
             ;;
         *)
             shift
@@ -538,7 +558,44 @@ log "Server is running!"
 # Launch browser in kiosk mode
 log "Launching kiosk browser..."
 
-KIOSK_URL="http://$HOST:$PORT"
+# Detect whether the connected screen is a TV or a monitor (EDID/CEC) to seed
+# the UI's first-run Interactive/Scoreboard chooser: TVs lean Interactive (full
+# 10-foot kiosk), monitors lean Scoreboard. Best-effort heuristic; the user's
+# saved choice always overrides, so a wrong guess is self-correcting.
+detect_view_hint() {
+    # CEC: in practice only TVs answer on the CEC bus.
+    if command -v cec-client >/dev/null 2>&1; then
+        if echo 'scan' | timeout 5 cec-client -s -d 1 2>/dev/null \
+            | grep -qiE 'osd string|device #[1-9]'; then
+            echo interactive; return
+        fi
+    fi
+    # EDID physical size / name: TVs are large (>=~70 cm wide ≈ 32"+) and often
+    # self-identify as a TV / brand.
+    if command -v edid-decode >/dev/null 2>&1; then
+        for e in /sys/class/drm/card*-HDMI-A-*/edid /sys/class/drm/card*-DP-*/edid; do
+            [ -s "$e" ] || continue
+            local w
+            w=$(edid-decode "$e" 2>/dev/null | grep -i 'maximum image size' \
+                | grep -oE '[0-9]+ *cm' | head -1 | grep -oE '[0-9]+')
+            if [ -n "$w" ] && [ "$w" -ge 70 ]; then echo interactive; return; fi
+            if edid-decode "$e" 2>/dev/null | grep -qiE '\btv\b|bravia'; then echo interactive; return; fi
+        done
+    fi
+    echo scoreboard
+}
+
+if [ "$VIEW_DETECT" = true ] && [ -z "$VIEW_HINT" ]; then
+    VIEW_HINT=$(detect_view_hint)
+    log "View auto-detect → $VIEW_HINT (seeds the first-run Interactive/Scoreboard chooser)"
+fi
+
+# ?lowpower=1 tells the UI it's running on the Pi's modest GPU, so it drops
+# the expensive backdrop-filter blur (the heaviest paint) for solid surfaces.
+KIOSK_URL="http://$HOST:$PORT/?lowpower=1"
+if [ -n "$VIEW_HINT" ]; then
+    KIOSK_URL="${KIOSK_URL}&viewmode=${VIEW_HINT}"
+fi
 
 # Try different browsers in order of preference
 # DISPLAY=:0 allows running on Pi's display when SSHed in
