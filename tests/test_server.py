@@ -130,6 +130,7 @@ class TestSessionErrorLogging:
         class StubMonitor:
             radar = FailingRadar()
 
+        monkeypatch.setattr(server_module, "_ADMIN_TOKEN", "test-token")
         monkeypatch.setattr(server_module, "monitor", StubMonitor())
         monkeypatch.setattr(server_module, "mock_mode", False)
         monkeypatch.setattr(server_module, "radar_config", {"min_speed": 10})
@@ -145,7 +146,7 @@ class TestSessionErrorLogging:
         )
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
 
-        server_module.handle_set_radar_config({"min_speed": 99})
+        server_module.handle_set_radar_config({"min_speed": 99, "token": "test-token"})
 
         assert logged_errors
         assert logged_errors[0][0] == "Radar config update failed"
@@ -155,6 +156,7 @@ class TestSessionErrorLogging:
     def test_set_radar_config_logs_not_connected_to_session(self, monkeypatch):
         logged_errors = []
 
+        monkeypatch.setattr(server_module, "_ADMIN_TOKEN", "test-token")
         monkeypatch.setattr(server_module, "monitor", None)
         monkeypatch.setattr(server_module, "mock_mode", True)
         monkeypatch.setattr(
@@ -164,7 +166,7 @@ class TestSessionErrorLogging:
         )
         monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
 
-        server_module.handle_set_radar_config({"min_speed": 99})
+        server_module.handle_set_radar_config({"min_speed": 99, "token": "test-token"})
 
         assert logged_errors
         assert "not connected" in logged_errors[0][0]
@@ -401,34 +403,63 @@ class TestKLD7Initialization:
 class TestStaticRoutes:
     """Tests for frontend static routes."""
 
-    def test_display_route_serves_react_app(self):
-        """Direct refresh of /display should return the React app."""
+    def test_scoreboard_route_serves_react_app(self):
+        """Direct refresh of /scoreboard should return the React app."""
         client = server_module.app.test_client()
 
-        response = client.get("/display")
+        response = client.get("/scoreboard")
 
         assert response.status_code == 200
         assert b'<div id="root"></div>' in response.data
 
-    def test_display_route_accepts_trailing_slash(self):
-        """TV browsers may preserve a trailing slash on /display/."""
+    def test_scoreboard_route_accepts_trailing_slash(self):
+        """TV browsers may preserve a trailing slash on /scoreboard/."""
         client = server_module.app.test_client()
 
-        response = client.get("/display/")
+        response = client.get("/scoreboard/")
 
         assert response.status_code == 200
         assert b'<div id="root"></div>' in response.data
 
-    def test_display_route_falls_back_when_dist_missing(self, monkeypatch, tmp_path):
+    def test_scoreboard_route_falls_back_when_dist_missing(self, monkeypatch, tmp_path):
         """Clean checkouts without ui/dist should still serve the React shell."""
         monkeypatch.setattr(server_module, "FRONTEND_DIST_DIR", tmp_path / "missing-dist")
         monkeypatch.setattr(server_module.app, "static_folder", str(tmp_path / "missing-dist"))
 
         client = server_module.app.test_client()
-        response = client.get("/display")
+        response = client.get("/scoreboard")
 
         assert response.status_code == 200
         assert b'<div id="root"></div>' in response.data
+
+    def test_remote_route_serves_react_app(self):
+        """The /remote web-remote page serves the React app (with trailing slash too)."""
+        client = server_module.app.test_client()
+
+        for path in ("/remote", "/remote/"):
+            response = client.get(path)
+            assert response.status_code == 200
+            assert b'<div id="root"></div>' in response.data
+
+
+class TestRemoteKeyRelay:
+    """Tests for the phone web-remote key relay (Socket.IO)."""
+
+    def test_relays_allowed_keys(self):
+        client = server_module.socketio.test_client(server_module.app)
+        client.get_received()  # drain connect events
+        client.emit("remote_key", {"key": "up"})
+        relayed = [r for r in client.get_received() if r["name"] == "remote_key"]
+        assert relayed and relayed[0]["args"][0]["key"] == "up"
+        client.disconnect()
+
+    def test_ignores_unknown_keys(self):
+        client = server_module.socketio.test_client(server_module.app)
+        client.get_received()
+        client.emit("remote_key", {"key": "shutdown"})
+        relayed = [r for r in client.get_received() if r["name"] == "remote_key"]
+        assert relayed == []
+        client.disconnect()
 
 
 class TestShotToDict:
