@@ -1481,6 +1481,9 @@ def handle_set_radar_config(data):
         # Update min speed filter
         if "min_speed" in data:
             new_min = int(data["min_speed"])
+            if not (0 <= new_min <= 200):
+                socketio.emit("radar_config_error", {"error": "min_speed out of range (0–200)"})
+                return
             monitor.radar.set_min_speed_filter(new_min)
             radar_config["min_speed"] = new_min
             print(f"Set min speed filter: {new_min} mph")
@@ -1488,6 +1491,9 @@ def handle_set_radar_config(data):
         # Update max speed filter
         if "max_speed" in data:
             new_max = int(data["max_speed"])
+            if not (10 <= new_max <= 300):
+                socketio.emit("radar_config_error", {"error": "max_speed out of range (10–300)"})
+                return
             monitor.radar.set_max_speed_filter(new_max)
             radar_config["max_speed"] = new_max
             print(f"Set max speed filter: {new_max} mph")
@@ -1495,6 +1501,9 @@ def handle_set_radar_config(data):
         # Update magnitude filter
         if "min_magnitude" in data:
             new_mag = int(data["min_magnitude"])
+            if not (0 <= new_mag <= 100):
+                socketio.emit("radar_config_error", {"error": "min_magnitude out of range (0–100)"})
+                return
             monitor.radar.set_magnitude_filter(min_mag=new_mag)
             radar_config["min_magnitude"] = new_mag
             print(f"Set min magnitude filter: {new_mag}")
@@ -2461,9 +2470,7 @@ def main():
         "--roboflow-model",
         help="Roboflow model ID (e.g., 'golfballdetector/10'). Uses Roboflow API instead of Hough.",
     )
-    parser.add_argument(
-        "--roboflow-api-key", help="Roboflow API key (can also use ROBOFLOW_API_KEY env var)"
-    )
+    # Roboflow API key must be set via ROBOFLOW_API_KEY env var (not CLI arg) to avoid ps leakage
     parser.add_argument(
         "--session-location",
         "-l",
@@ -2744,7 +2751,7 @@ def main():
         if init_camera(
             model_path=args.camera_model,
             roboflow_model_id=args.roboflow_model,
-            roboflow_api_key=args.roboflow_api_key,
+            roboflow_api_key=os.environ.get("ROBOFLOW_API_KEY"),
             imgsz=args.camera_imgsz,
             use_hough=use_hough,
             hough_param2=args.hough_param2,
