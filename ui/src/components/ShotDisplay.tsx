@@ -173,7 +173,7 @@ export function ShotDisplay({ shot, animate = false }: ShotDisplayProps) {
               value={shot.club_angle_deg.toFixed(1)}
               unit="°"
               label={t('clubAoA')}
-              subtext={t('radar')}
+              subtext={shot.angle_source ?? undefined}
               variant="secondary"
               confidence={quality.aoa}
             />
@@ -183,7 +183,7 @@ export function ShotDisplay({ shot, animate = false }: ShotDisplayProps) {
               value={fmtSigned(shot.club_path_deg)}
               unit="°"
               label={t('clubPath')}
-              subtext={t('radar')}
+              subtext={shot.angle_source ?? undefined}
               variant="secondary"
               confidence={quality.clubPath}
               qualityLabels={directionalLabels(t)}
