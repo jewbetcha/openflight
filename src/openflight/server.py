@@ -2823,6 +2823,10 @@ def main():
         print("Simulate shots via WebSocket or API")
 
     print(f"Server starting at http://{args.host}:{args.web_port}")
+    _token_file = Path.home() / ".openflight_admin_token"
+    _token_file.write_text(_ADMIN_TOKEN)
+    _token_file.chmod(0o600)
+    print(f"  Admin token written to {_token_file} (chmod 600)")
     print()
 
     try:
