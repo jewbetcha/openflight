@@ -12,6 +12,7 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--transition-smooth);
+  min-height: var(--touch-min);
 }
 
 .ball-indicator:hover {
@@ -23,8 +24,8 @@
 }
 
 .ball-indicator--detected {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(var(--ball-rgb), 0.12);
+  border-color: rgba(var(--ball-rgb), 0.35);
   color: var(--color-success);
 }
 
@@ -76,6 +77,18 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+/* Accessibility: disable looping icon animations */
+@media (prefers-reduced-motion: reduce) {
+  .ball-indicator--detected .ball-indicator__icon,
+  .ball-indicator--searching .ball-indicator__icon {
+    animation: none;
+  }
+
+  .ball-indicator:hover {
+    transform: none;
   }
 }
 

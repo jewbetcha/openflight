@@ -26,6 +26,58 @@
   letter-spacing: 0.02em;
 }
 
+.debug-record-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-md);
+  min-height: 32px;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.14);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.debug-record-btn:hover {
+  background: rgba(245, 240, 230, 0.06);
+  color: var(--color-cream);
+}
+
+.debug-record-btn--active {
+  border-color: rgba(var(--neg-rgb), 0.45);
+  color: var(--color-danger);
+  background: rgba(var(--neg-rgb), 0.08);
+}
+
+.debug-record-btn__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+.debug-record-btn__dot--active {
+  opacity: 1;
+  animation: recording-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .debug-record-btn__dot--active {
+    animation: none;
+  }
+}
+
 /* Sub-tabs */
 .debug-tabs {
   display: flex;
@@ -54,8 +106,8 @@
 }
 
 .debug-tabs__tab--active {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(var(--gold-rgb), 0.1);
+  border-color: rgba(var(--gold-rgb), 0.4);
   color: var(--color-gold);
 }
 
@@ -178,7 +230,8 @@
 }
 
 .system-status__counter {
-  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
   color: var(--color-gold);
 }
 
@@ -203,7 +256,7 @@
 
 .last-trigger--rejected {
   border-left: 4px solid var(--color-danger);
-  background: rgba(248, 113, 113, 0.05);
+  background: rgba(var(--neg-rgb), 0.05);
 }
 
 .last-trigger__header {
@@ -368,7 +421,7 @@
 }
 
 .trigger-row__badge--rejected {
-  background: rgba(248, 113, 113, 0.12);
+  background: rgba(var(--neg-rgb), 0.12);
   color: var(--color-danger);
 }
 

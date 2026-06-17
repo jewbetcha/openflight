@@ -35,10 +35,11 @@ export function BallDetectionIndicator({
     <button
       className={`ball-indicator ${getStatusClass()}`}
       onClick={onToggle}
-      title={enabled ? 'Click to disable camera' : 'Click to enable camera'}
+      aria-label={`${getStatusText()}. ${enabled ? 'Click to disable camera' : 'Click to enable camera'}`}
+      aria-pressed={enabled}
     >
-      <span className="ball-indicator__icon">{detected ? '⚪' : '◯'}</span>
-      <span className="ball-indicator__text">{getStatusText()}</span>
+      <span className="ball-indicator__icon" aria-hidden="true">{detected ? '⚪' : '◯'}</span>
+      <span className="ball-indicator__text" aria-hidden="true">{getStatusText()}</span>
     </button>
   );
 }

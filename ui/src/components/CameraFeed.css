@@ -59,14 +59,14 @@
 }
 
 .camera-feed__button--active {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(var(--ball-rgb), 0.12);
+  border-color: rgba(var(--ball-rgb), 0.4);
   color: var(--color-success);
 }
 
 .camera-feed__button--streaming {
-  background: rgba(248, 113, 113, 0.12);
-  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(var(--neg-rgb), 0.12);
+  border-color: rgba(var(--neg-rgb), 0.4);
   color: var(--color-danger);
 }
 
@@ -119,8 +119,8 @@
 }
 
 .camera-feed__detection--detected {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(var(--ball-rgb), 0.12);
+  border-color: rgba(var(--ball-rgb), 0.3);
   color: var(--color-success);
 }
 

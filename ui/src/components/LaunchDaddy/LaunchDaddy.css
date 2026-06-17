@@ -3,7 +3,21 @@
    "The longest hitter of the golf ball in the world"
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Bebas+Neue&display=swap');
+/* Self-hosted easter-egg fonts (offline-first, no CDN at boot). */
+@font-face {
+  font-family: 'Black Ops One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/blackopsone-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Bebas Neue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/bebasneue-latin.woff2') format('woff2');
+}
 
 /* CSS Variables for Launch Daddy Mode */
 :root {

@@ -1,0 +1,216 @@
+/* History View */
+.history-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  height: 100%;
+  animation: view-enter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.history-view--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.history-view__message {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.history-view__sub {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: var(--space-xs) 0 0;
+}
+
+.history-view__heading {
+  margin: 0;
+  color: var(--color-gold);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow-y: auto;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) clamp(var(--space-md), 1.5vw, var(--space-lg));
+  background: rgba(18, 18, 26, 0.86);
+  border: 1px solid rgba(245, 240, 230, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-fast);
+  /* Skip layout/paint for off-screen cards in long session histories.
+     `auto` remembers each card's real rendered height after first paint. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 4.5rem;
+}
+
+.history-card--clickable {
+  cursor: pointer;
+}
+
+.history-card--clickable:hover {
+  border-color: rgba(var(--gold-rgb), 0.35);
+  background: rgba(18, 18, 26, 0.94);
+}
+
+.history-card--clickable:active {
+  transform: scale(0.99);
+}
+
+.history-card__chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ── Session drill-down ── */
+
+.history-view--session {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.history-session__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(245, 240, 230, 0.08);
+}
+
+.history-session__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  touch-action: manipulation;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.history-session__back:hover {
+  background: rgba(245, 240, 230, 0.06);
+  color: var(--color-cream);
+}
+
+.history-session__back:active {
+  transform: scale(0.97);
+}
+
+.history-session__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.history-session__date {
+  color: var(--color-cream);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.history-session__count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.history-session__loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-session__shots {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-card__date {
+  color: var(--color-cream);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.history-card__shots {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.history-card__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.history-card__stat-label {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.history-card__stat-value {
+  color: var(--color-gold);
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-view {
+    animation: none;
+  }
+  .history-card {
+    transition: none;
+  }
+}
+
+@media (max-height: 500px) {
+  .history-view {
+    gap: var(--space-sm);
+  }
+  .history-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

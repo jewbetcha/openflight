@@ -1,7 +1,14 @@
 import { memo, useState } from 'react';
 import type { DebugReading, RadarConfig, DebugShotLog, CameraStatus } from '../hooks/useSocket';
 import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
+import { useLanguage } from '../state/useLanguage';
+import type { TKey } from '../i18n/translations';
 import './DebugPanel.css';
+
+const MODE_KEYS: Record<string, TKey> = {
+  'rolling-buffer': 'modeRollingBuffer',
+  'mock': 'modeMock',
+};
 
 interface DebugPanelProps {
   enabled: boolean;
@@ -148,30 +155,33 @@ const TriggerRow = memo(function TriggerRow({ diag }: TriggerRowProps) {
 });
 
 function SystemStatus({ status }: { status: TriggerStatus }) {
+  const { t } = useLanguage();
   return (
     <div className="debug-panel__section">
-      <h4>System Status</h4>
+      <h4>{t('systemStatus')}</h4>
       <div className="system-status">
         <div className="system-status__item">
-          <span className="system-status__label">Mode</span>
-          <span className={`system-status__badge system-status__badge--${status.mode}`}>{status.mode}</span>
+          <span className="system-status__label">{t('debugMode')}</span>
+          <span className={`system-status__badge system-status__badge--${status.mode}`}>
+            {MODE_KEYS[status.mode] ? t(MODE_KEYS[status.mode]) : status.mode}
+          </span>
         </div>
         {status.trigger_type && (
           <div className="system-status__item">
-            <span className="system-status__label">Trigger</span>
+            <span className="system-status__label">{t('debugTrigger')}</span>
             <span className="system-status__value">{status.trigger_type}</span>
           </div>
         )}
         <div className="system-status__item">
-          <span className="system-status__label">Radar</span>
+          <span className="system-status__label">{t('radar')}</span>
           <span
             className={`system-status__value ${status.radar_connected ? 'system-status__value--success' : 'system-status__value--error'}`}
           >
-            {status.radar_connected ? 'Connected' : 'Disconnected'}
+            {status.radar_connected ? t('connected') : t('disconnected')}
           </span>
         </div>
         <div className="system-status__item">
-          <span className="system-status__label">Triggers</span>
+          <span className="system-status__label">{t('debugTriggers')}</span>
           <span className="system-status__value">
             <span className="system-status__counter">{status.triggers_total}</span>
             {status.triggers_total > 0 && (
@@ -190,18 +200,19 @@ function SystemStatus({ status }: { status: TriggerStatus }) {
 }
 
 function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
+  const { t } = useLanguage();
   if (!diag) {
     return (
       <div className="debug-panel__section">
-        <h4>Last Trigger</h4>
-        <p className="debug-panel__empty">Waiting for trigger...</p>
+        <h4>{t('lastTrigger')}</h4>
+        <p className="debug-panel__empty">{t('waitingForTrigger')}</p>
       </div>
     );
   }
 
   return (
     <div className="debug-panel__section">
-      <h4>Last Trigger</h4>
+      <h4>{t('lastTrigger')}</h4>
       <div className={`last-trigger ${diag.accepted ? 'last-trigger--accepted' : 'last-trigger--rejected'}`}>
         <div className="last-trigger__header">
           <span
@@ -285,23 +296,34 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
 type DebugTab = 'status' | 'history' | 'tuning';
 
 export function DebugPanel({
+  enabled,
   radarConfig,
   mockMode,
+  onToggle,
   onUpdateConfig,
   triggerDiagnostics,
   triggerStatus,
 }: DebugPanelProps) {
   const [activeTab, setActiveTab] = useState<DebugTab>('status');
+  const { t } = useLanguage();
   const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
   const lastDiag = triggerDiagnostics.length > 0 ? triggerDiagnostics[triggerDiagnostics.length - 1] : null;
 
-  // Show last 20 triggers, newest first
   const recentTriggers = [...triggerDiagnostics].reverse().slice(0, 20);
 
   return (
     <div className="debug-panel">
       <div className="debug-panel__header">
-        <h3>Diagnostics</h3>
+        <h3>{t('diagnostics')}</h3>
+        <button
+          className={`debug-record-btn ${enabled ? 'debug-record-btn--active' : ''}`}
+          onClick={onToggle}
+          aria-pressed={enabled}
+          aria-label={enabled ? 'Stop recording raw readings' : 'Start recording raw readings'}
+        >
+          <span className={`debug-record-btn__dot ${enabled ? 'debug-record-btn__dot--active' : ''}`} aria-hidden="true" />
+          {enabled ? t('recording') : t('record')}
+        </button>
       </div>
 
       <div className="debug-tabs">
@@ -309,21 +331,21 @@ export function DebugPanel({
           className={`debug-tabs__tab ${activeTab === 'status' ? 'debug-tabs__tab--active' : ''}`}
           onClick={() => setActiveTab('status')}
         >
-          Status
+          {t('debugStatusTab')}
         </button>
         {isRollingBuffer && (
           <button
             className={`debug-tabs__tab ${activeTab === 'history' ? 'debug-tabs__tab--active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
-            History
+            {t('tabHistory')}
           </button>
         )}
         <button
           className={`debug-tabs__tab ${activeTab === 'tuning' ? 'debug-tabs__tab--active' : ''}`}
           onClick={() => setActiveTab('tuning')}
         >
-          Tuning
+          {t('debugTuningTab')}
         </button>
       </div>
 
@@ -344,10 +366,10 @@ export function DebugPanel({
 
         {activeTab === 'history' && isRollingBuffer && (
           <div className="debug-panel__section debug-panel__section--history">
-            <h4>Trigger History</h4>
+            <h4>{t('triggerHistory')}</h4>
             <div className="trigger-history">
               {recentTriggers.length === 0 ? (
-                <p className="debug-panel__empty">No triggers yet...</p>
+                <p className="debug-panel__empty">{t('noTriggersYet')}</p>
               ) : (
                 recentTriggers.map((diag, index) => <TriggerRow key={`${diag.timestamp}-${index}`} diag={diag} />)
               )}
@@ -357,11 +379,11 @@ export function DebugPanel({
 
         {activeTab === 'tuning' && (
           <div className="debug-panel__section">
-            <h4>Radar Tuning</h4>
-            {mockMode && <p className="debug-panel__mock-warning">Radar tuning disabled in mock mode</p>}
+            <h4>{t('radarTuning')}</h4>
+            {mockMode && <p className="debug-panel__mock-warning">{t('radarTuningDisabled')}</p>}
             <div className="debug-panel__controls">
               <SliderControl
-                label="Min Speed"
+                label={t('minSpeed')}
                 value={radarConfig.min_speed}
                 min={0}
                 max={50}
@@ -370,7 +392,7 @@ export function DebugPanel({
                 onChange={(v) => onUpdateConfig({ min_speed: v })}
               />
               <SliderControl
-                label="Min Magnitude"
+                label={t('minMagnitude')}
                 value={radarConfig.min_magnitude}
                 min={0}
                 max={2000}
@@ -379,7 +401,7 @@ export function DebugPanel({
                 onChange={(v) => onUpdateConfig({ min_magnitude: v })}
               />
               <SliderControl
-                label="TX Power"
+                label={t('txPower')}
                 value={radarConfig.transmit_power}
                 min={0}
                 max={7}
@@ -387,9 +409,10 @@ export function DebugPanel({
                 onChange={(v) => onUpdateConfig({ transmit_power: v })}
               />
             </div>
-            <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range</p>
+            <p className="debug-panel__hint">{t('txPowerHint')}</p>
           </div>
         )}
+
       </div>
     </div>
   );

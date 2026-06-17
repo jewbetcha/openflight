@@ -1,4 +1,6 @@
 import { CLUBS_BY_TYPE } from '../data/clubs';
+import { useLanguage } from '../state/useLanguage';
+import type { TKey } from '../i18n/translations';
 import './ClubSelectScreen.css';
 
 interface ClubSelectScreenProps {
@@ -10,16 +12,23 @@ interface ClubSelectScreenProps {
   onSkip: () => void;
 }
 
+const SECTION_KEYS: Record<string, TKey> = {
+  Irons: 'clubSectionIrons',
+  Hybrids: 'clubSectionHybrids',
+  Woods: 'clubSectionWoods',
+};
+
 /**
  * Full-screen interstitial shown on app load so the user confirms which club
  * they're hitting before the first shot. Dismissible via the X in the corner,
  * which keeps the current (default) club.
  */
 export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectScreenProps) {
+  const { t } = useLanguage();
   return (
-    <div className="club-select" role="dialog" aria-modal="true" aria-label="Select your club">
+    <div className="club-select" role="dialog" aria-modal="true" aria-label={t('selectClubTitle')}>
       <div className="club-select__panel">
-        <button className="club-select__close" onClick={onSkip} aria-label="Close club selection">
+        <button className="club-select__close" onClick={onSkip} aria-label={t('a11yCloseClubSelect')}>
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -32,18 +41,22 @@ export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectS
           </svg>
         </button>
 
-        <h1 className="club-select__title">Select your club</h1>
-        <p className="club-select__subtitle">Choose the club you're hitting to start your session.</p>
+        <h1 className="club-select__title">{t('selectClubTitle')}</h1>
+        <p className="club-select__subtitle">{t('selectClubSubtitle')}</p>
 
         {Object.entries(CLUBS_BY_TYPE).map(([type, clubs]) => (
           <div className="club-select__section" key={type}>
-            <span className="club-select__section-title">{type}</span>
+            <span className="club-select__section-title">{t(SECTION_KEYS[type] ?? 'clubSectionIrons')}</span>
             <div className="club-select__grid">
               {clubs.map((club) => (
                 <button
                   key={club.id}
                   className={`club-select__option ${selectedClub === club.id ? 'club-select__option--selected' : ''}`}
                   onClick={() => onSelect(club.id)}
+                  aria-pressed={selectedClub === club.id}
+                  // Land remote focus on the current club so the D-pad enters the
+                  // grid immediately (Apple HIG: meaningful initial focus on entry).
+                  autoFocus={selectedClub === club.id}
                 >
                   {club.label}
                 </button>
