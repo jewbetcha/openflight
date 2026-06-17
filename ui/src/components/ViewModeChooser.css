@@ -1,0 +1,271 @@
+.mode-chooser {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 6vh, 4rem);
+  padding: clamp(1.5rem, 5vw, 4rem);
+  box-sizing: border-box;
+  color: var(--color-cream, #f5f0e6);
+  text-align: center;
+  /* Cinematic backdrop: a warm gold halo above, a faint floor glow, over the
+     deep base — the same vocabulary as the app body, dialed up for a hero moment. */
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -8%, rgba(var(--gold-rgb, 212, 175, 55), 0.10), transparent 60%),
+    radial-gradient(ellipse 90% 50% at 50% 115%, rgba(var(--gold-rgb, 212, 175, 55), 0.04), transparent 55%),
+    var(--color-bg-deep, #0a0a0f);
+}
+
+.mode-chooser__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vh, 1rem);
+  animation: chooser-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mode-chooser__logo {
+  /* Hero wordmark that dominates the screen; scales fluidly with the viewport. */
+  height: clamp(6rem, 14vw, 11rem);
+  width: auto;
+  max-width: 88vw;
+  margin-bottom: clamp(0.5rem, 1.5vh, 1.25rem);
+  opacity: 0.97;
+  filter: drop-shadow(0 4px 28px rgba(var(--gold-rgb, 212, 175, 55), 0.28));
+}
+
+.mode-chooser__title {
+  margin: 0;
+  font-family: var(--font-body, 'Outfit', system-ui, sans-serif);
+  font-size: clamp(1.65rem, 4.2vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--color-cream, #f5f0e6);
+}
+
+.mode-chooser__sub {
+  margin: 0;
+  color: var(--text-muted, rgba(245, 240, 230, 0.5));
+  font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+  letter-spacing: 0.01em;
+}
+
+.mode-chooser__options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: clamp(1rem, 2.5vw, 2rem);
+  justify-content: center;
+}
+
+.mode-chooser__opt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vh, 1rem);
+  width: clamp(13rem, 32vw, 21rem);
+  min-height: clamp(13rem, 30vh, 18rem);
+  padding: clamp(1.75rem, 3.5vw, 2.75rem) clamp(1.25rem, 3vw, 2.25rem);
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid rgba(var(--gold-rgb, 212, 175, 55), 0.12);
+  /* Layered glass: a top-down sheen over the card base. */
+  background:
+    linear-gradient(180deg, rgba(245, 240, 230, 0.05), rgba(245, 240, 230, 0.012)),
+    var(--color-bg-card, #12121a);
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 34px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background 0.28s ease;
+  animation: chooser-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 0.06s;
+}
+.mode-chooser__opt:nth-child(2) {
+  animation-delay: 0.13s;
+}
+
+.mode-chooser__opt:hover {
+  transform: translateY(-6px);
+  border-color: rgba(var(--gold-rgb, 212, 175, 55), 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 22px 54px rgba(0, 0, 0, 0.6),
+    0 0 46px rgba(var(--gold-rgb, 212, 175, 55), 0.1);
+}
+.mode-chooser__opt:active {
+  transform: translateY(-2px) scale(0.985);
+}
+
+/* The auto-detected option — a richer gold wash, glow, and a gradient-masked
+   gold frame (falls back to the solid border below if mask is unsupported). */
+.mode-chooser__opt--suggested {
+  border-color: rgba(var(--gold-rgb, 212, 175, 55), 0.55);
+  background:
+    linear-gradient(180deg, rgba(var(--gold-rgb, 212, 175, 55), 0.12), rgba(var(--gold-rgb, 212, 175, 55), 0.025)),
+    var(--color-bg-card, #12121a);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--gold-rgb, 212, 175, 55), 0.25),
+    0 12px 34px rgba(0, 0, 0, 0.5),
+    0 0 50px rgba(var(--gold-rgb, 212, 175, 55), 0.14);
+}
+.mode-chooser__opt--suggested::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(150deg, var(--color-gold-bright, #f4cf47), var(--color-gold-dim, #a68b2a) 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Renders before a mode is chosen, so it must show focus on its own — it can't
+   depend on the `.tv` focus ring. Unconditional (not just :focus-visible). */
+.mode-chooser__opt:focus,
+.mode-chooser__opt:focus-visible {
+  outline: 3px solid var(--color-gold, #e8b830);
+  outline-offset: 4px;
+}
+
+/* Icon medallion — a soft gold-tinted tile with an inset top highlight. */
+.mode-chooser__medallion {
+  display: grid;
+  place-items: center;
+  width: clamp(3.5rem, 8vw, 5rem);
+  height: clamp(3.5rem, 8vw, 5rem);
+  border-radius: clamp(1rem, 2vw, 1.35rem);
+  background: linear-gradient(160deg, rgba(var(--gold-rgb, 212, 175, 55), 0.18), rgba(var(--gold-rgb, 212, 175, 55), 0.04));
+  border: 1px solid rgba(var(--gold-rgb, 212, 175, 55), 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: var(--color-gold-bright, #f4cf47);
+  transition: background 0.28s ease, box-shadow 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mode-chooser__medallion svg {
+  width: 56%;
+  height: 56%;
+}
+.mode-chooser__opt:hover .mode-chooser__medallion {
+  transform: scale(1.06);
+}
+.mode-chooser__opt--suggested .mode-chooser__medallion {
+  background: linear-gradient(160deg, rgba(var(--gold-rgb, 212, 175, 55), 0.32), rgba(var(--gold-rgb, 212, 175, 55), 0.08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 0 24px rgba(var(--gold-rgb, 212, 175, 55), 0.22);
+}
+
+.mode-chooser__label {
+  font-family: var(--font-body, 'Outfit', system-ui, sans-serif);
+  font-size: clamp(1.35rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-cream, #f5f0e6);
+}
+
+.mode-chooser__hint {
+  max-width: 22ch;
+  color: var(--text-muted, rgba(245, 240, 230, 0.5));
+  font-size: clamp(0.82rem, 1.5vw, 1.02rem);
+  line-height: 1.4;
+}
+
+.mode-chooser__badge {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-gold-bright, #f4cf47);
+  background: rgba(var(--gold-rgb, 212, 175, 55), 0.14);
+  border: 1px solid rgba(var(--gold-rgb, 212, 175, 55), 0.4);
+  backdrop-filter: blur(4px);
+}
+.mode-chooser__badge-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--color-gold-bright, #f4cf47);
+  box-shadow: 0 0 8px var(--color-gold-glow, rgba(212, 175, 55, 0.4));
+  animation: badge-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes chooser-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.82); }
+}
+
+/* Motion-safety: drop entrance + spring + pulse, keep all the static styling. */
+@media (prefers-reduced-motion: reduce) {
+  .mode-chooser__head,
+  .mode-chooser__opt {
+    animation: none;
+  }
+  .mode-chooser__opt,
+  .mode-chooser__medallion {
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .mode-chooser__opt:hover {
+    transform: none;
+  }
+  .mode-chooser__opt:hover .mode-chooser__medallion {
+    transform: none;
+  }
+  .mode-chooser__badge-dot {
+    animation: none;
+  }
+}
+
+/* In-app High Contrast pref: strengthen the card + medallion borders (text
+   tokens are already boosted globally by .a11y-high-contrast). */
+.a11y-high-contrast .mode-chooser__opt {
+  border-color: rgba(245, 240, 230, 0.4);
+}
+.a11y-high-contrast .mode-chooser__medallion {
+  border-color: rgba(var(--gold-rgb, 212, 175, 55), 0.55);
+}
+
+@media (forced-colors: active) {
+  .mode-chooser__opt:focus,
+  .mode-chooser__opt:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 4px;
+  }
+  /* Keep the "suggested" distinction under High Contrast (border/bg flatten). */
+  .mode-chooser__opt--suggested {
+    border-color: Highlight;
+  }
+  .mode-chooser__opt--suggested::before {
+    display: none;
+  }
+  .mode-chooser__badge {
+    border: 1px solid CanvasText;
+  }
+}
