@@ -1,0 +1,114 @@
+/* Shared club charts — dispersion (top-down) + trajectory (side view).
+   Moved out of StatsView.css so both the Stats "Clubs" tab and the /display
+   no-camera visualizer can use them without importing the whole stats sheet. */
+
+/* ── Dispersion Chart ────────────────────────────────────────────────────────── */
+.dispersion-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.dispersion-chart__title,
+.trajectory-chart__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 230, 0.45);
+  align-self: flex-start;
+}
+
+.dispersion-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Trajectory Chart ────────────────────────────────────────────────────────── */
+.trajectory-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.trajectory-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Chart utilities ─────────────────────────────────────────────────────────── */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.chart-note {
+  margin: 0;
+  font-size: 0.5625rem;
+  color: rgba(245, 240, 230, 0.2);
+  letter-spacing: 0.03em;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Shot-in animations (compositor-friendly: GPU stroke/transform only) ──────── */
+/* The trajectory arc sweeps left→right; the dispersion dot slams in timed to
+   land exactly as the sweep completes. Both run off the main thread so they
+   stay smooth even while the Pi is busy with FFT at shot time. */
+.traj-arc--animate {
+  stroke-dasharray: 100;
+  stroke-linecap: round; /* smooth drawing tip rather than a hard butt edge */
+  will-change: stroke-dashoffset; /* hint the compositor to pre-promote the layer */
+  animation-name: traj-draw;
+  /* Gentle, even pacing — avoids the ease-out "stall" near the end of the draw. */
+  animation-timing-function: cubic-bezier(0.37, 0, 0.28, 1);
+  animation-fill-mode: both;
+}
+
+@keyframes traj-draw {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+.disp-dot--slam {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation-name: disp-slam;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+/* Softer entry (1.8× not 2.6×) with a small settle dip so the dot lands
+   gracefully instead of popping. */
+@keyframes disp-slam {
+  0% { opacity: 0; transform: scale(1.8); }
+  55% { opacity: 1; }
+  78% { transform: scale(0.94); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+/* Respect the OS / a11y reduce-motion setting even if the class is applied. */
+@media (prefers-reduced-motion: reduce) {
+  .traj-arc--animate {
+    stroke-dasharray: none;
+    animation: none;
+  }
+  .disp-dot--slam {
+    opacity: 0.9;
+    transform: none;
+    animation: none;
+  }
+}
