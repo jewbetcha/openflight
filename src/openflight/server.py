@@ -835,8 +835,15 @@ def shot_to_dict(shot: Shot) -> dict:
         "spin_phase_confirmed": shot.spin_phase_confirmed,
         "spin_rejection_reason": shot.spin_rejection_reason,
         "carry_spin_adjusted": round(shot.carry_spin_adjusted)
-        if shot.carry_spin_adjusted
+        if shot.carry_spin_adjusted is not None
         else None,
+        # Computed trajectory / geometry fields
+        "apex_height_yards": round(shot.apex_height_yards, 1) if shot.apex_height_yards is not None else None,
+        "total_distance_yards": round(shot.total_distance_yards) if shot.total_distance_yards is not None else None,
+        "carry_side_yards": round(shot.carry_side_yards, 1) if shot.carry_side_yards is not None else None,
+        "curve_yards": round(shot.curve_yards, 1) if shot.curve_yards is not None else None,
+        "face_to_path_deg": round(shot.face_to_path_deg, 1) if shot.face_to_path_deg is not None else None,
+        "is_mishit": getattr(shot, "is_mishit", False) or False,
     }
 
 
@@ -1858,6 +1865,7 @@ def on_shot_detected(shot: Shot):
         if conditions is not None:
             trajectory = simulate(conditions)
             shot.carry_spin_adjusted = trajectory.carry_yards
+            shot.apex_height_yards_sim = trajectory.apex_yards
             logger.info(
                 "[SERVER] Ballistic carry: %.0f yds (spin: %.0f rpm, source: %s)",
                 shot.carry_spin_adjusted,
