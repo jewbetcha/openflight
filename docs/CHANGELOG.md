@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- BLE GATT peripheral (`src/openflight/ble_server.py`): advertises the OpenFlight service over BlueZ, notifies shots and events to paired phones, authenticates with a rotating-nonce HMAC-SHA256 challenge, and serves the pairing payload via localhost `/api/pair-qr` (protocol in `docs/mobile-ble-protocol.md`)
+
 ### Fixed
 - K-LD7 tracker: shots could silently lose their launch angle when the
   stream thread appended a frame while the shot path iterated the ring
