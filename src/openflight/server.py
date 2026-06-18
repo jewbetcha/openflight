@@ -25,6 +25,16 @@ from .launch_monitor import SPIN_CONFIDENCE_HIGH, ClubType, Shot
 from .ops243 import Direction, SpeedReading, set_show_raw_readings
 from .rolling_buffer.monitor import estimate_carry_with_spin, get_optimal_spin_for_ball_speed
 from .session_logger import get_session_logger, init_session_logger, log_session_error
+from .sim import (
+    IncompleteShotError,
+    PlayerState as SimPlayerState,
+    PlayerUpdate,
+    ShotAck,
+    SimError,
+    build_connectors,
+    load_sim_config,
+    resolve_shot,
+)
 from .speed_correction import correct_ball_speed
 from .spin_estimate import calculated_spin_rpm
 
@@ -76,6 +86,16 @@ experimental_kld7_raw_radc_logging: bool = False
 # (default), all carry computations go through the legacy table estimator.
 # The simulator is opt-in until coefficients are validated against TM.
 ballistics_enabled: bool = False
+
+# Simulator connectors (optional). Populated in main() from config/sim.json +
+# CLI flags; shots fan out to every connected connector. Player/club state is
+# shared across all of them.
+sim_connectors: List = []
+# Seed the shot counter from the clock (epoch ms) so ShotNumber strictly
+# increases across server restarts. Some sims (e.g. OpenGolfSim's Developer API)
+# reject any ShotNumber <= the highest they've seen, and that counter persists
+# across reconnects — a per-run reset to 1 would get every shot dropped.
+sim_player_state = SimPlayerState(shot_counter=int(time.time() * 1000))
 
 _DEFAULT_KLD7_RADC_TUNING = {
     "radc_speed_tolerance_mph": 10.0,
@@ -135,6 +155,9 @@ def _cleanup_hardware_for_shutdown() -> None:
         _run_shutdown_step("camera close", camera.close)
 
     _run_shutdown_step("launch monitor stop", stop_monitor)
+
+    for connector in sim_connectors:
+        _run_shutdown_step(f"simulator connector stop ({connector.name})", connector.stop)
 
 
 def _shutdown_process_after_delay(delay_s: float = 0.5) -> None:
@@ -1500,6 +1523,138 @@ def handle_shutdown():
     threading.Thread(target=_shutdown_process_after_delay, daemon=True).start()
 
 
+def _forward_shot_to_simulators(shot: Shot) -> None:
+    """Resolve a shot once and fan it out to every connected simulator.
+
+    The shot pipeline is untouched: this is called after the UI emit and never
+    raises into it. A shot number is only allocated when at least one connector
+    is connected, so the sequence doesn't drift while sims are offline.
+    """
+    if not any(c.is_connected() for c in sim_connectors):
+        return
+    try:
+        resolved = resolve_shot(shot, sim_player_state)
+    except IncompleteShotError as e:
+        logger.warning("[sim] shot not sendable: %s", e)
+        socketio.emit("sim_shot_dropped", {"reason": str(e)})
+        return
+
+    values = resolved.as_values()
+    for connector in sim_connectors:
+        if not connector.is_connected():
+            continue
+        try:
+            # Sends are synchronous on this thread, in connector order. Local sims
+            # (the only target today) ack in microseconds; if a remote or laggy sim
+            # is ever added, move this behind a per-connector send queue so one slow
+            # sim can't stall delivery to the others (PR #115 review #2).
+            connector.send_shot(resolved)
+        except OSError as e:
+            logger.warning("[sim] %s send failed: %s", connector.name, e)
+            socketio.emit("sim_send_failed", {"target": connector.name, "reason": str(e)})
+            continue
+        sl = get_session_logger()
+        if sl:
+            sl.log_sim_send(
+                target=connector.name,
+                shot_number=resolved.shot_number,
+                provenance=resolved.provenance,
+                values=values,
+            )
+        socketio.emit(
+            "sim_shot",
+            {
+                "target": connector.name,
+                "shot_number": resolved.shot_number,
+                "fields": connector.codec.fields_for_target(),
+                "values": values,
+                "provenance": resolved.provenance,
+            },
+        )
+        if debug_mode:
+            measured = sum(1 for p in resolved.provenance.values() if p == "measured")
+            estimated = len(resolved.provenance) - measured
+            logger.info(
+                "[sim] → %s shot #%d: ball=%.1f vla=%.1f hla=%.1f spin=%.0f axis=%.1f "
+                "carry=%.1f (%dM/%dE)",
+                connector.name, resolved.shot_number, resolved.ball_speed_mph,
+                resolved.vla, resolved.hla, resolved.total_spin_rpm,
+                resolved.spin_axis_deg, resolved.carry_yards, measured, estimated,
+            )
+
+
+def _sim_on_status(target: str, event) -> None:
+    """Relay a connector status change to the UI and session log."""
+    state = event.state.value
+    if state == "connected":
+        logger.info("[sim] %s connected (%s:%s)", target, event.host, event.port)
+    elif state == "reconnecting":
+        logger.info(
+            "[sim] %s reconnecting — attempt %s, retry in %.0fs",
+            target, event.attempt, event.next_retry_in_s,
+        )
+    elif state == "error":
+        logger.warning("[sim] %s error: %s", target, event.message)
+    elif debug_mode:
+        logger.info("[sim] %s %s", target, state)
+    socketio.emit(
+        "sim_status",
+        {
+            "target": target,
+            "state": event.state.value,
+            "host": event.host,
+            "port": event.port,
+            "attempt": event.attempt,
+            "next_retry_in_s": event.next_retry_in_s,
+            "message": event.message,
+        },
+    )
+    sl = get_session_logger()
+    if sl:
+        sl.log_sim_status(
+            target=target,
+            state=event.state.value,
+            host=event.host,
+            port=event.port,
+            message=event.message,
+            attempt=event.attempt,
+            next_retry_in_s=event.next_retry_in_s,
+        )
+
+
+def _sim_on_inbound(target: str, event) -> None:
+    """Apply an inbound simulator event (player/club update, error, ack)."""
+    if isinstance(event, PlayerUpdate):
+        sim_player_state.apply(event)
+        club_value = sim_player_state.club.value
+        logger.info("[sim] ← %s player update: club=%s", target, club_value)
+        socketio.emit(
+            "sim_player",
+            {"target": target, "handed": sim_player_state.handed, "club": club_value},
+        )
+        sl = get_session_logger()
+        if sl:
+            sl.log_sim_player(
+                target=target, handed=sim_player_state.handed, club=club_value
+            )
+        # The monitor owns current-club state for shot tagging and carry/spin
+        # model selection; keep it in sync with the sim's canonical club.
+        if monitor is not None:
+            try:
+                monitor.set_club(sim_player_state.club)
+            except Exception:  # pylint: disable=broad-except
+                logger.exception("[sim] monitor.set_club failed")
+        socketio.emit("club_changed", {"club": club_value})
+    elif isinstance(event, SimError):
+        logger.warning("[sim] ← %s error: %s", target, event.message)
+        socketio.emit("sim_status", {"target": target, "state": "error", "message": event.message})
+    elif isinstance(event, ShotAck):
+        if not event.ok:
+            logger.info("[sim] ← %s rejected shot %s: %s", target, event.shot_number, event.message)
+        elif debug_mode:
+            logger.info("[sim] ← %s ack: shot %s ok", target, event.shot_number)
+
+
 def _apply_calculated_spin(shot: Shot) -> bool:
     """Replace radar-measured spin with the kinematic estimate.
 
@@ -1980,6 +2135,9 @@ def on_shot_detected(shot: Shot):
         )
         return
 
+    # Forward to simulator connectors (optional)
+    _forward_shot_to_simulators(shot)
+
     # Debug logging (optional)
     if debug_mode:
         try:
@@ -2415,6 +2573,12 @@ def main():
     )
     parser.add_argument("--no-logging", action="store_true", help="Disable session logging")
     parser.add_argument(
+        "--sim",
+        action="store_true",
+        help="Enable simulator connectors from config/sim.json (GSPro / OpenGolfSim). "
+        "Off by default.",
+    )
+    parser.add_argument(
         "--ballistics",
         action="store_true",
         help=(
@@ -2750,6 +2914,19 @@ def main():
         trigger_kwargs=trigger_kwargs,
         sample_rate_ksps=args.sample_rate,
     )
+
+    # Simulator connectors (off unless --sim). Started after the monitor exists
+    # so inbound club updates can call monitor.set_club().
+    global sim_connectors  # pylint: disable=global-statement
+    sim_cfgs = load_sim_config() if args.sim else []
+    sim_connectors = build_connectors(
+        sim_cfgs, on_status=_sim_on_status, on_inbound=_sim_on_inbound
+    )
+    for connector in sim_connectors:
+        connector.start()
+        print(f"Simulator connector enabled: {connector.name} -> {connector.host}:{connector.port}")
+    if args.sim and not sim_connectors:
+        print("Simulator connectors enabled (--sim) but none are enabled in config/sim.json")
 
     if args.mock:
         print("Running in MOCK mode - no radar required")

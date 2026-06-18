@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CameraStatus } from '../hooks/useSocket';
+import type { CameraStatus } from '../stores/useCameraStore';
 import { getServerOrigin } from '../utils/serverOrigin';
 import './CameraFeed.css';
 

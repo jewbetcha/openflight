@@ -525,6 +525,68 @@ class SessionLogger:
             },
         )
 
+    def log_sim_send(
+        self,
+        target: str,
+        shot_number: int,
+        provenance: Dict[str, str],
+        values: Optional[Dict[str, Any]] = None,
+    ):
+        """Log a shot forwarded to a simulator connector."""
+        if not self.enabled:
+            return
+
+        self._write_entry(
+            "sim_send",
+            {
+                "target": target,
+                "shot_number": shot_number,
+                "provenance": provenance,
+                "values": values or {},
+            },
+        )
+
+    def log_sim_status(
+        self,
+        target: str,
+        state: str,
+        host: str = "",
+        port: int = 0,
+        message: str = "",
+        attempt: int = 0,
+        next_retry_in_s: float = 0.0,
+    ):
+        """Log a simulator connector connection-state change."""
+        if not self.enabled:
+            return
+
+        self._write_entry(
+            "sim_status",
+            {
+                "target": target,
+                "state": state,
+                "host": host,
+                "port": port,
+                "message": message,
+                "attempt": attempt,
+                "next_retry_in_s": next_retry_in_s,
+            },
+        )
+
+    def log_sim_player(self, target: str, handed: str, club: str):
+        """Log a player/club update pushed by a simulator."""
+        if not self.enabled:
+            return
+
+        self._write_entry(
+            "sim_player",
+            {
+                "target": target,
+                "handed": handed,
+                "club": club,
+            },
+        )
+
     def log_iq_reading(
         self,
         speed_mph: float,

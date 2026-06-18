@@ -1,0 +1,57 @@
+--- a/lib/launch/api.js
++++ b/lib/launch/api.js
+@@ -8,6 +8,19 @@
+   port: 3111
+ };
+ 
++// [OpenFlight club-sync patch] Map an OGS club id (e.g. "7I", "3W", "DR") to an
++// OpenConnect/GSPro club code ("I7", "W3", "DR"). OGS uses <number><letter>;
++// OpenConnect uses <letter><number>. Driver/wedges/putter pass through.
++function ogsClubToOpenConnect(clubId) {
++  if (clubId === undefined || clubId === null) return 'DR';
++  const id = String(clubId).trim().toUpperCase();
++  if (['DR', 'PW', 'GW', 'SW', 'LW', 'PT'].includes(id)) return id;
++  if (id === 'AW') return 'GW';
++  const m = id.match(/^(\d)\s*([WHI])$/);
++  if (m) return m[2] + m[1];
++  return id;
++}
++
+ export default class APILaunchMonitor extends BaseLaunchMonitor {
+   constructor(config = {}) {
+     super();
+@@ -26,8 +39,25 @@
+     this.server = net.createServer(this._handleConnection.bind(this));
+     this.connectedSockets = new Set();
+     this.shotNumber = -1;
++    // [OpenFlight club-sync patch] current club as an OpenConnect code.
++    this.currentClub = 'DR';
+   }
+ 
++  // [OpenFlight club-sync patch] OGS calls setClub on every club change. Store
++  // it (mapped to an OpenConnect code) and push a 201 Player to clients now.
++  setClub(clubId) {
++    super.setClub(clubId);
++    this.currentClub = ogsClubToOpenConnect(clubId);
++    const msg = JSON.stringify({
++      Code: 201,
++      Message: 'Player Information',
++      Player: { Handed: 'RH', Club: this.currentClub }
++    }) + '\n';
++    for (const socket of this.connectedSockets) {
++      try { socket.write(msg); } catch (e) { /* socket closing */ }
++    }
++  }
++
+   _handleConnection(socket) {
+     console.log(`Client connected from ${socket.remoteAddress}:${socket.remotePort}`);
+     this.connectedSockets.add(socket);
+@@ -99,7 +129,7 @@
+               "Message": "Player Information",
+               "Player": {
+                 "Handed": "RH",
+-                "Club": "DR"
++                "Club": this.currentClub  // [OpenFlight club-sync patch] real club, not hardcoded "DR"
+               }
+             }) + '\n');
+           }

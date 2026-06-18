@@ -1,0 +1,147 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-description:
+    name: PR description completeness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required PR sections are filled in
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+
+            // Sections from .github/pull_request_template.md that must contain
+            // real content (not just the HTML comment placeholder).
+            const required = [
+              "Why was this required?",
+              "Automated tests",
+              "Manual (human) testing",
+            ];
+
+            // Split the body into "## Heading" -> content blocks.
+            const sections = {};
+            let current = null;
+            for (const line of body.split(/\r?\n/)) {
+              const m = line.match(/^##\s+(.*?)\s*$/);
+              if (m) {
+                current = m[1];
+                sections[current] = [];
+              } else if (current !== null) {
+                sections[current].push(line);
+              }
+            }
+
+            const stripped = (text) =>
+              text
+                .replace(/<!--[\s\S]*?-->/g, "") // drop HTML comments
+                .replace(/\s+/g, " ")
+                .trim();
+
+            const missing = [];
+            for (const heading of required) {
+              const content = sections[heading]
+                ? stripped(sections[heading].join("\n"))
+                : null;
+              if (!content) {
+                missing.push(heading);
+              }
+            }
+
+            if (missing.length > 0) {
+              core.setFailed(
+                "The following PR sections are empty and must be filled in:\n" +
+                  missing.map((h) => `  - "${h}"`).join("\n") +
+                  "\n\nEvery PR must explain why it was required, describe its " +
+                  "automated tests, and describe the manual (human) testing performed."
+              );
+            } else {
+              core.info("All required PR sections contain content.");
+            }
+
+  tests-touched:
+    name: Tests included
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require test changes when source code changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Escape hatch: add the "no-tests-needed" label for PRs that
+            // legitimately don't need tests (docs, config, pure refactors).
+            const labels = (context.payload.pull_request.labels || []).map(
+              (l) => l.name
+            );
+            if (labels.includes("no-tests-needed")) {
+              core.info('Skipped: "no-tests-needed" label is present.');
+              return;
+            }
+
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                per_page: 100,
+              }
+            );
+
+            const isTest = (f) =>
+              /^tests\//.test(f) ||
+              /^ui\/tests\//.test(f) ||
+              /\.(test|spec)\.[jt]sx?$/.test(f);
+
+            const isSource = (f) =>
+              !isTest(f) &&
+              (/^src\/openflight\/.*\.py$/.test(f) || /^ui\/src\//.test(f));
+
+            const changed = files
+              .filter((f) => f.status !== "removed")
+              .map((f) => f.filename);
+
+            const sourceChanged = changed.some(isSource);
+            const testChanged = changed.some(isTest);
+
+            if (sourceChanged && !testChanged) {
+              core.setFailed(
+                "This PR changes source code under src/openflight/ or ui/src/ " +
+                  "but does not add or update any tests.\n\n" +
+                  "Every PR must include tests. If tests genuinely don't apply " +
+                  '(e.g. docs or config only), add the "no-tests-needed" label ' +
+                  "and explain why in the PR description."
+              );
+            } else if (!sourceChanged) {
+              core.info("No source code changes detected; test check skipped.");
+            } else {
+              core.info("Source changes are accompanied by test changes.");
+            }
+
+  pr-title:
+    name: Conventional PR title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title prefix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title || "";
+            // type(optional scope)(optional !): description
+            const pattern =
+              /^(feat|fix|docs|refactor|test|chore|perf|build|ci|style|revert)(\([^)]+\))?!?: .+/;
+
+            if (!pattern.test(title)) {
+              core.setFailed(
+                `PR title "${title}" does not follow the conventional format.\n\n` +
+                  "Use: <type>(optional scope): <description>\n" +
+                  "Allowed types: feat, fix, docs, refactor, test, chore, " +
+                  "perf, build, ci, style, revert\n" +
+                  'Example: "feat(kld7): add launch angle smoothing"'
+              );
+            } else {
+              core.info(`PR title "${title}" is valid.`);
+            }
