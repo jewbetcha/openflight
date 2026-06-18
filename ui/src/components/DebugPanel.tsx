@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
-import type { DebugReading, RadarConfig, DebugShotLog, CameraStatus } from '../hooks/useSocket';
+import type { CameraStatus } from '../stores/useCameraStore';
+import type { DebugReading, RadarConfig, DebugShotLog } from '../types/socket';
 import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import './DebugPanel.css';
 

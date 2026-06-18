@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CameraStatus } from '../hooks/useSocket';
+import type { CameraStatus } from '../stores/useCameraStore';
 import type { Shot } from '../types/shot';
 import { useUnitPreference } from '../state/useUnitPreference';
 import { formatDistance, formatSpeed, getDistanceUnit, getSpeedUnit } from '../utils/units';

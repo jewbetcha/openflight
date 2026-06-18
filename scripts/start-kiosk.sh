@@ -43,6 +43,7 @@ EXPERIMENTAL_KLD7_HORIZONTAL_IMPACT_ENERGY=""
 EXPERIMENTAL_KLD7_HORIZONTAL_RETRY_IMPACT_ENERGY=""
 EXPERIMENTAL_KLD7_HORIZONTAL_ANGLE_LIMIT=""
 BALLISTICS=false
+SIM=false
 CALCULATED_SPIN=false
 BALL_SPEED_COSINE=false
 
@@ -205,6 +206,10 @@ while [[ $# -gt 0 ]]; do
             BALLISTICS=true
             shift
             ;;
+        --sim)
+            SIM=true
+            shift
+            ;;
         --calculated-spin)
             CALCULATED_SPIN=true
             shift
@@ -338,6 +343,11 @@ fi
 
 if [ "$BALLISTICS" = true ]; then
     SERVER_CMD="$SERVER_CMD --ballistics"
+fi
+
+# Simulator connectors: off unless --sim; targets come from config/sim.json
+if [ "$SIM" = true ]; then
+    SERVER_CMD="$SERVER_CMD --sim"
 fi
 
 if [ "$CALCULATED_SPIN" = true ]; then
