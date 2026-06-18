@@ -1,0 +1,27 @@
+# OpenFlight HDMI-CEC -> keyboard bridge.
+#
+# Install:
+#   sudo cp scripts/tv-remote/openflight-cec.service /etc/systemd/system/
+#   # edit User= and the ExecStart path below to match your install location
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now openflight-cec.service
+#
+# Requires: cec-utils python3-cec ydotool  (and a running ydotoold)
+# See docs/tv-remote-control.md for the full setup.
+
+[Unit]
+Description=OpenFlight HDMI-CEC remote bridge
+After=graphical.target ydotool.service
+Wants=ydotool.service
+
+[Service]
+Type=simple
+User=pi
+# ydotool talks to ydotoold over this socket; match your ydotoold config.
+Environment=YDOTOOL_SOCKET=/run/user/1000/.ydotool_socket
+ExecStart=/usr/bin/python3 /home/pi/openflight/scripts/tv-remote/cec_remote.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
