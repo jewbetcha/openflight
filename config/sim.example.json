@@ -1,0 +1,20 @@
+{
+  "connectors": [
+    {
+      "type": "opengolfsim",
+      "enabled": false,
+      "host": "127.0.0.1",
+      "port": 3111,
+      "device_id": "OpenFlight"
+    },
+    {
+      "type": "gspro",
+      "enabled": false,
+      "host": "127.0.0.1",
+      "port": 921,
+      "device_id": "OpenFlight",
+      "units": "Yards",
+      "heartbeat_interval_s": 5
+    }
+  ]
+}

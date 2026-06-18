@@ -1,0 +1,86 @@
+/* Simulator connector status pills */
+.sim-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.sim-status__pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all var(--transition-smooth);
+}
+
+.sim-status__name {
+  font-weight: 700;
+}
+
+.sim-status__state {
+  opacity: 0.75;
+}
+
+.sim-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Connected */
+.sim-status__pill--ok {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: var(--color-success);
+}
+.sim-status__pill--ok .sim-status__dot {
+  background: var(--color-success);
+  box-shadow: 0 0 8px var(--color-success);
+}
+
+/* Connecting / reconnecting */
+.sim-status__pill--warn {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+.sim-status__pill--warn .sim-status__dot {
+  background: #fbbf24;
+  animation: blink 1s infinite;
+}
+
+/* Error */
+.sim-status__pill--error {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--color-danger);
+}
+.sim-status__pill--error .sim-status__dot {
+  background: var(--color-danger);
+  animation: blink 1s infinite;
+}
+
+/* Disabled / stopped */
+.sim-status__pill--off {
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--color-text-muted, #94a3b8);
+}
+.sim-status__pill--off .sim-status__dot {
+  background: var(--color-text-muted, #94a3b8);
+}
+
+@media (max-height: 500px) {
+  .sim-status__pill {
+    padding: 2px var(--space-xs);
+    font-size: 0.5625rem;
+  }
+  .sim-status__state {
+    display: none;
+  }
+}

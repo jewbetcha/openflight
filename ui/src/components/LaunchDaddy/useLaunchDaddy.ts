@@ -1,10 +1,5 @@
-import { useContext } from 'react';
-import { LaunchDaddyContext } from './launchDaddyTypes';
+import { useLaunchDaddyStore } from '../../stores/useLaunchDaddyStore';
 
 export function useLaunchDaddy() {
-  const context = useContext(LaunchDaddyContext);
-  if (!context) {
-    throw new Error('useLaunchDaddy must be used within LaunchDaddyProvider');
-  }
-  return context;
+  return useLaunchDaddyStore();
 }

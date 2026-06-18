@@ -1,13 +1,43 @@
 ## What does this PR do?
 
-<!-- Describe the change and why it's needed. Reference related issues with "Fixes #123". -->
+<!--
+This PR must be scoped to a SINGLE feature or fix. If you find yourself
+writing "and also...", split it into separate PRs.
 
-## How was this tested?
+Tell the story:
+- What is the change?
+- Why was it required? What problem does it solve or what need does it meet?
+- Reference related issues with "Fixes #123".
+-->
 
-<!-- How did you verify this works? Mock mode, hardware, specific test cases? -->
+## Why was this required?
+
+<!-- The motivation / story. What prompted this work and what is the impact of not doing it? -->
+
+## Automated tests
+
+<!--
+Every PR must include tests. Describe the tests you added or updated and
+what behavior they cover. If you believe tests are genuinely not applicable,
+explain why here.
+-->
+
+## Manual (human) testing
+
+<!--
+Every PR must describe the manual testing a human performed. Be specific:
+- What did you actually run? (mock mode, real hardware, which UI flows)
+- What did you observe? Include numbers/screenshots where relevant.
+- What edge cases did you exercise by hand?
+
+"Tests pass" is not manual testing — describe what YOU verified by hand.
+-->
 
 ## Checklist
 
+- [ ] **Single feature/fix** — this PR is scoped to one thing with a clear story above
+- [ ] **Automated tests included** — new or updated tests cover this change
+- [ ] **Manual testing described** — I documented what I verified by hand above
 - [ ] Python tests pass (`uv run pytest tests/ -v`)
 - [ ] Pylint passes (`uv run pylint src/openflight/ --fail-under=9`)
 - [ ] Ruff passes (`uv run ruff check src/openflight/`)

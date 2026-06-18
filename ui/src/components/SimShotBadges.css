@@ -1,0 +1,85 @@
+/* "Sent to simulator" provenance panel */
+.sim-shot-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.sim-shot-badges__card {
+  flex: 1 1 220px;
+  min-width: 220px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.sim-shot-badges__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-xs);
+}
+
+.sim-shot-badges__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sim-shot-badges__shot {
+  font-size: 0.6875rem;
+  opacity: 0.6;
+}
+
+.sim-shot-badges__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 4px var(--space-sm);
+}
+
+.sim-shot-badges__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.sim-shot-badges__label {
+  opacity: 0.65;
+}
+
+.sim-shot-badges__value {
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.sim-shot-badges__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+}
+
+.sim-shot-badges__badge--measured {
+  background: rgba(74, 222, 128, 0.18);
+  color: var(--color-success);
+}
+
+.sim-shot-badges__badge--estimated {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+}
+
+.sim-shot-badges__summary {
+  margin-top: var(--space-xs);
+  font-size: 0.625rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

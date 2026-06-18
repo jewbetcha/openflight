@@ -1,12 +1,5 @@
-import { useContext } from 'react';
-import { UnitPreferenceContext } from './UnitPreferenceContext';
+import { useUnitPreferenceStore } from '../stores/useUnitPreferenceStore';
 
 export function useUnitPreference() {
-  const context = useContext(UnitPreferenceContext);
-
-  if (context === null) {
-    throw new Error('useUnitPreference must be used within a UnitPreferenceProvider');
-  }
-
-  return context;
+  return useUnitPreferenceStore();
 }
