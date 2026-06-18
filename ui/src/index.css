@@ -1,5 +1,58 @@
 /* OpenFlight - Premium Golf Tech Design System */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Visually-hidden but available to screen readers (live-region summaries,
+   stable page/section headings). Standard clip-rect technique. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Self-hosted fonts (offline-first for the Pi kiosk) ───────────────────────
+   woff2 files live in ui/public/fonts/. No CDN dependency at boot.
+   Outfit ships as a single variable file per subset (covers weights 300–700);
+   DM Serif Display is a single 400 weight. latin + latin-ext subsets included
+   so i18n strings (translations.ts) render with the brand face.
+   font-display: swap → text paints immediately in the fallback, swaps when ready.
+   ─────────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/outfit-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/outfit-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dmserifdisplay-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dmserifdisplay-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 * {
   box-sizing: border-box;
@@ -16,11 +69,20 @@
   --color-bg-elevated: #1a1a24;
   --color-bg-hover: #222230;
 
+  /* ── Semantic color RGB channels ────────────────────────────────────────
+     Single source of truth for all rgba() tints throughout the UI.
+     Override in .a11y-color-blind to retheme every tinted surface at once.
+     ─────────────────────────────────────────────────────────────────────── */
+  --gold-rgb:  212, 175, 55;   /* gold accent */
+  --pos-rgb:   52, 211, 153;   /* positive / good quality  */
+  --neg-rgb:   248, 113, 113;  /* negative / bad quality   */
+  --ball-rgb:  74, 222, 128;   /* ball / connection active */
+
   /* Gold accent (primary) */
   --color-gold: #d4af37;
   --color-gold-bright: #f4cf47;
   --color-gold-dim: #a68b2a;
-  --color-gold-glow: rgba(212, 175, 55, 0.4);
+  --color-gold-glow: rgba(var(--gold-rgb), 0.4);
 
   /* Cream/ivory (secondary) */
   --color-cream: #f5f0e6;
@@ -80,12 +142,12 @@ body {
   background: var(--color-bg-deep);
   /* Subtle texture overlay */
   background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, rgba(var(--gold-rgb), 0.03) 0%, transparent 50%),
     url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button {
@@ -102,12 +164,24 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.3);
+  background: rgba(var(--gold-rgb), 0.3);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.5);
+  background: rgba(var(--gold-rgb), 0.5);
+}
+
+/* Global keyframes */
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Utility classes */
@@ -125,4 +199,125 @@ button {
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
+}
+
+/* ── Glass Panel Utility ──────────────────────────────────────────────────
+   Gold-tinted instrument glass: blurs content beneath, gold hairline edge.
+   Apply to elements that float over camera feed or shot visualization.
+   NOT for metric data cards — those use semantic surface colors.
+   ─────────────────────────────────────────────────────────────────────── */
+.glass-panel {
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  background: linear-gradient(
+    160deg,
+    rgba(var(--gold-rgb), 0.07) 0%,
+    rgba(10, 10, 15, 0.82) 100%
+  );
+  border: 1px solid rgba(var(--gold-rgb), 0.20);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--gold-rgb), 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+
+/* Solid fallback when system reduces transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(14, 14, 20, 0.96);
+  }
+}
+
+/* ── Low-Power Devices (Raspberry Pi kiosk, TVs) ──────────────────────────
+   backdrop-filter blur is the single most expensive paint on a weak GPU and
+   scales with radius. On low-power clients drop it entirely (panels already
+   use high-opacity backgrounds) and give the translucent glass a solid fill —
+   the same treatment as prefers-reduced-transparency. Also remove the
+   always-repainting body noise texture. Applied via ?lowpower=1 (set by
+   start-kiosk.sh) or view detection — see src/state/ViewModeProvider.tsx.
+   ─────────────────────────────────────────────────────────────────────── */
+.low-power *,
+.low-power *::before,
+.low-power *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.low-power .glass-panel {
+  background: rgba(14, 14, 20, 0.96);
+}
+
+.low-power body {
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(var(--gold-rgb), 0.03) 0%, transparent 50%);
+}
+
+/* ── TV Platform Classes ──────────────────────────────────────────────────
+   Applied via UA detection (Tizen / webOS) or ?tv=1 URL param.
+   Lighter blur for Samsung/LG GPU budget. Larger focus rings for D-pad.
+   ─────────────────────────────────────────────────────────────────────── */
+.tv .glass-panel {
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+}
+
+/* Gold focus ring for remote/keyboard navigation in both display profiles (a
+   monitor may have a remote too); useSpatialNavigation sets `using-dpad` on nav
+   and clears it on the next pointer use, so mouse/touch users never see a stuck
+   ring; tv mode used to force it always-on, leaving a gold ring on every mouse
+   click and shoving the focused panel around; forced-colors fallback below */
+html.using-dpad :focus {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px rgba(var(--gold-rgb), 0.15);
+  /* Lift the focused element so its offset ring paints above adjacent siblings
+     (e.g. neighbouring club tiles in a grid) instead of behind them. */
+  position: relative;
+  z-index: 1;
+}
+
+@media (forced-colors: active) {
+  html.using-dpad :focus {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* ── In-App Accessibility Overrides ─────────────────────────────────────
+   Applied via JS class toggling on <html> from accessibilitySettings state.
+   These supplement (not replace) OS-level @media queries.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Reduce Motion: disable all CSS transitions and animations */
+.a11y-reduce-motion *,
+.a11y-reduce-motion *::before,
+.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* High Contrast: boost text and border contrast */
+.a11y-high-contrast {
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --color-cream: #ffffff;
+  --color-cream-dim: rgba(255, 255, 255, 0.9);
+}
+
+.a11y-high-contrast .stat-card,
+.a11y-high-contrast .display-metric,
+.a11y-high-contrast .history-card {
+  border-color: rgba(245, 240, 230, 0.35);
+}
+
+/* Larger Text: scale body text up ~15% */
+.a11y-large-text {
+  font-size: 115%;
+}
+
+.a11y-large-text .stat-card__label,
+.a11y-large-text .display-metric__label {
+  font-size: 0.75rem;
 }
