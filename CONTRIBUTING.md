@@ -106,6 +106,40 @@ uv run pytest tests/ --cov=src/openflight --cov-report=html
 
 Use the [issue templates](https://github.com/jewbetcha/openflight/issues/new/choose) to file bugs, request features, or get help with hardware setup. Check existing issues before creating new ones.
 
+### Pull Request Requirements
+
+Every pull request **must** meet all three of the following requirements. PRs that
+do not will be asked for changes before review.
+
+1. **Scoped to a single feature or fix with a clear story.**
+   A PR should do one thing. The description must explain *what* the change is and
+   *why it was required* — the problem it solves or the need it meets. If you catch
+   yourself writing "and also…", split the work into separate PRs.
+
+2. **Includes automated tests.**
+   New behavior needs new tests; bug fixes need a test that reproduces the bug
+   (see [Development Rules](CLAUDE.md) — write the failing test first). If you
+   believe tests genuinely don't apply, say so explicitly in the PR and explain why.
+
+3. **Describes the manual (human) testing performed.**
+   Automated tests aren't enough. Document what *you* verified by hand: what you ran
+   (mock mode, real hardware, specific UI flows), what you observed (numbers,
+   screenshots), and which edge cases you exercised. "Tests pass" is not manual
+   testing.
+
+These requirements are enforced automatically by the **PR Checks** workflow, which
+will fail if:
+
+- a required PR description section (why it was required, automated tests, manual
+  testing) is left empty;
+- source code under `src/openflight/` or `ui/src/` changes without any accompanying
+  test changes — add the `no-tests-needed` label (and explain why in the description)
+  for the rare PR where tests genuinely don't apply;
+- the PR title doesn't follow the conventional format
+  `<type>(optional scope): <description>` (allowed types: `feat`, `fix`, `docs`,
+  `refactor`, `test`, `chore`, `perf`, `build`, `ci`, `style`, `revert`), e.g.
+  `feat(kld7): add launch angle smoothing`.
+
 ### Pull Request Process
 
 1. **Fork the repository** and create a feature branch
@@ -113,21 +147,26 @@ Use the [issue templates](https://github.com/jewbetcha/openflight/issues/new/cho
    git checkout -b feature/your-feature-name
    ```
 
-2. **Make your changes** with clear, focused commits
+2. **Make your changes** with clear, focused commits, scoped to a single feature or fix
 
-3. **Ensure quality checks pass**
+3. **Add automated tests** covering the new behavior or reproducing the fixed bug
+
+4. **Ensure quality checks pass**
    ```bash
    make test
    make lint
    cd ui && npm run build
    ```
 
-4. **Update documentation** if needed
+5. **Manually test your change** and note what you verified by hand
+
+6. **Update documentation** if needed
    - Update README.md for user-facing changes
    - Update relevant docs in `docs/`
    - Add entry to `docs/CHANGELOG.md` under `[Unreleased]`
 
-5. **Submit a pull request** and fill out the PR template
+7. **Submit a pull request** and fill out the PR template — including the automated
+   tests, manual testing, and "why it was required" sections
 
 ### Commit Messages
 

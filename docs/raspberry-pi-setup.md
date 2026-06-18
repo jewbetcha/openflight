@@ -58,6 +58,17 @@ it picks up where you left off.
 
 Then open `http://localhost:8080` or use the touchscreen.
 
+### 4. (Optional) Stream to a golf simulator
+
+To send shots to GSPro, OpenGolfSim, or another supported sim, copy the
+example config and enable your simulator:
+
+```bash
+cp config/sim.example.json config/sim.json   # then edit host/port + "enabled": true
+```
+
+See **[Simulator Connectors](simulator/README.md)** for the full guide.
+
 ---
 
 ## What the Script Configures (Reference)

@@ -1,7 +1,6 @@
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { UnitPreferenceProvider } from '../state/UnitPreferenceProvider';
-import type { CameraStatus } from '../hooks/useSocket';
+import type { CameraStatus } from '../stores/useCameraStore';
 import type { Shot } from '../types/shot';
 import { DisplayMode } from './DisplayMode';
 
@@ -38,11 +37,7 @@ const shot: Shot = {
 
 describe('DisplayMode', () => {
   it('renders latest shot metrics and recent shot strip', () => {
-    const html = renderToString(
-      <UnitPreferenceProvider>
-        <DisplayMode connected cameraStatus={cameraStatus} latestShot={shot} shots={[shot]} />
-      </UnitPreferenceProvider>,
-    );
+    const html = renderToString(<DisplayMode connected cameraStatus={cameraStatus} latestShot={shot} shots={[shot]} />);
 
     expect(html).toContain('OpenFlight Display');
     expect(html).toContain('151.2');

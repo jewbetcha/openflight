@@ -19,7 +19,8 @@
   "dependencies": {
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

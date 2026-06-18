@@ -69,5 +69,8 @@ htmlcov/
 # UI (Node.js)
 ui/node_modules/
 ui/dist/autoresearch-results.tsv
+
+# Simulator connector config (copy from config/sim.example.json)
+config/sim.json
 ui/playwright-report/
 ui/test-results/
