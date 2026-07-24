@@ -1,0 +1,115 @@
+{
+  "architecture": "four_2x2_subarrays_outward_feeds",
+  "pitch_mm": 12.5,
+  "phase_centers": [
+    {
+      "channel": "RX1",
+      "x_mm": -6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    }
+  ],
+  "feed_ports": [
+    {
+      "channel": "RX1",
+      "x_mm": -8.988000000000001,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 3.511999999999999,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -3.511999999999999,
+      "y_mm": 19.452822064634653
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 8.988000000000001,
+      "y_mm": 19.452822064634653
+    }
+  ],
+  "minimum_copper_clearance_mm": 0.2,
+  "coupling_db_max": -31.503286464003715,
+  "acceptance": {
+    "geometry": true,
+    "coupling": true,
+    "source_subarray": true,
+    "s11": false,
+    "overall": false
+  },
+  "coupling_db_by_port": {
+    "RX2": {
+      "24.15": -38.65,
+      "24.20": -36.81,
+      "24.25": -37.16,
+      "band_max_24.15_24.25": -36.79
+    },
+    "RX3": {
+      "24.15": -49.44,
+      "24.20": -43.86,
+      "24.25": -41.39,
+      "band_max_24.15_24.25": -41.39
+    },
+    "RX4": {
+      "24.15": -31.66,
+      "24.20": -32.15,
+      "24.25": -32.64,
+      "band_max_24.15_24.25": -31.5
+    }
+  },
+  "port_s11_db": {
+    "24.15": -0.75,
+    "24.20": -0.87,
+    "24.25": -0.97,
+    "band_max_24.15_24.25": -0.75
+  },
+  "simulation": {
+    "excited_port": "RX1",
+    "symmetry_basis": "RX1 spans adjacent, opposed, and diagonal relationships; reciprocity covers reverse pairs",
+    "mesh_div": 20.0,
+    "end_criteria": 0.0001,
+    "domain": {
+      "substrate_start_mm": [
+        -15.366000000000001,
+        -22.452822064634653,
+        0.0
+      ],
+      "substrate_stop_mm": [
+        15.366000000000001,
+        22.452822064634653,
+        0.254
+      ],
+      "simulation_start_mm": [
+        -18.366,
+        -25.452822064634653,
+        -3.0
+      ],
+      "simulation_stop_mm": [
+        18.366,
+        25.452822064634653,
+        3.254
+      ]
+    }
+  }
+}

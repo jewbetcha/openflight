@@ -1,0 +1,373 @@
+{
+  "analyzer_type": "cross_analysis",
+  "schema_version": "1.3.0",
+  "elapsed_s": 0.005,
+  "summary": {
+    "total_findings": 5,
+    "by_severity": {
+      "error": 0,
+      "warning": 5,
+      "info": 0
+    }
+  },
+  "findings": [
+    {
+      "detector": "check_plane_splits",
+      "rule_id": "PS-002",
+      "category": "plane_integrity",
+      "summary": "+5V plane split: 4 islands, 2 signals crossing",
+      "description": "+5V plane has 4 disconnected islands. Signals crossing: LE_5901, ADC_SHDNZ.",
+      "components": [],
+      "nets": [
+        "+5V",
+        "LE_5901",
+        "ADC_SHDNZ"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+      "report_context": {
+        "section": "Plane Integrity",
+        "impact": "Return path discontinuity increases EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB2_P/BB2_N: length mismatch 1.9mm (8%)",
+      "description": "Differential pair BB2_P/BB2_N has routing issues: length mismatch 1.9mm (8%).",
+      "components": [],
+      "nets": [
+        "BB2_P",
+        "BB2_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB1_P/BB1_N: length mismatch 1.9mm (9%)",
+      "description": "Differential pair BB1_P/BB1_N has routing issues: length mismatch 1.9mm (9%).",
+      "components": [],
+      "nets": [
+        "BB1_P",
+        "BB1_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB3_P/BB3_N: length mismatch 1.9mm (7%)",
+      "description": "Differential pair BB3_P/BB3_N has routing issues: length mismatch 1.9mm (7%).",
+      "components": [],
+      "nets": [
+        "BB3_P",
+        "BB3_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB4_P/BB4_N: length mismatch 1.9mm (6%)",
+      "description": "Differential pair BB4_P/BB4_N has routing issues: length mismatch 1.9mm (6%).",
+      "components": [],
+      "nets": [
+        "BB4_P",
+        "BB4_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    }
+  ],
+  "trust_summary": {
+    "total_findings": 5,
+    "trust_level": "high",
+    "by_confidence": {
+      "deterministic": 5,
+      "heuristic": 0,
+      "datasheet-backed": 0
+    },
+    "by_evidence_source": {
+      "datasheet": 0,
+      "topology": 5,
+      "heuristic_rule": 0,
+      "symbol_footprint": 0,
+      "bom": 0,
+      "geometry": 0,
+      "api_lookup": 0
+    },
+    "provenance_coverage_pct": 0.0
+  },
+  "stage_filter": {
+    "active_stage": "pre_fab",
+    "included_count": 0,
+    "excluded_count": 5
+  },
+  "audience_summary": {
+    "designer": {
+      "total_findings": 5,
+      "by_severity": {
+        "error": 0,
+        "warning": 5,
+        "info": 0
+      },
+      "by_category": {
+        "plane_integrity": 1,
+        "differential_pair": 4
+      },
+      "top_issues": [
+        {
+          "detector": "check_plane_splits",
+          "rule_id": "PS-002",
+          "category": "plane_integrity",
+          "summary": "+5V plane split: 4 islands, 2 signals crossing",
+          "description": "+5V plane has 4 disconnected islands. Signals crossing: LE_5901, ADC_SHDNZ.",
+          "components": [],
+          "nets": [
+            "+5V",
+            "LE_5901",
+            "ADC_SHDNZ"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "report_context": {
+            "section": "Plane Integrity",
+            "impact": "Return path discontinuity increases EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB2_P/BB2_N: length mismatch 1.9mm (8%)",
+          "description": "Differential pair BB2_P/BB2_N has routing issues: length mismatch 1.9mm (8%).",
+          "components": [],
+          "nets": [
+            "BB2_P",
+            "BB2_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB1_P/BB1_N: length mismatch 1.9mm (9%)",
+          "description": "Differential pair BB1_P/BB1_N has routing issues: length mismatch 1.9mm (9%).",
+          "components": [],
+          "nets": [
+            "BB1_P",
+            "BB1_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB3_P/BB3_N: length mismatch 1.9mm (7%)",
+          "description": "Differential pair BB3_P/BB3_N has routing issues: length mismatch 1.9mm (7%).",
+          "components": [],
+          "nets": [
+            "BB3_P",
+            "BB3_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB4_P/BB4_N: length mismatch 1.9mm (6%)",
+          "description": "Differential pair BB4_P/BB4_N has routing issues: length mismatch 1.9mm (6%).",
+          "components": [],
+          "nets": [
+            "BB4_P",
+            "BB4_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        }
+      ]
+    },
+    "reviewer": {
+      "total_findings": 5,
+      "by_category": {
+        "plane_integrity": 1,
+        "differential_pair": 4
+      },
+      "top_issues": [
+        {
+          "rule_id": "PS-002",
+          "severity": "warning",
+          "summary": "+5V plane split: 4 islands, 2 signals crossing",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "category": "plane_integrity"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB2_P/BB2_N: length mismatch 1.9mm (8%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB1_P/BB1_N: length mismatch 1.9mm (9%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB3_P/BB3_N: length mismatch 1.9mm (7%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB4_P/BB4_N: length mismatch 1.9mm (6%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        }
+      ]
+    },
+    "manager": {
+      "risk_level": "low",
+      "blocker_count": 0,
+      "warning_count": 5,
+      "stage_readiness": {
+        "schematic": "pass",
+        "layout": "needs_review",
+        "pre_fab": "pass",
+        "bring_up": "pass"
+      },
+      "one_liner": "5 warnings across 2 categories."
+    }
+  }
+}

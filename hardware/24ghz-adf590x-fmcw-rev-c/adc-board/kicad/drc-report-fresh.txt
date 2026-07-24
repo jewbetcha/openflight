@@ -1,0 +1,82 @@
+** Drc report for openflight-adc-pi-interface-rev-c.kicad_pcb **
+** Created on 2026-07-09T08:29:21 **
+** Report includes: Errors, Warnings **
+
+** Found 4 DRC violations **
+[copper_sliver]: Copper sliver (F.Cu)
+    Local override; warning
+[copper_sliver]: Copper sliver (F.Cu)
+    Local override; warning
+[copper_sliver]: Copper sliver (F.Cu)
+    Local override; warning
+[copper_sliver]: Copper sliver (F.Cu)
+    Local override; warning
+
+** Found 14 unconnected pads **
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on B.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+    @(0.3000 mm, 0.3000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(29.4800 mm, 25.0000 mm): Track [+3V3] on F.Cu, length 1.0400 mm
+    @(23.4900 mm, 22.0000 mm): Track [+3V3] on F.Cu, length 2.4900 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(45.7200 mm, 27.3200 mm): PTH pad 17 [+3V3] of J2
+    @(37.0000 mm, 29.0100 mm): Track [+3V3] on F.Cu, length 1.4900 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(47.0000 mm, 26.2000 mm): Track [I2S_BCLK] on In2.Cu, length 6.5000 mm
+    @(37.5000 mm, 10.0000 mm): Pad 1 [I2S_BCLK] of TP9 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(51.0000 mm, 24.7800 mm): Track [ADC_SHDNZ] on In2.Cu, length 2.7400 mm
+    @(42.7000 mm, 13.0000 mm): Pad 1 [ADC_SHDNZ] of TP14 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(29.2500 mm, 26.2000 mm): Track [I2S_LRCLK] on In1.Cu, length 14.3500 mm
+    @(40.1000 mm, 10.0000 mm): Pad 1 [I2S_LRCLK] of TP10 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(30.0000 mm, 25.7000 mm): Track [I2S_DIN] on B.Cu, length 6.0000 mm
+    @(42.7000 mm, 10.0000 mm): Pad 1 [I2S_DIN] of TP11 on F.Cu
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

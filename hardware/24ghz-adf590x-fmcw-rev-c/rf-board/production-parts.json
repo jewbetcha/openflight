@@ -1,0 +1,82 @@
+{
+  "4.7uF|Capacitor_SMD:C_0603_1608Metric": {
+    "mpn": "GRM188R61A475KE15D",
+    "manufacturer": "Murata Electronics"
+  },
+  "1uF|Capacitor_SMD:C_0603_1608Metric": {
+    "mpn": "GRM188R71C105KA12D",
+    "manufacturer": "Murata Electronics"
+  },
+  "22uF|Capacitor_SMD:C_0805_2012Metric": {
+    "mpn": "GRM21BR61A226ME44L",
+    "manufacturer": "Murata Electronics"
+  },
+  "0.1uF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM155R71C104KA88D",
+    "manufacturer": "Murata Electronics"
+  },
+  "100nF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM155R71C104KA88D",
+    "manufacturer": "Murata Electronics"
+  },
+  "1nF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM1555C1H102JA01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "10pF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GJM1555C1H100JB01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "47pF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GJM1555C1H470JB01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "100pF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GJM1555C1H101JB01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "220pF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM1555C1H221JA01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "3.3nF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM155R71H332KA01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "47nF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM155R71A473KA01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "220nF|Capacitor_SMD:C_0402_1005Metric": {
+    "mpn": "GRM155R71A224KE01D",
+    "manufacturer": "Murata Electronics"
+  },
+  "100k|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-07100KL",
+    "manufacturer": "YAGEO"
+  },
+  "1k|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-071KL",
+    "manufacturer": "YAGEO"
+  },
+  "510|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-07510RL",
+    "manufacturer": "YAGEO"
+  },
+  "620|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-07620RL",
+    "manufacturer": "YAGEO"
+  },
+  "0|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402JR-070RL",
+    "manufacturer": "YAGEO"
+  },
+  "5.1k|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-075K1L",
+    "manufacturer": "YAGEO"
+  },
+  "100R|Resistor_SMD:R_0402_1005Metric": {
+    "mpn": "RC0402FR-07100RL",
+    "manufacturer": "YAGEO"
+  }
+}

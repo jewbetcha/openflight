@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "openflight-revc")(type "KiCad")(uri "${KIPRJMOD}/../../library/openflight-revc.pretty")(options "")(descr "OpenFlight Rev C custom footprints"))
+)

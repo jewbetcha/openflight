@@ -1,0 +1,274 @@
+{
+  "element": {
+    "f0_ghz": 24.2,
+    "W_mm": 4.058,
+    "L_mm": 2.97,
+    "inset_mm": 0.85,
+    "feed_w_mm": 0.556,
+    "feed_type": "inset",
+    "inset_gap_mm": 0.2,
+    "f_res_ghz": 24.187,
+    "substrate": {
+      "h_mm": 0.254,
+      "er": 3.66,
+      "tand": 0.0037
+    },
+    "s11_db_at_f0": -27.03,
+    "band_s11_db": {
+      "24.14": -22.91,
+      "24.15": -24.31,
+      "24.20": -27.03,
+      "24.25": -20.69
+    }
+  },
+  "topology": "symmetric_below_array_corporate_feed",
+  "element_target_z_ohm": 100.0,
+  "pitch_mm": 6.2,
+  "feed_tree": [
+    {
+      "seg": "root_qw",
+      "w_mm": 0.9341,
+      "l_mm": 1.7958,
+      "z_ohm": 35.36
+    },
+    {
+      "seg": "left_root_branch_50",
+      "w_mm": 0.556,
+      "l_mm": 10.185,
+      "z_ohm": 50.0
+    },
+    {
+      "seg": "right_root_branch_50",
+      "w_mm": 0.556,
+      "l_mm": 10.185,
+      "z_ohm": 50.0
+    },
+    {
+      "seg": "left_column_direct_parallel",
+      "w_mm": 0.556,
+      "l_mm": 4.55,
+      "z_ohm": 50.0,
+      "load_ohm_each": 100.0
+    },
+    {
+      "seg": "right_column_direct_parallel",
+      "w_mm": 0.556,
+      "l_mm": 4.55,
+      "z_ohm": 50.0,
+      "load_ohm_each": 100.0
+    }
+  ],
+  "port_s11_db": {
+    "24.14": -17.26,
+    "24.15": -17.2,
+    "24.20": -16.8,
+    "24.25": -15.67,
+    "band_max_24.15_24.25": -15.67
+  },
+  "phase_balance_deg_max": 3.132,
+  "phase_deg_per_element": {
+    "TL": -132.41,
+    "TR": -135.54,
+    "BL": -134.86,
+    "BR": -135.14
+  },
+  "gain_dbi_est": 10.38,
+  "directivity_dbi_est": 11.06,
+  "directivity_dbi_raw_untrusted": null,
+  "far_field_validation": {
+    "valid": true,
+    "radiated_power_w": 2.588991260621459e-26,
+    "accepted_power_w": 3.023377124984049e-26,
+    "radiation_efficiency": 0.856324286913138,
+    "directivity_linear": 12.75493295852481,
+    "angular_grid_complete": true,
+    "reason": ""
+  },
+  "far_field_domain": {
+    "structure_start_mm": [
+      -8.838000000000001,
+      -16.202822064634653,
+      0.0
+    ],
+    "structure_stop_mm": [
+      7.5600000000000005,
+      8.129,
+      0.254
+    ],
+    "simulation_start_mm": [
+      -11.838000000000001,
+      -19.202822064634653,
+      -3.0
+    ],
+    "simulation_stop_mm": [
+      10.56,
+      11.129,
+      3.254
+    ],
+    "nf2ff_start_mm": [
+      -9.44070780040594,
+      -16.805529865040594,
+      -0.6027078004059395
+    ],
+    "nf2ff_stop_mm": [
+      8.16270780040594,
+      8.731707800405939,
+      0.8567078004059395
+    ],
+    "phase_center_m": [
+      -0.0006390000000000002,
+      -0.0040369110323173266,
+      0.000127
+    ]
+  },
+  "far_field_pattern": {
+    "beam_offset_deg": 2.0,
+    "signed_y_beam_deg": -2.0,
+    "phi_peak_deg": -86.0,
+    "peak_directivity_linear": 12.75493295852481,
+    "broadside_directivity_linear": 12.663373122332578
+  },
+  "path_length_mm": {
+    "TL": 14.735,
+    "BL": 14.735,
+    "TR": 14.735,
+    "BR": 14.735
+  },
+  "delay_scale": {
+    "right_column": 0.0
+  },
+  "patch": {
+    "W_mm": 4.058,
+    "L_mm": 2.9200000000000004,
+    "inset_mm": 0.85,
+    "feed_w_mm": 0.556,
+    "inset_gap_mm": 0.2
+  },
+  "patches": {
+    "TL": {
+      "xc": -3.1,
+      "yc": 3.1,
+      "x_min": -4.5600000000000005,
+      "x_max": -1.64,
+      "y_min": 1.0710000000000002,
+      "y_max": 5.129,
+      "x_feed_edge": -4.5600000000000005,
+      "x_inset_end": -3.7100000000000004
+    },
+    "TR": {
+      "xc": 3.1,
+      "yc": 3.1,
+      "x_min": 1.64,
+      "x_max": 4.5600000000000005,
+      "y_min": 1.0710000000000002,
+      "y_max": 5.129,
+      "x_feed_edge": 1.64,
+      "x_inset_end": 2.4899999999999998
+    },
+    "BL": {
+      "xc": -3.1,
+      "yc": -3.1,
+      "x_min": -4.5600000000000005,
+      "x_max": -1.64,
+      "y_min": -5.129,
+      "y_max": -1.0710000000000002,
+      "x_feed_edge": -4.5600000000000005,
+      "x_inset_end": -3.7100000000000004
+    },
+    "BR": {
+      "xc": 3.1,
+      "yc": -3.1,
+      "x_min": 1.64,
+      "x_max": 4.5600000000000005,
+      "y_min": -5.129,
+      "y_max": -1.0710000000000002,
+      "x_feed_edge": 1.64,
+      "x_inset_end": 2.4899999999999998
+    }
+  },
+  "column_junctions": {
+    "left": {
+      "x_mm": -5.16,
+      "y_mm": 0.0
+    },
+    "right": {
+      "x_mm": 1.04,
+      "y_mm": 0.0
+    }
+  },
+  "root": {
+    "x_mm": -2.738000000000001,
+    "y_mm": -6.407,
+    "x_port_mm": -2.738000000000001,
+    "y_qw_end_mm": -8.202822064634654,
+    "y_port_mm": -13.202822064634654,
+    "qw_route": [
+      [
+        -2.738000000000001,
+        -6.407
+      ],
+      [
+        -2.738000000000001,
+        -8.202822064634654
+      ]
+    ]
+  },
+  "root_branch_routes": {
+    "left": [
+      [
+        -5.16,
+        0.0
+      ],
+      [
+        -5.838000000000001,
+        0.0
+      ],
+      [
+        -5.838000000000001,
+        -6.407
+      ],
+      [
+        -2.738000000000001,
+        -6.407
+      ]
+    ],
+    "right": [
+      [
+        1.04,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -6.407
+      ],
+      [
+        -2.738000000000001,
+        -6.407
+      ]
+    ]
+  },
+  "clearance_checks": {
+    "root_qw_clear_of_patch_copper": true,
+    "root_feed_clear_of_patch_copper": true,
+    "root_branches_clear_of_patch_copper": true
+  },
+  "delay_routes": {
+    "right_column": null
+  },
+  "transformer": {
+    "z_qw_ohm": 35.355,
+    "w_mm": 0.9341,
+    "lambda_g_qw_mm": 7.1833,
+    "er_eff_qw": 2.9742
+  },
+  "acceptance": {
+    "s11": true,
+    "phase": true,
+    "gain": true
+  },
+  "L_trim_mm": -0.05
+}

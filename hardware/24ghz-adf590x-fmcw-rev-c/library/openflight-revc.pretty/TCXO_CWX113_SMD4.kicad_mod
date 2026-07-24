@@ -1,0 +1,128 @@
+(footprint "TCXO_CWX113_SMD4"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "TCXO, Connor-Winfield CWX113-100.0M (per datasheets/extracted/ev-radar-mmic2.md BOM: Y1, 100MHz reference for ADF4159/ADF5901 REFIN). Package/land pattern per datasheets/CWX113_SM118.pdf (Connor-Winfield Bulletin Sm118 Rev.13, 'Xxxx-Series' 5.0x7.0mm LVCMOS Clock Oscillator family; X113 = 0-70C, +/-25ppm, 3.3Vdc member of this family, per support-parts.md's confirmed reasoning that Sm118 is the correct primary source for CWX113 -- no separate 'CWX113'-titled PDF exists, and no exposed pad on this package). Body: D=5.0mm nom (4.85-5.15) x E=7.0mm nom (6.86-7.16), p.2 Package Outline table. 4-pad SMD-no-lead, 2x2 corner-pad layout per p.2 'Suggested Pad Layout': pad size 1.40mm(X) x 1.64mm(Y) (derived from datasheet's explicit 4.2mm total keepout width, 5.08mm total pad-layout height, 1.8mm inter-pad vertical gap, and lead width b=1.40mm from the Package Outline table), pad centers at +/-1.40mm(X)/+/-1.72mm(Y). Supersedes the prior TCXO_CWX823_5.0X7.0MM.kicad_mod footprint, which was authored from the eval-schematic's CWX823 footprint reference before the CWX113-specific Sm118 PDF was available on disk; reconciled to CWX113 per ev-radar-mmic2.md's BOM (CWX113-100.0M is the fitted part) and support-parts.md's symbol-side verification. Renamed from TCXO_CWX823_5.0X7.0MM to TCXO_CWX113_SMD4 to match the symbol's Footprint property.")
+	(tags "TCXO oscillator CWX113 100MHz reference Sm118")
+	(property "Reference" "REF**"
+		(at 0 -4.7 0)
+		(layer "F.SilkS")
+		(uuid "00000000-0000-0000-0000-000000000001")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "TCXO_CWX113_SMD4"
+		(at 0 4.7 0)
+		(layer "F.Fab")
+		(uuid "00000000-0000-0000-0000-000000000002")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "91131451-5349-4da4-8633-870556bc2d23")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "bef71bdc-2dc6-451c-bebb-06d58e95a658")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_rect
+		(start -2.5 -3.5)
+		(end 2.5 3.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "b5929690-f832-480b-961d-0992f67cd51a")
+	)
+	(fp_rect
+		(start -2.75 -3.75)
+		(end 2.75 3.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "73512a3a-9faf-432e-b706-1aef15c8a29c")
+	)
+	(fp_rect
+		(start -2.5 -3.5)
+		(end 2.5 3.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "0a91be58-e620-4857-9b6c-fab59faf546b")
+	)
+	(fp_poly
+		(pts
+			(xy -2.5 -3.5) (xy -1.7 -3.5) (xy -2.5 -2.7)
+		)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "0fdb922b-7cef-4503-afe0-53d6b1020795")
+	)
+	(pad "1" smd roundrect
+		(at -1.4 -1.72)
+		(size 1.4 1.64)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(uuid "9c16fab3-5d37-45ca-abcd-64bfb93801f3")
+	)
+	(pad "2" smd roundrect
+		(at -1.4 1.72)
+		(size 1.4 1.64)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(uuid "d05166e0-eaf5-468c-bca2-94532736c0e3")
+	)
+	(pad "3" smd roundrect
+		(at 1.4 1.72)
+		(size 1.4 1.64)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(uuid "56c158f0-1a12-486e-bf7e-cc4256eb9bff")
+	)
+	(pad "4" smd roundrect
+		(at 1.4 -1.72)
+		(size 1.4 1.64)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(uuid "d5dde7b9-8a43-4ecb-8d86-e66ac5731002")
+	)
+	(embedded_fonts no)
+)

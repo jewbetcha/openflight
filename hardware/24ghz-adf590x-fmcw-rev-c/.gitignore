@@ -1,0 +1,10 @@
+datasheets/*.pdf
+rf-board/gerbers/
+adc-board/gerbers/
+# Sim outputs: keep only JSON/CSV/XML summaries; raw openEMS field/port
+# dumps (*.h5, et/ht, port_*, vp_*) are multi-GB and regenerable.
+antenna/results/**
+!antenna/results/**/
+!antenna/results/**/*.json
+!antenna/results/**/*.csv
+!antenna/results/**/*.xml

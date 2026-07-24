@@ -1,0 +1,1004 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-07-10T12:18:06",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.4",
+    "schematic_parity": [],
+    "source": "control-net-5.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "a49ba9cc-1725-4645-8145-175afa8d1fcd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.9604 mm",
+                    "pos": {
+                        "x": 42.0,
+                        "y": 30.52
+                    },
+                    "uuid": "505925be-9673-42a1-8654-85bc79cc46aa"
+                },
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 42.5,
+                        "y": 28.1
+                    },
+                    "uuid": "9a4ddd03-2d26-4c2c-90f1-adfad7a6fab8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 43.0,
+                        "y": 32.52
+                    },
+                    "uuid": "e27f00dc-d30a-4948-b71d-41ab7df9dad6"
+                },
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.9375 mm",
+                    "pos": {
+                        "x": 43.725,
+                        "y": 40.8625
+                    },
+                    "uuid": "23c03333-31ca-4863-b9b1-77bce57b6e6c"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.9375 mm",
+                    "pos": {
+                        "x": 43.725,
+                        "y": 40.8625
+                    },
+                    "uuid": "23c03333-31ca-4863-b9b1-77bce57b6e6c"
+                },
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.8000 mm",
+                    "pos": {
+                        "x": 42.48,
+                        "y": 41.0
+                    },
+                    "uuid": "074461b4-aca4-4d9b-9cec-5d0ff3ac24b5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.7906 mm",
+                    "pos": {
+                        "x": 47.25,
+                        "y": 28.75
+                    },
+                    "uuid": "b8ac80a5-3d9c-4889-a37e-a3746dfcf435"
+                },
+                {
+                    "description": "Track [+3V3_RX] on F.Cu, length 0.7500 mm",
+                    "pos": {
+                        "x": 45.75,
+                        "y": 31.75
+                    },
+                    "uuid": "f53c6187-313a-4fa9-82ad-6f4fb91e12ab"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 10 [LE_5904] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 23.75
+                    },
+                    "uuid": "45024ba7-5b71-4372-846f-63f18a332da8"
+                },
+                {
+                    "description": "Pad 26 [LE_5904] of J1 on F.Cu",
+                    "pos": {
+                        "x": 49.35,
+                        "y": 44.05
+                    },
+                    "uuid": "f0f31959-f68d-48ed-a820-4121c9020d78"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of J1 on F.Cu",
+                    "pos": {
+                        "x": 46.81,
+                        "y": 44.05
+                    },
+                    "uuid": "8a85ad82-ec74-4a9b-bf97-0f8a237bc6b4"
+                },
+                {
+                    "description": "Pad 5 [SPI_SDATA] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 40.8625
+                    },
+                    "uuid": "217594af-fb74-4094-9967-b0ad852fae40"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.75
+                    },
+                    "uuid": "ddf478bf-3beb-4f39-b002-4156f0d27d55"
+                },
+                {
+                    "description": "Pad 5 [SPI_SDATA] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 40.8625
+                    },
+                    "uuid": "217594af-fb74-4094-9967-b0ad852fae40"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.75
+                    },
+                    "uuid": "ddf478bf-3beb-4f39-b002-4156f0d27d55"
+                },
+                {
+                    "description": "Pad 12 [SPI_SDATA] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 24.75
+                    },
+                    "uuid": "fb9684ec-3294-4039-94f5-c32e4aa1db3c"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 7 [CE_RX] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 40.8625
+                    },
+                    "uuid": "bc9dbd9a-1fcf-4e16-bcda-2a02ac6401d8"
+                },
+                {
+                    "description": "Pad 13 [CE_RX] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 25.25
+                    },
+                    "uuid": "ac9f5d9a-1f40-41b4-93a9-cfb16edcdfff"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 28 [CE_RX] of J1 on F.Cu",
+                    "pos": {
+                        "x": 50.62,
+                        "y": 44.05
+                    },
+                    "uuid": "ed6ccb89-d339-4d5c-970c-e094b68b8e6f"
+                },
+                {
+                    "description": "Pad 7 [CE_RX] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 40.8625
+                    },
+                    "uuid": "bc9dbd9a-1fcf-4e16-bcda-2a02ac6401d8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 14 [SPI_SDO] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 25.75
+                    },
+                    "uuid": "32b252f0-84f2-446b-8bbd-1497aa96b14e"
+                },
+                {
+                    "description": "Pad 23 [SPI_SDO] of J1 on F.Cu",
+                    "pos": {
+                        "x": 48.08,
+                        "y": 47.95
+                    },
+                    "uuid": "06545fee-96be-4f2a-a13a-7ac1d0af2923"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 23 [Net-(U4-RSET)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 46.25,
+                        "y": 31.75
+                    },
+                    "uuid": "0ede1b35-06f1-4562-b604-a8499eda989e"
+                },
+                {
+                    "description": "Pad 1 [Net-(U4-RSET)] of R24 on F.Cu",
+                    "pos": {
+                        "x": 51.5,
+                        "y": 35.01
+                    },
+                    "uuid": "d6cade71-b812-486a-a417-1757adb8ba56"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 17 [Net-(U4-MUXOUT)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 30.75
+                    },
+                    "uuid": "41e2169c-baaf-40a9-95a3-9b7ea0ca4d07"
+                },
+                {
+                    "description": "Pad 5 [Net-(U4-MUXOUT)] of U8 on F.Cu",
+                    "pos": {
+                        "x": 54.9,
+                        "y": 40.85
+                    },
+                    "uuid": "5202bace-4db9-4001-9186-11ffa527cbbb"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 30 [RAMP_SYNC] of J1 on F.Cu",
+                    "pos": {
+                        "x": 51.89,
+                        "y": 44.05
+                    },
+                    "uuid": "bd9317a0-23c3-4f87-8d4e-62466d914f01"
+                },
+                {
+                    "description": "Pad 8 [RAMP_SYNC] of U8 on F.Cu",
+                    "pos": {
+                        "x": 54.9,
+                        "y": 39.15
+                    },
+                    "uuid": "52af2746-4c9d-4428-bb79-e3e945640fc8"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 13 [Net-(U4-CE)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 28.75
+                    },
+                    "uuid": "64a8dc7e-9be6-4f79-bf98-cdafd9f8c3b6"
+                },
+                {
+                    "description": "Pad 10 [Net-(U4-CE)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 35.1375
+                    },
+                    "uuid": "b86825c4-9a7b-4041-affa-13131a58420e"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 14 [Net-(U4-CLK)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 29.25
+                    },
+                    "uuid": "2ac7cafd-a427-49f7-bb8c-e53603e83d1a"
+                },
+                {
+                    "description": "Pad 13 [Net-(U4-CLK)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 45.675,
+                        "y": 35.1375
+                    },
+                    "uuid": "e1e7ae14-478d-41ff-b42b-cfde19694edf"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 15 [Net-(U4-DATA)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 29.75
+                    },
+                    "uuid": "fd505a4b-a4ab-4eb0-a56a-a96c7ce33467"
+                },
+                {
+                    "description": "Pad 12 [Net-(U4-DATA)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 35.1375
+                    },
+                    "uuid": "b5b2fd93-06f2-4d5e-8e26-5ff3869a3ccd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 16 [Net-(U4-LE)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 30.25
+                    },
+                    "uuid": "264310ce-c119-4b14-b67a-f7c6af74981c"
+                },
+                {
+                    "description": "Pad 11 [Net-(U4-LE)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.975,
+                        "y": 35.1375
+                    },
+                    "uuid": "1f283e9a-c1ce-4be1-bd26-961f85c07af4"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 23 [LE_5901] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 24.25
+                    },
+                    "uuid": "c4751480-498f-41dd-bec8-e611a0c01c8b"
+                },
+                {
+                    "description": "Pad 25 [LE_5901] of J1 on F.Cu",
+                    "pos": {
+                        "x": 49.35,
+                        "y": 47.95
+                    },
+                    "uuid": "2ad20231-f042-465a-92fd-81302b64eadd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 20 [TX_EN] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 22.75
+                    },
+                    "uuid": "ed46fcfd-f427-4cf3-8957-e6d6e3f240aa"
+                },
+                {
+                    "description": "Pad 29 [TX_EN] of J1 on F.Cu",
+                    "pos": {
+                        "x": 51.89,
+                        "y": 47.95
+                    },
+                    "uuid": "fe69a6c7-709d-4f21-a7a9-7e19f920af01"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [Net-(U5-RSET)] of R40 on F.Cu",
+                    "pos": {
+                        "x": 47.0,
+                        "y": 24.51
+                    },
+                    "uuid": "c970bea3-b837-4bd1-a8dd-d4a8cc1a9605"
+                },
+                {
+                    "description": "Pad 26 [Net-(U5-RSET)] of U5 on F.Cu",
+                    "pos": {
+                        "x": 49.75,
+                        "y": 25.25
+                    },
+                    "uuid": "10766e35-2f6b-43aa-8500-d40af8faa480"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on B.Cu, length 21.5358 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "54d58ccd-33a5-4b80-a6af-843bd6aa07a6"
+                },
+                {
+                    "description": "Track [BB1_P] on B.Cu, length 23.9800 mm",
+                    "pos": {
+                        "x": 35.9,
+                        "y": 22.82
+                    },
+                    "uuid": "7ab9d282-2089-4a5e-82d7-fa7fee18efae"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1178 mm)",
+            "items": [
+                {
+                    "description": "Via [+1V8_DIG] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 43.3,
+                        "y": 36.0
+                    },
+                    "uuid": "633c8b0c-7436-4351-9c1e-5513fb8d1958"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 5.7014 mm",
+                    "pos": {
+                        "x": 42.7822,
+                        "y": 33.4914
+                    },
+                    "uuid": "7aafe374-f241-4293-aafc-e94b1165062f"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1178 mm)",
+            "items": [
+                {
+                    "description": "Track [+1V8_DIG] on In2.Cu, length 0.2000 mm",
+                    "pos": {
+                        "x": 43.1,
+                        "y": 36.0
+                    },
+                    "uuid": "1aa9b7fe-2265-494a-92d0-680313690ac0"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 5.7014 mm",
+                    "pos": {
+                        "x": 42.7822,
+                        "y": 33.4914
+                    },
+                    "uuid": "7aafe374-f241-4293-aafc-e94b1165062f"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 2.1008 mm",
+                    "pos": {
+                        "x": 42.4048,
+                        "y": 40.1949
+                    },
+                    "uuid": "49c84a16-aa5e-4959-b8ef-13f25a17cc11"
+                },
+                {
+                    "description": "Track [+1V8_DIG] on In2.Cu, length 11.5000 mm",
+                    "pos": {
+                        "x": 43.1,
+                        "y": 47.5
+                    },
+                    "uuid": "dfc7c379-fa19-44d7-9c7e-26f481ee68b3"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Items shorting two nets (nets SPI_SCLK and +3V3_TX)",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on B.Cu, length 21.5358 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "54d58ccd-33a5-4b80-a6af-843bd6aa07a6"
+                },
+                {
+                    "description": "Via [+3V3_TX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 45.3,
+                        "y": 22.98
+                    },
+                    "uuid": "d621437c-213a-41d6-9c3f-0ef27f25f9b8"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1486 mm)",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 1.5339 mm",
+                    "pos": {
+                        "x": 43.3448,
+                        "y": 28.031
+                    },
+                    "uuid": "4a9dacb4-d0cc-4df6-93a9-77ede487838b"
+                },
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 42.5,
+                        "y": 28.1
+                    },
+                    "uuid": "9a4ddd03-2d26-4c2c-90f1-adfad7a6fab8"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Items shorting two nets (nets +3V3_RX and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 42.5,
+                        "y": 29.7
+                    },
+                    "uuid": "e6c675b6-fd38-4261-b4ae-c8c160cffdf7"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 3.8538 mm",
+                    "pos": {
+                        "x": 42.2602,
+                        "y": 29.1156
+                    },
+                    "uuid": "fe24ddab-1472-4d05-96ad-08f932baa6cb"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on B.Cu, length 21.5358 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "54d58ccd-33a5-4b80-a6af-843bd6aa07a6"
+                },
+                {
+                    "description": "Track [BB2_P] on B.Cu, length 23.7800 mm",
+                    "pos": {
+                        "x": 37.7,
+                        "y": 23.02
+                    },
+                    "uuid": "83356402-00aa-45a1-a113-280e3735d8c8"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Items shorting two nets (nets SPI_SCLK and BB2_P)",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on B.Cu, length 21.5358 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "54d58ccd-33a5-4b80-a6af-843bd6aa07a6"
+                },
+                {
+                    "description": "Track [BB2_P] on B.Cu, length 3.5355 mm",
+                    "pos": {
+                        "x": 40.2,
+                        "y": 20.52
+                    },
+                    "uuid": "e468ef44-2bcf-45a2-8edb-b983bd244ce4"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 20.3000 mm",
+                    "pos": {
+                        "x": 33.2,
+                        "y": 46.0
+                    },
+                    "uuid": "904443a2-d82d-4ca9-9f20-5218a35acfef"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on F.Cu, length 1.2336 mm",
+                    "pos": {
+                        "x": 46.81,
+                        "y": 47.1113
+                    },
+                    "uuid": "ab2d51d7-3fe0-4c10-84af-7989da27321a"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 20.3000 mm",
+                    "pos": {
+                        "x": 33.2,
+                        "y": 46.0
+                    },
+                    "uuid": "904443a2-d82d-4ca9-9f20-5218a35acfef"
+                },
+                {
+                    "description": "Via [SPI_SCLK] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 47.6823,
+                        "y": 46.239
+                    },
+                    "uuid": "af98c11a-26c5-4aa5-89c7-85f61761187d"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [BB2_N] on B.Cu, length 9.5000 mm",
+                    "pos": {
+                        "x": 28.0,
+                        "y": 22.5
+                    },
+                    "uuid": "12bc5fe9-5200-470d-9f95-db713703917b"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on B.Cu, length 21.5358 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "54d58ccd-33a5-4b80-a6af-843bd6aa07a6"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Items shorting two nets (nets SPI_SCLK and +3V3_RX)",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 2.1008 mm",
+                    "pos": {
+                        "x": 42.4048,
+                        "y": 40.1949
+                    },
+                    "uuid": "49c84a16-aa5e-4959-b8ef-13f25a17cc11"
+                },
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 43.725,
+                        "y": 41.8
+                    },
+                    "uuid": "c81c3cf7-b454-4d53-ad8c-0a66d62fb49c"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets BB4_N and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Track [BB4_N] on In2.Cu, length 29.0000 mm",
+                    "pos": {
+                        "x": 48.0,
+                        "y": 18.5
+                    },
+                    "uuid": "6062363a-2a27-45e2-bc23-6a9391922f6f"
+                },
+                {
+                    "description": "Via [SPI_SCLK] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 47.6823,
+                        "y": 46.239
+                    },
+                    "uuid": "af98c11a-26c5-4aa5-89c7-85f61761187d"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets BB4_N and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Track [BB4_N] on In2.Cu, length 29.0000 mm",
+                    "pos": {
+                        "x": 48.0,
+                        "y": 18.5
+                    },
+                    "uuid": "6062363a-2a27-45e2-bc23-6a9391922f6f"
+                },
+                {
+                    "description": "Via [SPI_SCLK] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "d5cf2060-7c83-4d65-90f8-7ffd8944a1c0"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets SPI_SCLK and +3V3_RX)",
+            "items": [
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 1.3571 mm",
+                    "pos": {
+                        "x": 43.8903,
+                        "y": 41.6804
+                    },
+                    "uuid": "c551cacf-7b82-4eae-997a-6b75a7921f97"
+                },
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 43.725,
+                        "y": 41.8
+                    },
+                    "uuid": "c81c3cf7-b454-4d53-ad8c-0a66d62fb49c"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [BB4_N] on In2.Cu, length 7.8000 mm",
+                    "pos": {
+                        "x": 40.2,
+                        "y": 27.52
+                    },
+                    "uuid": "9a783769-be85-4210-80eb-ab7bcfe641ec"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 1.6989 mm",
+                    "pos": {
+                        "x": 46.0851,
+                        "y": 26.8297
+                    },
+                    "uuid": "ee8c7f9d-aff6-4d60-b9dc-0480ab68526b"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Items shorting two nets (nets BB4_N and SPI_SCLK)",
+            "items": [
+                {
+                    "description": "Track [BB4_N] on In2.Cu, length 29.0000 mm",
+                    "pos": {
+                        "x": 48.0,
+                        "y": 18.5
+                    },
+                    "uuid": "6062363a-2a27-45e2-bc23-6a9391922f6f"
+                },
+                {
+                    "description": "Track [SPI_SCLK] on In2.Cu, length 2.6788 mm",
+                    "pos": {
+                        "x": 47.9793,
+                        "y": 23.1754
+                    },
+                    "uuid": "f076eb41-8fd4-42c1-afd7-c51e62fec161"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        }
+    ]
+}

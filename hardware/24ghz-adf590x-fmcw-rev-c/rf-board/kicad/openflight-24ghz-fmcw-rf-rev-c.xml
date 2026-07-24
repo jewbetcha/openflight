@@ -1,0 +1,3465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>/Users/colemanrollins/code/openflight/hardware/24ghz-adf590x-fmcw-rev-c/rf-board/kicad/openflight-24ghz-fmcw-rf-rev-c.kicad_sch</source>
+    <date>2026-07-13T12:47:51</date>
+    <tool>Eeschema 10.0.4</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>OpenFlight 24 GHz FMCW RF Board — Rev C</title>
+        <company>OpenFlight</company>
+        <rev>C</rev>
+        <date/>
+        <source>openflight-24ghz-fmcw-rf-rev-c.kicad_sch</source>
+        <comment number="1" value="Root sheet: power entry + regulator set (Task 11)"/>
+        <comment number="2" value="Rails: +5V, +3V3_TX, +3V3_RX, +1V8_DIG, GND"/>
+        <comment number="3" value="Hierarchical sheets (PLL/TX/RX/IO) added by Tasks 12-15"/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="2" name="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/">
+      <title_block>
+        <title>OpenFlight 24 GHz FMCW RF Board — Rev C — PLL Sheet</title>
+        <company>OpenFlight</company>
+        <rev>C</rev>
+        <date/>
+        <source>pll.kicad_sch</source>
+        <comment number="1" value="Sub-sheet (Task 12): ADF4159 PLL + REFIN + loop filter"/>
+        <comment number="2" value="Standalone file — wired into root sheet by Task 15"/>
+        <comment number="3" value="Rails consumed: +3V3_RX (analog AVDD/VP), +1V8_DIG (digital DVDD/SDVDD), GND"/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="3" name="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/">
+      <title_block>
+        <title>OpenFlight 24 GHz FMCW RF Board — Rev C — ADF5901 TX</title>
+        <company>OpenFlight</company>
+        <rev>C</rev>
+        <date/>
+        <source>tx.kicad_sch</source>
+        <comment number="1" value="Sub-sheet: ADF5901 24 GHz VCO + PA (Task 13). Standalone file; root wiring done in Task 15."/>
+        <comment number="2" value="Rails: +3V3_TX, GND. Hierarchical labels: VTUNE, RFIN_DIV, SPI_SCLK, SPI_SDATA, LE_5901, TX_EN, TX_ANT, LO_OUT"/>
+        <comment number="3" value="Ground truth: datasheets/extracted/adf5901.md pin table + App-circuit values; datasheets/extracted/ev-radar-mmic2.md Fig.10/Fig.13"/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="4" name="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/">
+      <title_block>
+        <title>OpenFlight 24 GHz FMCW RF Board — Rev C — RX Sheet</title>
+        <company>OpenFlight</company>
+        <rev>C</rev>
+        <date/>
+        <source>rx.kicad_sch</source>
+        <comment number="1" value="RX sheet: ADF5904 4-channel Rx downconverter + baseband coupling (Task 14)"/>
+        <comment number="2" value="Hierarchical labels: LO_OUT, RX1-4, BB1-4_P/N, SPI_SCLK/SDATA/SDO, LE_5904, CE_RX"/>
+        <comment number="3" value="Standalone sub-sheet; wired into root schematic by Task 15"/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C1">
+      <value>4.7uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>Bulk input cap on +5V_REG</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Bulk input cap on +5V_REG</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001060</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C2">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U1 input cap CIN (ADP7104 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U1 input cap CIN (ADP7104 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-00000000106b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C3">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U1 output cap COUT (ADP7104 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U1 output cap COUT (ADP7104 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-00000000107c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C4">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U2 input cap CIN (ADP7104 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U2 input cap CIN (ADP7104 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-00000000108b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C5">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U2 output cap COUT (ADP7104 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U2 output cap COUT (ADP7104 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-00000000109c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C6">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U3 input cap CIN (ADP150 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U3 input cap CIN (ADP150 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-0000000010ac</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C7">
+      <value>1uF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <description>U3 output cap COUT (ADP150 Fig.1: 1uF)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U3 output cap COUT (ADP150 Fig.1: 1uF)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-0000000010b5</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="D1">
+      <value>MBR0520LT1G</value>
+      <footprint>Diode_SMD:D_SOD-123</footprint>
+      <datasheet>https://www.onsemi.com/download/data-sheet/pdf/mbr0520lt1-d.pdf</datasheet>
+      <description>Schottky reverse/clamp diode on +5V (EV-RADAR-MMIC2 D2)</description>
+      <fields>
+        <field name="MPN">MBR0520LT1G</field>
+        <field name="Manufacturer">onsemi</field>
+        <field name="Footprint">Diode_SMD:D_SOD-123</field>
+        <field name="Datasheet">https://www.onsemi.com/download/data-sheet/pdf/mbr0520lt1-d.pdf</field>
+        <field name="Description">Schottky reverse/clamp diode on +5V (EV-RADAR-MMIC2 D2)</field>
+      </fields>
+      <libsource lib="Device" part="D_Schottky" description="Schottky diode"/>
+      <property name="MPN" value="MBR0520LT1G"/>
+      <property name="Manufacturer" value="onsemi"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-00000000105b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="FB1">
+      <value>470R@100MHz</value>
+      <footprint>Inductor_SMD:L_0603_1608Metric</footprint>
+      <datasheet>https://www.we-online.com/en/components/products/WE-CBF</datasheet>
+      <description>Ferrite bead, +5V input isolation, 470 ohm at 100 MHz, 0603 (EV-RADAR-MMIC2 E1)</description>
+      <fields>
+        <field name="MPN">742792642</field>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">Inductor_SMD:L_0603_1608Metric</field>
+        <field name="Datasheet">https://www.we-online.com/en/components/products/WE-CBF</field>
+        <field name="Description">Ferrite bead, +5V input isolation, 470 ohm at 100 MHz, 0603 (EV-RADAR-MMIC2 E1)</field>
+      </fields>
+      <libsource lib="Device" part="Ferrite_Bead" description="Ferrite bead"/>
+      <property name="MPN" value="742792642"/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001054</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J1">
+      <value>HDR_2x15</value>
+      <footprint>openflight-revc:HDR_2x15_1.27MM_SMD</footprint>
+      <datasheet>https://www.samtec.com/products/ftsh-115-01-l-dv-k</datasheet>
+      <description>2x15 1.27mm SMD interface header (RF board to ADC board)</description>
+      <fields>
+        <field name="MPN">FTSH-115-01-L-DV-K</field>
+        <field name="Manufacturer">Samtec</field>
+        <field name="Footprint">openflight-revc:HDR_2x15_1.27MM_SMD</field>
+        <field name="Datasheet">https://www.samtec.com/products/ftsh-115-01-l-dv-k</field>
+        <field name="Description">2x15 1.27mm SMD interface header (RF board to ADC board)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="HDR_2x15" description="2x15 1.27mm SMD interface header (RF board &lt;-&gt; ADC board)"/>
+      <property name="MPN" value="FTSH-115-01-L-DV-K"/>
+      <property name="Manufacturer" value="Samtec"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001001</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="5"/>
+            <pin num="7"/>
+            <pin num="9"/>
+            <pin num="11"/>
+            <pin num="13"/>
+            <pin num="15"/>
+            <pin num="17"/>
+            <pin num="19"/>
+            <pin num="21"/>
+            <pin num="23"/>
+            <pin num="25"/>
+            <pin num="27"/>
+            <pin num="29"/>
+            <pin num="2"/>
+            <pin num="4"/>
+            <pin num="6"/>
+            <pin num="8"/>
+            <pin num="10"/>
+            <pin num="12"/>
+            <pin num="14"/>
+            <pin num="16"/>
+            <pin num="18"/>
+            <pin num="20"/>
+            <pin num="22"/>
+            <pin num="24"/>
+            <pin num="26"/>
+            <pin num="28"/>
+            <pin num="30"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R1">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>U1 PG open-drain pull-up to +3V3_TX</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U1 PG open-drain pull-up to +3V3_TX</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001075</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R2">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>U2 PG open-drain pull-up to +3V3_RX</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U2 PG open-drain pull-up to +3V3_RX</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001095</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U1">
+      <value>ADP7104ARDZ-3.3</value>
+      <footprint>openflight-revc:ADP7104_SOIC8_EP</footprint>
+      <description>20V/500mA ultralow-noise LDO -&gt; +3V3_TX (ADF5901 Tx MMIC rails)</description>
+      <fields>
+        <field name="MPN">ADP7104ARDZ-3.3</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADP7104_SOIC8_EP</field>
+        <field name="Datasheet"/>
+        <field name="Description">20V/500mA ultralow-noise LDO -&gt; +3V3_TX (ADF5901 Tx MMIC rails)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADP7104" description="20V/500mA ultralow-noise LDO (3.3V MMIC rail)"/>
+      <property name="MPN" value="ADP7104ARDZ-3.3"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001068</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="9"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U2">
+      <value>ADP7104ARDZ-3.3</value>
+      <footprint>openflight-revc:ADP7104_SOIC8_EP</footprint>
+      <description>20V/500mA ultralow-noise LDO -&gt; +3V3_RX (ADF5904 Rx AVDD + ADF4159 analog AVDD/VP)</description>
+      <fields>
+        <field name="MPN">ADP7104ARDZ-3.3</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADP7104_SOIC8_EP</field>
+        <field name="Datasheet"/>
+        <field name="Description">20V/500mA ultralow-noise LDO -&gt; +3V3_RX (ADF5904 Rx AVDD + ADF4159 analog AVDD/VP)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADP7104" description="20V/500mA ultralow-noise LDO (3.3V MMIC rail)"/>
+      <property name="MPN" value="ADP7104ARDZ-3.3"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-000000001088</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="9"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U3">
+      <value>ADP150AUJZ-1.8</value>
+      <footprint>openflight-revc:ADP150_TSOT23_5</footprint>
+      <description>150mA CMOS LDO -&gt; +1V8_DIG (ADF4159 DVDD/SDVDD digital rail)</description>
+      <fields>
+        <field name="MPN">ADP150AUJZ-1.8</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADP150_TSOT23_5</field>
+        <field name="Datasheet"/>
+        <field name="Description">150mA CMOS LDO -&gt; +1V8_DIG (ADF4159 DVDD/SDVDD digital rail)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADP150" description="150mA CMOS LDO (ADF4159 analog/digital rail)"/>
+      <property name="MPN" value="ADP150AUJZ-1.8"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="openflight-24ghz-fmcw-rf-rev-c"/>
+      <property name="Sheetfile" value="openflight-24ghz-fmcw-rf-rev-c.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0f000000-0000-4000-8000-0000000010a8</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="2"/>
+            <pin num="5"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C30">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>REFIN AC-coupling cap (C17 equiv, 1 nF, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">REFIN AC-coupling cap (C17 equiv, 1 nF, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009004</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C31">
+      <value>22uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <description>TCXO supply bulk cap (C40 equiv, 22 uF, ev-radar-mmic2.md Fig.16)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">TCXO supply bulk cap (C40 equiv, 22 uF, ev-radar-mmic2.md Fig.16)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009005</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C32">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>TCXO supply hf cap (C41 equiv, 10 pF, ev-radar-mmic2.md Fig.16)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">TCXO supply hf cap (C41 equiv, 10 pF, ev-radar-mmic2.md Fig.16)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009006</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C33">
+      <value>220pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Loop filter C12 (220 pF fast pole, ev-radar-mmic2.md Fig.12/BOM Table 2)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Loop filter C12 (220 pF fast pole, ev-radar-mmic2.md Fig.12/BOM Table 2)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009008</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C34">
+      <value>3.3nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Loop filter C13 (3.3 nF main pole, ev-radar-mmic2.md Fig.12/BOM Table 2)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Loop filter C13 (3.3 nF main pole, ev-radar-mmic2.md Fig.12/BOM Table 2)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C35">
+      <value>47pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Rev C loop filter final-pole capacitor, retuned from UG-866 C14 for &gt;=50 deg tolerance-corner phase margin</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Rev C loop filter final-pole capacitor, retuned from UG-866 C14 for &gt;=50 deg tolerance-corner phase margin</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C36">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>RFinB decoupling cap, ~100 pF per datasheet pin note (adf4159.md pin 4)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">RFinB decoupling cap, ~100 pF per datasheet pin note (adf4159.md pin 4)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C37">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>RFinA AC-coupling cap (from ADF5901 AUX/2 feedback, single-ended per datasheet note)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">RFinA AC-coupling cap (from ADF5901 AUX/2 feedback, single-ended per datasheet note)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C38">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>AVDD(6) decoupling 100nF (C3 class, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">AVDD(6) decoupling 100nF (C3 class, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009010</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C39">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>AVDD(7) decoupling 10pF (C4/C5 class, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">AVDD(7) decoupling 10pF (C4/C5 class, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009011</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C40">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>AVDD(8) decoupling 100nF (C3 class, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">AVDD(8) decoupling 100nF (C3 class, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009012</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C41">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>VP decoupling 100nF (C10 equiv, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">VP decoupling 100nF (C10 equiv, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009013</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C42">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>VP decoupling 10pF (C11 class, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">VP decoupling 10pF (C11 class, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009014</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C43">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>SDVDD decoupling 100nF (C6 equiv, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">SDVDD decoupling 100nF (C6 equiv, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009015</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C44">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>SDVDD decoupling 10pF (C7 class, ev-radar-mmic2.md Fig.11)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">SDVDD decoupling 10pF (C7 class, ev-radar-mmic2.md Fig.11)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009016</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C45">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>DVDD decoupling 100nF (brief default: 100nF+10pF per supply pin)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">DVDD decoupling 100nF (brief default: 100nF+10pF per supply pin)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009017</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C46">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>DVDD decoupling 10pF (brief default: 100nF+10pF per supply pin)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">DVDD decoupling 10pF (brief default: 100nF+10pF per supply pin)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009018</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C47">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>U7 VCCA (+3V3_RX) decoupling, 100nF (SN74AVC4T245 datasheet Sec 8.4)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U7 VCCA (+3V3_RX) decoupling, 100nF (SN74AVC4T245 datasheet Sec 8.4)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C48">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>U7 VCCB (+1V8_DIG) decoupling, 100nF (SN74AVC4T245 datasheet Sec 8.4)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U7 VCCB (+1V8_DIG) decoupling, 100nF (SN74AVC4T245 datasheet Sec 8.4)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C49">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>U8 VCCB (+1V8_DIG) decoupling, 100nF (SN74AVC2T245 datasheet Sec 9)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U8 VCCB (+1V8_DIG) decoupling, 100nF (SN74AVC2T245 datasheet Sec 9)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a4</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C59">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>U8 VCCA (+3V3_RX) decoupling, 100nF (SN74AVC2T245 datasheet Sec 9)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">U8 VCCA (+3V3_RX) decoupling, 100nF (SN74AVC2T245 datasheet Sec 9)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a5</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R20">
+      <value>1k</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>TCXO OUT series resistor (R41 equiv, 1.0k, ev-radar-mmic2.md Fig.16)</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">TCXO OUT series resistor (R41 equiv, 1.0k, ev-radar-mmic2.md Fig.16)</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009003</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R21">
+      <value>510</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Rev C loop filter series resistor, retuned from UG-866 R19 for &gt;=50 deg tolerance-corner phase margin</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Rev C loop filter series resistor, retuned from UG-866 R19 for &gt;=50 deg tolerance-corner phase margin</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009007</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R22">
+      <value>620</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Rev C loop filter damping resistor, retuned from UG-866 R18 for &gt;=50 deg tolerance-corner phase margin</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Rev C loop filter damping resistor, retuned from UG-866 R18 for &gt;=50 deg tolerance-corner phase margin</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009009</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R23">
+      <value>0</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Loop filter R20 (0 Ohm series to VTUNE, ev-radar-mmic2.md Fig.12/BOM Table 2)</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Loop filter R20 (0 Ohm series to VTUNE, ev-radar-mmic2.md Fig.12/BOM Table 2)</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R24">
+      <value>5.1k</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>RSET (R17 equiv, 5.1 kOhm -&gt; I_CP_MAX 4.8 mA, adf4159.md / ev-radar-mmic2.md)</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">RSET (R17 equiv, 5.1 kOhm -&gt; I_CP_MAX 4.8 mA, adf4159.md / ev-radar-mmic2.md)</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-00000000900d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U4">
+      <value>ADF4159</value>
+      <footprint>openflight-revc:ADF4159_LFCSP24</footprint>
+      <datasheet>datasheets/ADF4159.pdf</datasheet>
+      <description>13 GHz Fractional-N FMCW Ramp Generator / PLL</description>
+      <fields>
+        <field name="MPN">ADF4159CCPZ</field>
+        <field name="MPN_Reel">ADF4159CCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADF4159_LFCSP24</field>
+        <field name="Datasheet">datasheets/ADF4159.pdf</field>
+        <field name="Description">13 GHz Fractional-N FMCW Ramp Generator / PLL</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADF4159" description="13 GHz Fractional-N FMCW Ramp Generator / PLL"/>
+      <property name="MPN" value="ADF4159CCPZ"/>
+      <property name="MPN_Reel" value="ADF4159CCPZ-RL7"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009001</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="5"/>
+            <pin num="4"/>
+            <pin num="9"/>
+            <pin num="23"/>
+            <pin num="24"/>
+            <pin num="20"/>
+            <pin num="21"/>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="6"/>
+            <pin num="3"/>
+            <pin num="7"/>
+            <pin num="10"/>
+            <pin num="8"/>
+            <pin num="11"/>
+            <pin num="22"/>
+            <pin num="25"/>
+            <pin num="18"/>
+            <pin num="19"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+            <pin num="16"/>
+            <pin num="17"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U7">
+      <value>SN74AVC4T245</value>
+      <footprint>Package_SO:TSSOP-16_4.4x5mm_P0.65mm</footprint>
+      <datasheet>datasheets/SN74AVC4T245.pdf</datasheet>
+      <description>3.3V&lt;-&gt;1.8V level shifter: SCLK/SDATA/LE/CE -&gt; ADF4159 CLK/DATA/LE/CE (A=+3V3_RX, B=+1V8_DIG, DIR=A-&gt;B)</description>
+      <fields>
+        <field name="MPN">SN74AVC4T245PW</field>
+        <field name="MPN_Reel">SN74AVC4T245PWR</field>
+        <field name="Manufacturer">Texas Instruments</field>
+        <field name="Footprint">Package_SO:TSSOP-16_4.4x5mm_P0.65mm</field>
+        <field name="Datasheet">datasheets/SN74AVC4T245.pdf</field>
+        <field name="Description">3.3V&lt;-&gt;1.8V level shifter: SCLK/SDATA/LE/CE -&gt; ADF4159 CLK/DATA/LE/CE (A=+3V3_RX, B=+1V8_DIG, DIR=A-&gt;B)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="SN74AVC4T245" description="4-bit dual-supply level shifter / bus transceiver (TSSOP-16, PW)"/>
+      <property name="MPN" value="SN74AVC4T245PW"/>
+      <property name="MPN_Reel" value="SN74AVC4T245PWR"/>
+      <property name="Manufacturer" value="Texas Instruments"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="15"/>
+            <pin num="14"/>
+            <pin num="1"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="16"/>
+            <pin num="13"/>
+            <pin num="12"/>
+            <pin num="11"/>
+            <pin num="10"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U8">
+      <value>SN74AVC2T245</value>
+      <footprint>Package_DFN_QFN:Texas_RSW0010A_UQFN-10_1.4x1.8mm_P0.4mm</footprint>
+      <datasheet>datasheets/SN74AVC2T245.pdf</datasheet>
+      <description>1.8V-&gt;3.3V level shifter: ADF4159 MUXOUT -&gt; RAMP_SYNC (A=+3V3_RX, B=+1V8_DIG, DIR=B-&gt;A)</description>
+      <fields>
+        <field name="MPN">SN74AVC2T245RSWR</field>
+        <field name="Manufacturer">Texas Instruments</field>
+        <field name="Footprint">Package_DFN_QFN:Texas_RSW0010A_UQFN-10_1.4x1.8mm_P0.4mm</field>
+        <field name="Datasheet">datasheets/SN74AVC2T245.pdf</field>
+        <field name="Description">1.8V-&gt;3.3V level shifter: ADF4159 MUXOUT -&gt; RAMP_SYNC (A=+3V3_RX, B=+1V8_DIG, DIR=B-&gt;A)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="SN74AVC2T245" description="2-bit dual-supply level shifter / bus transceiver (UQFN-10, RSW)"/>
+      <property name="MPN" value="SN74AVC2T245RSWR"/>
+      <property name="Manufacturer" value="Texas Instruments"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-0000000090a1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="7"/>
+            <pin num="3"/>
+            <pin num="6"/>
+            <pin num="5"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="X1">
+      <value>TCXO_CWX113</value>
+      <footprint>openflight-revc:TCXO_CWX113_SMD4</footprint>
+      <description>100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source)</description>
+      <fields>
+        <field name="MPN">CWX113-100.0M</field>
+        <field name="Manufacturer">Connor-Winfield</field>
+        <field name="Footprint">openflight-revc:TCXO_CWX113_SMD4</field>
+        <field name="Datasheet"/>
+        <field name="Description">100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="TCXO_CWX113" description="100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source)"/>
+      <property name="MPN" value="CWX113-100.0M"/>
+      <property name="Manufacturer" value="Connor-Winfield"/>
+      <property name="Sheetname" value="PLL + Ramp Generator"/>
+      <property name="Sheetfile" value="pll.kicad_sch"/>
+      <sheetpath names="/PLL + Ramp Generator/" tstamps="/0f000000-0000-4000-8000-000000002001/"/>
+      <tstamps>1a000000-0000-4000-8000-000000009002</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C15">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>TX_AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin4/5 + ev-radar-mmic2.md Fig.13 C15/C18/C21</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">TX_AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin4/5 + ev-radar-mmic2.md Fig.13 C15/C18/C21</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010007c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C16">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100083</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C17">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010008b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C18">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>DVDD decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin17 + ev-radar-mmic2.md Fig.13 DVDD tied to +3V3_TX plane</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">DVDD decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin17 + ev-radar-mmic2.md Fig.13 DVDD tied to +3V3_TX plane</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>851ed35a-4d79-4be9-86e5-9c2c2701deaf</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C19">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>66e0de05-ccdb-45b0-8925-5e5957d66daa</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C20">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>7ce0fe1a-e95e-49c5-934c-efe3847421ee</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C22">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>RF_AHI/AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin14/16 + ev-radar-mmic2.md Fig.13 C22/C24/C26 (combined AHI net per Fig.13)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">RF_AHI/AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin14/16 + ev-radar-mmic2.md Fig.13 C22/C24/C26 (combined AHI net per Fig.13)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000a0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C23">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000a7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C24">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000af</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C27">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>VCO_AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin30 + ev-radar-mmic2.md Fig.13 C27/C29/C31</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">VCO_AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin30 + ev-radar-mmic2.md Fig.13 C27/C29/C31</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000c1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C28">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000c8</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C29">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-0000001000d0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C50">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, TXOUT1 -&gt; TX_ANT; 16 kHz to 70 GHz, &lt;0.5 dB typical insertion loss</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, TXOUT1 -&gt; TX_ANT; 16 kHz to 70 GHz, &lt;0.5 dB typical insertion loss</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100025</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C51">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>DNP: TXOUT2 is unused; leave the MMIC output open at the local capacitor pad</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">DNP: TXOUT2 is unused; leave the MMIC output open at the local capacitor pad</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <property name="dnp"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010002b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C52">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, LOOUT -&gt; ADF5904 LO_IN; 16 kHz to 70 GHz, &lt;0.5 dB typical insertion loss</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, LOOUT -&gt; ADF5904 LO_IN; 16 kHz to 70 GHz, &lt;0.5 dB typical insertion loss</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100031</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C53">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0201_0603Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/Accu-P.pdf</datasheet>
+      <description>High-Q 10 pF 0201 AC coupling, AUX (VCO/2 ~12 GHz) -&gt; ADF4159 RFinA</description>
+      <fields>
+        <field name="MPN">0201ZK100FBSTR</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0201_0603Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/Accu-P.pdf</field>
+        <field name="Description">High-Q 10 pF 0201 AC coupling, AUX (VCO/2 ~12 GHz) -&gt; ADF4159 RFinA</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="0201ZK100FBSTR"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100037</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C55">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>AUXB (complementary VCO/2 tap) local decouple to GND -- single-ended AUX drives RFIN_DIV; mirrors ADF4159 RFinB '~100pF to GND' treatment (adf4159.md pin4)</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">AUXB (complementary VCO/2 tap) local decouple to GND -- single-ended AUX drives RFIN_DIV; mirrors ADF4159 RFinB '~100pF to GND' treatment (adf4159.md pin4)</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010003f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C56">
+      <value>47nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>C1 pin (31) decoupling cap to GND, 47nF per adf5901.md pin table</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">C1 pin (31) decoupling cap to GND, 47nF per adf5901.md pin table</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010005c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C57">
+      <value>220nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>C2 pin (32) decoupling cap to GND, 220nF per adf5901.md pin table</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">C2 pin (32) decoupling cap to GND, 220nF per adf5901.md pin table</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100063</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C58">
+      <value>220nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>VREG (pin18) internal 1.8V regulator output decouple, 220nF per adf5901.md pin table</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">VREG (pin18) internal 1.8V regulator output decouple, 220nF per adf5901.md pin table</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-00000010006b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R40">
+      <value>5.1k</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>RSET, 5.1k to GND sets internal bias current (adf5901.md pin26; ev-radar-mmic2.md R22=5.1k)</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">RSET, 5.1k to GND sets internal bias current (adf5901.md pin26; ev-radar-mmic2.md R22=5.1k)</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100055</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U5">
+      <value>ADF5901</value>
+      <footprint>openflight-revc:ADF5901_LFCSP32</footprint>
+      <description>24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)</description>
+      <fields>
+        <field name="MPN">ADF5901WCCPZ</field>
+        <field name="MPN_Reel">ADF5901WCCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADF5901_LFCSP32</field>
+        <field name="Datasheet"/>
+        <field name="Description">24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADF5901" description="24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)"/>
+      <property name="MPN" value="ADF5901WCCPZ"/>
+      <property name="MPN_Reel" value="ADF5901WCCPZ-RL7"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="ADF5901 Transmitter"/>
+      <property name="Sheetfile" value="tx.kicad_sch"/>
+      <sheetpath names="/ADF5901 Transmitter/" tstamps="/0f000000-0000-4000-8000-000000002002/"/>
+      <tstamps>1a000000-0000-4000-8000-000000100002</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="2"/>
+            <pin num="7"/>
+            <pin num="11"/>
+            <pin num="27"/>
+            <pin num="28"/>
+            <pin num="29"/>
+            <pin num="15"/>
+            <pin num="9"/>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="6"/>
+            <pin num="5"/>
+            <pin num="8"/>
+            <pin num="14"/>
+            <pin num="10"/>
+            <pin num="16"/>
+            <pin num="12"/>
+            <pin num="17"/>
+            <pin num="13"/>
+            <pin num="30"/>
+            <pin num="19"/>
+            <pin num="18"/>
+            <pin num="33"/>
+            <pin num="20"/>
+            <pin num="21"/>
+            <pin num="22"/>
+            <pin num="23"/>
+            <pin num="24"/>
+            <pin num="25"/>
+            <pin num="26"/>
+            <pin num="31"/>
+            <pin num="32"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C70">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, RX1 -&gt; ADF5904 RFIN1</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, RX1 -&gt; ADF5904 RFIN1</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>d207ce2e-6207-41ff-a8d3-d41c9ab237c7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C71">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, RX2 -&gt; ADF5904 RFIN2</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, RX2 -&gt; ADF5904 RFIN2</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>09962447-f6e3-4c2c-b6b2-4c871ca2801d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C72">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, RX3 -&gt; ADF5904 RFIN3</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, RX3 -&gt; ADF5904 RFIN3</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>dc7126a2-0504-4388-b76d-b9bc81e834d2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C73">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, RX4 -&gt; ADF5904 RFIN4</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, RX4 -&gt; ADF5904 RFIN4</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>b4537388-2e79-4c69-a330-020b2c5dd47f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C74">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <datasheet>https://datasheets.kyocera-avx.com/550L.pdf</datasheet>
+      <description>24 GHz ultra-broadband DC block, ADF5901 LO_OUT -&gt; ADF5904 LO_IN</description>
+      <fields>
+        <field name="MPN">550L104KTT</field>
+        <field name="Manufacturer">KYOCERA AVX</field>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet">https://datasheets.kyocera-avx.com/550L.pdf</field>
+        <field name="Description">24 GHz ultra-broadband DC block, ADF5901 LO_OUT -&gt; ADF5904 LO_IN</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="550L104KTT"/>
+      <property name="Manufacturer" value="KYOCERA AVX"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>b28da030-a757-4601-8c8e-a5bcb1bc60cd</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C75">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>e31b985b-4b23-4e7a-a423-5ace721c2131</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C76">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>d264a43e-d580-4127-817f-8122aedd4dbb</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C77">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>6d25be60-b2e6-45a8-89ef-fea4c945c874</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C78">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>60a5e20a-946f-4bfa-918b-ddb3199884e6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C79">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>99b7dd73-66ee-456b-80e4-97c5e6db3898</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C80">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>a9c43388-bc8e-428d-ba40-4dbabf5f7a2b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C81">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>edc579ae-172b-47a1-b534-5044e6401934</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C82">
+      <value>100pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>a9285fdd-bc8a-4487-95e3-6cd1cd83ce6e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C83">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>e195e39c-15c2-4e77-beb5-73aa424e9ddc</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C84">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>8f3915a9-97a5-4338-9500-c0455edc424d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C85">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>1eef093c-576c-44e4-b857-2af71ae2a7db</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C86">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>59249f51-038d-412e-8440-977a6d1bcd6b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C87">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>760f6562-301a-45ad-9dc8-68fc5bfe3545</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C88">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>2c187d53-6ead-4129-8579-5098cec8c85b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C89">
+      <value>0.1uF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>81e67d40-9aca-447c-bda5-87ead0f75144</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C90">
+      <value>1nF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>17c4771c-31db-440b-9872-f06e1424390d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C91">
+      <value>10pF</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Footprint">Capacitor_SMD:C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>3c9bbe3e-ac62-47a7-b7f6-93b34cda4fba</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R60">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>b8b8fc87-290b-455b-8d02-614fcbb326e1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R61">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>cac1d7c7-4942-4bf2-a359-7dbee37d137c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R62">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>0b1bc282-aa8c-40b8-b7ef-1cdddb84ac86</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R63">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>9ab0afa0-7fde-414e-9ac4-59f22d145644</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R64">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>f43fd065-6bb6-46e3-9aa4-74ff0de47fb1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R65">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>157f4ed0-f928-49f7-b1e7-a72b5ae5ca9b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R66">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>dd2eed75-2cb9-4e60-adb8-882415e12089</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R67">
+      <value>100R</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <description>Resistor</description>
+      <fields>
+        <field name="Footprint">Resistor_SMD:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>1a5a260e-ac2c-449d-8891-e23c18a3b46a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U6">
+      <value>ADF5904</value>
+      <footprint>openflight-revc:ADF5904_LFCSP32</footprint>
+      <datasheet>datasheets/ADF5904.pdf</datasheet>
+      <description>4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)</description>
+      <fields>
+        <field name="MPN">ADF5904WCCPZ</field>
+        <field name="MPN_Reel">ADF5904WCCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+        <field name="Footprint">openflight-revc:ADF5904_LFCSP32</field>
+        <field name="Datasheet">datasheets/ADF5904.pdf</field>
+        <field name="Description">4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)</field>
+      </fields>
+      <libsource lib="openflight-revc" part="ADF5904" description="4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)"/>
+      <property name="MPN" value="ADF5904WCCPZ"/>
+      <property name="MPN_Reel" value="ADF5904WCCPZ-RL7"/>
+      <property name="Manufacturer" value="Analog Devices"/>
+      <property name="Sheetname" value="ADF5904 Receiver"/>
+      <property name="Sheetfile" value="rx.kicad_sch"/>
+      <sheetpath names="/ADF5904 Receiver/" tstamps="/0f000000-0000-4000-8000-000000002003/"/>
+      <tstamps>650b17cd-fdf6-4de1-99eb-acfa149b1317</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="2"/>
+            <pin num="6"/>
+            <pin num="23"/>
+            <pin num="19"/>
+            <pin num="29"/>
+            <pin num="32"/>
+            <pin num="31"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="25"/>
+            <pin num="26"/>
+            <pin num="17"/>
+            <pin num="16"/>
+            <pin num="15"/>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="5"/>
+            <pin num="4"/>
+            <pin num="7"/>
+            <pin num="21"/>
+            <pin num="18"/>
+            <pin num="27"/>
+            <pin num="20"/>
+            <pin num="22"/>
+            <pin num="24"/>
+            <pin num="28"/>
+            <pin num="10"/>
+            <pin num="11"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="30"/>
+            <pin num="33"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Device" part="C">
+      <description>Unpolarized capacitor</description>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="D_Schottky">
+      <description>Schottky diode</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D_Schottky</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Schottky diode</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="Ferrite_Bead">
+      <description>Ferrite bead</description>
+      <fields>
+        <field name="Reference">FB</field>
+        <field name="Value">Ferrite_Bead</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Ferrite bead</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="R">
+      <description>Resistor</description>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="ADF4159">
+      <description>13 GHz Fractional-N FMCW Ramp Generator / PLL</description>
+      <docs>datasheets/ADF4159.pdf</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ADF4159</field>
+        <field name="Footprint">openflight-revc:ADF4159_LFCSP24</field>
+        <field name="Datasheet">datasheets/ADF4159.pdf</field>
+        <field name="Description">13 GHz Fractional-N FMCW Ramp Generator / PLL</field>
+        <field name="MPN">ADF4159CCPZ</field>
+        <field name="MPN_Reel">ADF4159CCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+      </fields>
+      <pins>
+        <pin num="1" name="CPGND" type="power_in"/>
+        <pin num="2" name="AGND" type="power_in"/>
+        <pin num="3" name="AGND" type="power_in"/>
+        <pin num="4" name="RFinB" type="passive"/>
+        <pin num="5" name="RFinA" type="passive"/>
+        <pin num="6" name="AVDD" type="power_in"/>
+        <pin num="7" name="AVDD" type="power_in"/>
+        <pin num="8" name="AVDD" type="power_in"/>
+        <pin num="9" name="REFIN" type="passive"/>
+        <pin num="10" name="DGND" type="power_in"/>
+        <pin num="11" name="SDGND" type="power_in"/>
+        <pin num="12" name="TXDATA" type="input"/>
+        <pin num="13" name="CE" type="input"/>
+        <pin num="14" name="CLK" type="input"/>
+        <pin num="15" name="DATA" type="input"/>
+        <pin num="16" name="LE" type="input"/>
+        <pin num="17" name="MUXOUT" type="output"/>
+        <pin num="18" name="SDVDD" type="power_in"/>
+        <pin num="19" name="DVDD" type="power_in"/>
+        <pin num="20" name="SW1" type="passive"/>
+        <pin num="21" name="SW2" type="passive"/>
+        <pin num="22" name="VP" type="power_in"/>
+        <pin num="23" name="RSET" type="passive"/>
+        <pin num="24" name="CP" type="output"/>
+        <pin num="25" name="EPAD" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="ADF5901">
+      <description>24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)</description>
+      <docs>datasheets/ADF5901.pdf</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ADF5901</field>
+        <field name="Footprint">openflight-revc:ADF5901_LFCSP32</field>
+        <field name="Datasheet">datasheets/ADF5901.pdf</field>
+        <field name="Description">24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)</field>
+        <field name="MPN">ADF5901WCCPZ</field>
+        <field name="MPN_Reel">ADF5901WCCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="power_in"/>
+        <pin num="2" name="TXOUT1" type="passive"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="TX_AHI" type="power_in"/>
+        <pin num="5" name="TX_AHI" type="power_in"/>
+        <pin num="6" name="GND" type="power_in"/>
+        <pin num="7" name="TXOUT2" type="passive"/>
+        <pin num="8" name="GND" type="power_in"/>
+        <pin num="9" name="ATEST" type="passive"/>
+        <pin num="10" name="GND" type="power_in"/>
+        <pin num="11" name="LOOUT" type="passive"/>
+        <pin num="12" name="GND" type="power_in"/>
+        <pin num="13" name="GND" type="power_in"/>
+        <pin num="14" name="RF_AHI" type="power_in"/>
+        <pin num="15" name="REFIN" type="passive"/>
+        <pin num="16" name="AHI" type="power_in"/>
+        <pin num="17" name="DVDD" type="power_in"/>
+        <pin num="18" name="VREG" type="power_out"/>
+        <pin num="19" name="GND" type="power_in"/>
+        <pin num="20" name="CE" type="input"/>
+        <pin num="21" name="CLK" type="input"/>
+        <pin num="22" name="DATA" type="input"/>
+        <pin num="23" name="LE" type="input"/>
+        <pin num="24" name="DOUT" type="output"/>
+        <pin num="25" name="MUXOUT" type="output"/>
+        <pin num="26" name="RSET" type="passive"/>
+        <pin num="27" name="AUX" type="passive"/>
+        <pin num="28" name="AUX" type="passive"/>
+        <pin num="29" name="VTUNE" type="passive"/>
+        <pin num="30" name="VCO_AHI" type="power_in"/>
+        <pin num="31" name="C1" type="passive"/>
+        <pin num="32" name="C2" type="passive"/>
+        <pin num="33" name="EP" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="ADF5904">
+      <description>4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)</description>
+      <docs>datasheets/ADF5904.pdf</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ADF5904</field>
+        <field name="Footprint">openflight-revc:ADF5904_LFCSP32</field>
+        <field name="Datasheet">datasheets/ADF5904.pdf</field>
+        <field name="Description">4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)</field>
+        <field name="MPN">ADF5904WCCPZ</field>
+        <field name="MPN_Reel">ADF5904WCCPZ-RL7</field>
+        <field name="Manufacturer">Analog Devices</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="power_in"/>
+        <pin num="2" name="RX1_RF" type="passive"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="AVDD" type="power_in"/>
+        <pin num="5" name="GND" type="power_in"/>
+        <pin num="6" name="RX2_RF" type="passive"/>
+        <pin num="7" name="GND" type="power_in"/>
+        <pin num="8" name="RX2_O" type="output"/>
+        <pin num="9" name="RX2_OB" type="output"/>
+        <pin num="10" name="LE" type="input"/>
+        <pin num="11" name="CLK" type="input"/>
+        <pin num="12" name="DATA" type="input"/>
+        <pin num="13" name="CE" type="input"/>
+        <pin num="14" name="DOUT" type="output"/>
+        <pin num="15" name="ATEST" type="output"/>
+        <pin num="16" name="RX4_OB" type="output"/>
+        <pin num="17" name="RX4_O" type="output"/>
+        <pin num="18" name="GND" type="power_in"/>
+        <pin num="19" name="RX4_RF" type="passive"/>
+        <pin num="20" name="GND" type="power_in"/>
+        <pin num="21" name="AVDD" type="power_in"/>
+        <pin num="22" name="GND" type="power_in"/>
+        <pin num="23" name="RX3_RF" type="passive"/>
+        <pin num="24" name="GND" type="power_in"/>
+        <pin num="25" name="RX3_O" type="output"/>
+        <pin num="26" name="RX3_OB" type="output"/>
+        <pin num="27" name="AVDD" type="power_in"/>
+        <pin num="28" name="GND" type="power_in"/>
+        <pin num="29" name="LO_IN" type="passive"/>
+        <pin num="30" name="GND" type="power_in"/>
+        <pin num="31" name="RX1_OB" type="output"/>
+        <pin num="32" name="RX1_O" type="output"/>
+        <pin num="33" name="EPAD" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="ADP150">
+      <description>150mA CMOS LDO (ADF4159 analog/digital rail)</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ADP150AUJZ-3.0</field>
+        <field name="Footprint">openflight-revc:ADP150_TSOT23_5</field>
+        <field name="Datasheet"/>
+        <field name="Description">150mA CMOS LDO (ADF4159 analog/digital rail)</field>
+        <field name="MPN">ADP150AUJZ-3.0</field>
+        <field name="Manufacturer">Analog Devices</field>
+      </fields>
+      <pins>
+        <pin num="1" name="IN" type="power_in"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="EN" type="input"/>
+        <pin num="4" name="NC" type="no_connect"/>
+        <pin num="5" name="OUT" type="power_out"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="ADP7104">
+      <description>20V/500mA ultralow-noise LDO (3.3V MMIC rail)</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ADP7104ARDZ-3.3</field>
+        <field name="Footprint">openflight-revc:ADP7104_SOIC8_EP</field>
+        <field name="Datasheet"/>
+        <field name="Description">20V/500mA ultralow-noise LDO (3.3V MMIC rail)</field>
+        <field name="MPN">ADP7104ARDZ-3.3</field>
+        <field name="Manufacturer">Analog Devices</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VOUT" type="power_out"/>
+        <pin num="2" name="SENSE" type="passive"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="NC" type="no_connect"/>
+        <pin num="5" name="EN" type="input"/>
+        <pin num="6" name="GND" type="power_in"/>
+        <pin num="7" name="PG" type="output"/>
+        <pin num="8" name="VIN" type="power_in"/>
+        <pin num="9" name="EP" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="HDR_2x15">
+      <description>2x15 1.27mm SMD interface header (RF board &lt;-&gt; ADC board)</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">HDR_2x15</field>
+        <field name="Footprint">openflight-revc:HDR_2x15_1.27MM_SMD</field>
+        <field name="Datasheet"/>
+        <field name="Description">2x15 1.27mm SMD interface header (RF board &lt;-&gt; ADC board)</field>
+        <field name="MPN"/>
+        <field name="Manufacturer"/>
+      </fields>
+      <pins>
+        <pin num="1" name="P1" type="passive"/>
+        <pin num="2" name="P2" type="passive"/>
+        <pin num="3" name="P3" type="passive"/>
+        <pin num="4" name="P4" type="passive"/>
+        <pin num="5" name="P5" type="passive"/>
+        <pin num="6" name="P6" type="passive"/>
+        <pin num="7" name="P7" type="passive"/>
+        <pin num="8" name="P8" type="passive"/>
+        <pin num="9" name="P9" type="passive"/>
+        <pin num="10" name="P10" type="passive"/>
+        <pin num="11" name="P11" type="passive"/>
+        <pin num="12" name="P12" type="passive"/>
+        <pin num="13" name="P13" type="passive"/>
+        <pin num="14" name="P14" type="passive"/>
+        <pin num="15" name="P15" type="passive"/>
+        <pin num="16" name="P16" type="passive"/>
+        <pin num="17" name="P17" type="passive"/>
+        <pin num="18" name="P18" type="passive"/>
+        <pin num="19" name="P19" type="passive"/>
+        <pin num="20" name="P20" type="passive"/>
+        <pin num="21" name="P21" type="passive"/>
+        <pin num="22" name="P22" type="passive"/>
+        <pin num="23" name="P23" type="passive"/>
+        <pin num="24" name="P24" type="passive"/>
+        <pin num="25" name="P25" type="passive"/>
+        <pin num="26" name="P26" type="passive"/>
+        <pin num="27" name="P27" type="passive"/>
+        <pin num="28" name="P28" type="passive"/>
+        <pin num="29" name="P29" type="passive"/>
+        <pin num="30" name="P30" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="SN74AVC2T245">
+      <description>2-bit dual-supply level shifter / bus transceiver (UQFN-10, RSW)</description>
+      <docs>datasheets/SN74AVC2T245.pdf</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">SN74AVC2T245</field>
+        <field name="Footprint">Package_DFN_QFN:Texas_RSW0010A_UQFN-10_1.4x1.8mm_P0.4mm</field>
+        <field name="Datasheet">datasheets/SN74AVC2T245.pdf</field>
+        <field name="Description">2-bit dual-supply level shifter / bus transceiver (UQFN-10, RSW)</field>
+        <field name="MPN">SN74AVC2T245RSWR</field>
+        <field name="Manufacturer">Texas Instruments</field>
+      </fields>
+      <pins>
+        <pin num="1" name="DIR2" type="input"/>
+        <pin num="2" name="~{OE}" type="input"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="B2" type="bidirectional"/>
+        <pin num="5" name="B1" type="bidirectional"/>
+        <pin num="6" name="VCCB" type="power_in"/>
+        <pin num="7" name="VCCA" type="power_in"/>
+        <pin num="8" name="A1" type="bidirectional"/>
+        <pin num="9" name="A2" type="bidirectional"/>
+        <pin num="10" name="DIR1" type="input"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="SN74AVC4T245">
+      <description>4-bit dual-supply level shifter / bus transceiver (TSSOP-16, PW)</description>
+      <docs>datasheets/SN74AVC4T245.pdf</docs>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">SN74AVC4T245</field>
+        <field name="Footprint">Package_SO:TSSOP-16_4.4x5mm_P0.65mm</field>
+        <field name="Datasheet">datasheets/SN74AVC4T245.pdf</field>
+        <field name="Description">4-bit dual-supply level shifter / bus transceiver (TSSOP-16, PW)</field>
+        <field name="MPN">SN74AVC4T245PW</field>
+        <field name="MPN_Reel">SN74AVC4T245PWR</field>
+        <field name="Manufacturer">Texas Instruments</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VCCA" type="power_in"/>
+        <pin num="2" name="1DIR" type="input"/>
+        <pin num="3" name="2DIR" type="input"/>
+        <pin num="4" name="1A1" type="bidirectional"/>
+        <pin num="5" name="1A2" type="bidirectional"/>
+        <pin num="6" name="2A1" type="bidirectional"/>
+        <pin num="7" name="2A2" type="bidirectional"/>
+        <pin num="8" name="GND" type="power_in"/>
+        <pin num="9" name="GND" type="power_in"/>
+        <pin num="10" name="2B2" type="bidirectional"/>
+        <pin num="11" name="2B1" type="bidirectional"/>
+        <pin num="12" name="1B2" type="bidirectional"/>
+        <pin num="13" name="1B1" type="bidirectional"/>
+        <pin num="14" name="~{2OE}" type="input"/>
+        <pin num="15" name="~{1OE}" type="input"/>
+        <pin num="16" name="VCCB" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="openflight-revc" part="TCXO_CWX113">
+      <description>100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source)</description>
+      <fields>
+        <field name="Reference">Y</field>
+        <field name="Value">TCXO_CWX113</field>
+        <field name="Footprint">openflight-revc:TCXO_CWX113_SMD4</field>
+        <field name="Datasheet"/>
+        <field name="Description">100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source)</field>
+        <field name="MPN">CWX113-100.0M</field>
+        <field name="Manufacturer">Connor-Winfield</field>
+      </fields>
+      <pins>
+        <pin num="1" name="EN" type="input"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="OUT" type="output"/>
+        <pin num="4" name="VDD" type="power_in"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Device">
+      <uri>${KICAD10_SYMBOL_DIR}/Device.kicad_sym</uri>
+    </library>
+    <library logical="openflight-revc">
+      <uri>${KIPRJMOD}/../../library/openflight-revc.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="+1V8_DIG" class="PWR">
+      <node ref="C43" pin="2" pintype="passive"/>
+      <node ref="C44" pin="2" pintype="passive"/>
+      <node ref="C45" pin="2" pintype="passive"/>
+      <node ref="C46" pin="2" pintype="passive"/>
+      <node ref="C48" pin="2" pintype="passive"/>
+      <node ref="C49" pin="2" pintype="passive"/>
+      <node ref="C7" pin="1" pintype="passive"/>
+      <node ref="U3" pin="5" pinfunction="OUT_5" pintype="power_out"/>
+      <node ref="U4" pin="18" pinfunction="SDVDD_18" pintype="power_in"/>
+      <node ref="U4" pin="19" pinfunction="DVDD_19" pintype="power_in"/>
+      <node ref="U7" pin="16" pinfunction="VCCB_16" pintype="power_in"/>
+      <node ref="U8" pin="6" pinfunction="VCCB_6" pintype="power_in"/>
+    </net>
+    <net code="2" name="+3V3_RX" class="PWR">
+      <node ref="C31" pin="1" pintype="passive"/>
+      <node ref="C32" pin="1" pintype="passive"/>
+      <node ref="C38" pin="2" pintype="passive"/>
+      <node ref="C39" pin="2" pintype="passive"/>
+      <node ref="C40" pin="2" pintype="passive"/>
+      <node ref="C41" pin="2" pintype="passive"/>
+      <node ref="C42" pin="2" pintype="passive"/>
+      <node ref="C47" pin="2" pintype="passive"/>
+      <node ref="C5" pin="1" pintype="passive"/>
+      <node ref="C59" pin="2" pintype="passive"/>
+      <node ref="C83" pin="2" pintype="passive"/>
+      <node ref="C84" pin="2" pintype="passive"/>
+      <node ref="C85" pin="2" pintype="passive"/>
+      <node ref="C86" pin="2" pintype="passive"/>
+      <node ref="C87" pin="2" pintype="passive"/>
+      <node ref="C88" pin="2" pintype="passive"/>
+      <node ref="C89" pin="2" pintype="passive"/>
+      <node ref="C90" pin="2" pintype="passive"/>
+      <node ref="C91" pin="2" pintype="passive"/>
+      <node ref="R2" pin="1" pintype="passive"/>
+      <node ref="U2" pin="1" pinfunction="VOUT_1" pintype="power_out"/>
+      <node ref="U2" pin="2" pinfunction="SENSE_2" pintype="passive"/>
+      <node ref="U4" pin="22" pinfunction="VP_22" pintype="power_in"/>
+      <node ref="U4" pin="6" pinfunction="AVDD_6" pintype="power_in"/>
+      <node ref="U4" pin="7" pinfunction="AVDD_7" pintype="power_in"/>
+      <node ref="U4" pin="8" pinfunction="AVDD_8" pintype="power_in"/>
+      <node ref="U6" pin="21" pinfunction="AVDD_21" pintype="power_in"/>
+      <node ref="U6" pin="27" pinfunction="AVDD_27" pintype="power_in"/>
+      <node ref="U6" pin="4" pinfunction="AVDD_4" pintype="power_in"/>
+      <node ref="U7" pin="1" pinfunction="VCCA_1" pintype="power_in"/>
+      <node ref="U7" pin="2" pinfunction="1DIR_2" pintype="input"/>
+      <node ref="U7" pin="3" pinfunction="2DIR_3" pintype="input"/>
+      <node ref="U8" pin="7" pinfunction="VCCA_7" pintype="power_in"/>
+      <node ref="X1" pin="1" pinfunction="EN_1" pintype="input"/>
+      <node ref="X1" pin="4" pinfunction="VDD_4" pintype="power_in"/>
+    </net>
+    <net code="3" name="+3V3_TX" class="PWR">
+      <node ref="C15" pin="1" pintype="passive"/>
+      <node ref="C16" pin="1" pintype="passive"/>
+      <node ref="C17" pin="1" pintype="passive"/>
+      <node ref="C18" pin="1" pintype="passive"/>
+      <node ref="C19" pin="1" pintype="passive"/>
+      <node ref="C20" pin="1" pintype="passive"/>
+      <node ref="C22" pin="1" pintype="passive"/>
+      <node ref="C23" pin="1" pintype="passive"/>
+      <node ref="C24" pin="1" pintype="passive"/>
+      <node ref="C27" pin="1" pintype="passive"/>
+      <node ref="C28" pin="1" pintype="passive"/>
+      <node ref="C29" pin="1" pintype="passive"/>
+      <node ref="C3" pin="1" pintype="passive"/>
+      <node ref="R1" pin="1" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="VOUT_1" pintype="power_out"/>
+      <node ref="U1" pin="2" pinfunction="SENSE_2" pintype="passive"/>
+      <node ref="U5" pin="14" pinfunction="RF_AHI_14" pintype="power_in"/>
+      <node ref="U5" pin="16" pinfunction="AHI_16" pintype="power_in"/>
+      <node ref="U5" pin="17" pinfunction="DVDD_17" pintype="power_in"/>
+      <node ref="U5" pin="30" pinfunction="VCO_AHI_30" pintype="power_in"/>
+      <node ref="U5" pin="4" pinfunction="TX_AHI_4" pintype="power_in"/>
+      <node ref="U5" pin="5" pinfunction="TX_AHI_5" pintype="power_in"/>
+    </net>
+    <net code="4" name="+5V" class="PWR">
+      <node ref="FB1" pin="1" pintype="passive"/>
+      <node ref="J1" pin="1" pinfunction="P1_1" pintype="passive"/>
+      <node ref="J1" pin="2" pinfunction="P2_2" pintype="passive"/>
+    </net>
+    <net code="5" name="+5V_REG" class="PWR">
+      <node ref="C1" pin="1" pintype="passive"/>
+      <node ref="C2" pin="1" pintype="passive"/>
+      <node ref="C4" pin="1" pintype="passive"/>
+      <node ref="C6" pin="1" pintype="passive"/>
+      <node ref="D1" pin="1" pinfunction="K_1" pintype="passive"/>
+      <node ref="FB1" pin="2" pintype="passive"/>
+      <node ref="U1" pin="5" pinfunction="EN_5" pintype="input"/>
+      <node ref="U1" pin="8" pinfunction="VIN_8" pintype="power_in"/>
+      <node ref="U2" pin="5" pinfunction="EN_5" pintype="input"/>
+      <node ref="U2" pin="8" pinfunction="VIN_8" pintype="power_in"/>
+      <node ref="U3" pin="1" pinfunction="IN_1" pintype="power_in"/>
+      <node ref="U3" pin="3" pinfunction="EN_3" pintype="input"/>
+    </net>
+    <net code="6" name="/ADF5901 Transmitter/TX_OUT2_UNUSED" class="Default">
+      <node ref="C51" pin="1" pintype="passive"/>
+    </net>
+    <net code="7" name="BB1_N" class="BB_DIFF">
+      <node ref="C76" pin="2" pintype="passive"/>
+      <node ref="J1" pin="6" pinfunction="P6_6" pintype="passive"/>
+      <node ref="R61" pin="1" pintype="passive"/>
+    </net>
+    <net code="8" name="BB1_P" class="BB_DIFF">
+      <node ref="C75" pin="2" pintype="passive"/>
+      <node ref="J1" pin="5" pinfunction="P5_5" pintype="passive"/>
+      <node ref="R60" pin="1" pintype="passive"/>
+    </net>
+    <net code="9" name="BB2_N" class="BB_DIFF">
+      <node ref="C78" pin="2" pintype="passive"/>
+      <node ref="J1" pin="10" pinfunction="P10_10" pintype="passive"/>
+      <node ref="R63" pin="1" pintype="passive"/>
+    </net>
+    <net code="10" name="BB2_P" class="BB_DIFF">
+      <node ref="C77" pin="2" pintype="passive"/>
+      <node ref="J1" pin="9" pinfunction="P9_9" pintype="passive"/>
+      <node ref="R62" pin="1" pintype="passive"/>
+    </net>
+    <net code="11" name="BB3_N" class="BB_DIFF">
+      <node ref="C80" pin="2" pintype="passive"/>
+      <node ref="J1" pin="14" pinfunction="P14_14" pintype="passive"/>
+      <node ref="R65" pin="1" pintype="passive"/>
+    </net>
+    <net code="12" name="BB3_P" class="BB_DIFF">
+      <node ref="C79" pin="2" pintype="passive"/>
+      <node ref="J1" pin="13" pinfunction="P13_13" pintype="passive"/>
+      <node ref="R64" pin="1" pintype="passive"/>
+    </net>
+    <net code="13" name="BB4_N" class="BB_DIFF">
+      <node ref="C82" pin="2" pintype="passive"/>
+      <node ref="J1" pin="18" pinfunction="P18_18" pintype="passive"/>
+      <node ref="R67" pin="1" pintype="passive"/>
+    </net>
+    <net code="14" name="BB4_P" class="BB_DIFF">
+      <node ref="C81" pin="2" pintype="passive"/>
+      <node ref="J1" pin="17" pinfunction="P17_17" pintype="passive"/>
+      <node ref="R66" pin="1" pintype="passive"/>
+    </net>
+    <net code="15" name="CE_RX" class="CTRL">
+      <node ref="J1" pin="28" pinfunction="P28_28" pintype="passive"/>
+      <node ref="U6" pin="13" pinfunction="CE_13" pintype="input"/>
+      <node ref="U7" pin="7" pinfunction="2A2_7" pintype="bidirectional"/>
+    </net>
+    <net code="16" name="GND" class="PWR">
+      <node ref="C1" pin="2" pintype="passive"/>
+      <node ref="C15" pin="2" pintype="passive"/>
+      <node ref="C16" pin="2" pintype="passive"/>
+      <node ref="C17" pin="2" pintype="passive"/>
+      <node ref="C18" pin="2" pintype="passive"/>
+      <node ref="C19" pin="2" pintype="passive"/>
+      <node ref="C2" pin="2" pintype="passive"/>
+      <node ref="C20" pin="2" pintype="passive"/>
+      <node ref="C22" pin="2" pintype="passive"/>
+      <node ref="C23" pin="2" pintype="passive"/>
+      <node ref="C24" pin="2" pintype="passive"/>
+      <node ref="C27" pin="2" pintype="passive"/>
+      <node ref="C28" pin="2" pintype="passive"/>
+      <node ref="C29" pin="2" pintype="passive"/>
+      <node ref="C3" pin="2" pintype="passive"/>
+      <node ref="C31" pin="2" pintype="passive"/>
+      <node ref="C32" pin="2" pintype="passive"/>
+      <node ref="C33" pin="2" pintype="passive"/>
+      <node ref="C35" pin="2" pintype="passive"/>
+      <node ref="C36" pin="1" pintype="passive"/>
+      <node ref="C38" pin="1" pintype="passive"/>
+      <node ref="C39" pin="1" pintype="passive"/>
+      <node ref="C4" pin="2" pintype="passive"/>
+      <node ref="C40" pin="1" pintype="passive"/>
+      <node ref="C41" pin="1" pintype="passive"/>
+      <node ref="C42" pin="1" pintype="passive"/>
+      <node ref="C43" pin="1" pintype="passive"/>
+      <node ref="C44" pin="1" pintype="passive"/>
+      <node ref="C45" pin="1" pintype="passive"/>
+      <node ref="C46" pin="1" pintype="passive"/>
+      <node ref="C47" pin="1" pintype="passive"/>
+      <node ref="C48" pin="1" pintype="passive"/>
+      <node ref="C49" pin="1" pintype="passive"/>
+      <node ref="C5" pin="2" pintype="passive"/>
+      <node ref="C55" pin="2" pintype="passive"/>
+      <node ref="C56" pin="2" pintype="passive"/>
+      <node ref="C57" pin="2" pintype="passive"/>
+      <node ref="C58" pin="1" pintype="passive"/>
+      <node ref="C59" pin="1" pintype="passive"/>
+      <node ref="C6" pin="2" pintype="passive"/>
+      <node ref="C7" pin="2" pintype="passive"/>
+      <node ref="C75" pin="1" pintype="passive"/>
+      <node ref="C76" pin="1" pintype="passive"/>
+      <node ref="C77" pin="1" pintype="passive"/>
+      <node ref="C78" pin="1" pintype="passive"/>
+      <node ref="C79" pin="1" pintype="passive"/>
+      <node ref="C80" pin="1" pintype="passive"/>
+      <node ref="C81" pin="1" pintype="passive"/>
+      <node ref="C82" pin="1" pintype="passive"/>
+      <node ref="C83" pin="1" pintype="passive"/>
+      <node ref="C84" pin="1" pintype="passive"/>
+      <node ref="C85" pin="1" pintype="passive"/>
+      <node ref="C86" pin="1" pintype="passive"/>
+      <node ref="C87" pin="1" pintype="passive"/>
+      <node ref="C88" pin="1" pintype="passive"/>
+      <node ref="C89" pin="1" pintype="passive"/>
+      <node ref="C90" pin="1" pintype="passive"/>
+      <node ref="C91" pin="1" pintype="passive"/>
+      <node ref="D1" pin="2" pinfunction="A_2" pintype="passive"/>
+      <node ref="J1" pin="11" pinfunction="P11_11" pintype="passive"/>
+      <node ref="J1" pin="12" pinfunction="P12_12" pintype="passive"/>
+      <node ref="J1" pin="15" pinfunction="P15_15" pintype="passive"/>
+      <node ref="J1" pin="16" pinfunction="P16_16" pintype="passive"/>
+      <node ref="J1" pin="19" pinfunction="P19_19" pintype="passive"/>
+      <node ref="J1" pin="20" pinfunction="P20_20" pintype="passive"/>
+      <node ref="J1" pin="24" pinfunction="P24_24" pintype="passive"/>
+      <node ref="J1" pin="3" pinfunction="P3_3" pintype="passive"/>
+      <node ref="J1" pin="4" pinfunction="P4_4" pintype="passive"/>
+      <node ref="J1" pin="7" pinfunction="P7_7" pintype="passive"/>
+      <node ref="J1" pin="8" pinfunction="P8_8" pintype="passive"/>
+      <node ref="R22" pin="2" pintype="passive"/>
+      <node ref="R24" pin="2" pintype="passive"/>
+      <node ref="R40" pin="2" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="GND_3" pintype="power_in"/>
+      <node ref="U1" pin="6" pinfunction="GND_6" pintype="power_in"/>
+      <node ref="U1" pin="9" pinfunction="EP_9" pintype="power_in"/>
+      <node ref="U2" pin="3" pinfunction="GND_3" pintype="power_in"/>
+      <node ref="U2" pin="6" pinfunction="GND_6" pintype="power_in"/>
+      <node ref="U2" pin="9" pinfunction="EP_9" pintype="power_in"/>
+      <node ref="U3" pin="2" pinfunction="GND_2" pintype="power_in"/>
+      <node ref="U4" pin="1" pinfunction="CPGND_1" pintype="power_in"/>
+      <node ref="U4" pin="10" pinfunction="DGND_10" pintype="power_in"/>
+      <node ref="U4" pin="11" pinfunction="SDGND_11" pintype="power_in"/>
+      <node ref="U4" pin="12" pinfunction="TXDATA_12" pintype="input"/>
+      <node ref="U4" pin="2" pinfunction="AGND_2" pintype="power_in"/>
+      <node ref="U4" pin="25" pinfunction="EPAD_25" pintype="power_in"/>
+      <node ref="U4" pin="3" pinfunction="AGND_3" pintype="power_in"/>
+      <node ref="U5" pin="1" pinfunction="GND_1" pintype="power_in"/>
+      <node ref="U5" pin="10" pinfunction="GND_10" pintype="power_in"/>
+      <node ref="U5" pin="12" pinfunction="GND_12" pintype="power_in"/>
+      <node ref="U5" pin="13" pinfunction="GND_13" pintype="power_in"/>
+      <node ref="U5" pin="19" pinfunction="GND_19" pintype="power_in"/>
+      <node ref="U5" pin="3" pinfunction="GND_3" pintype="power_in"/>
+      <node ref="U5" pin="33" pinfunction="EP_33" pintype="power_in"/>
+      <node ref="U5" pin="6" pinfunction="GND_6" pintype="power_in"/>
+      <node ref="U5" pin="8" pinfunction="GND_8" pintype="power_in"/>
+      <node ref="U6" pin="1" pinfunction="GND_1" pintype="power_in"/>
+      <node ref="U6" pin="18" pinfunction="GND_18" pintype="power_in"/>
+      <node ref="U6" pin="20" pinfunction="GND_20" pintype="power_in"/>
+      <node ref="U6" pin="22" pinfunction="GND_22" pintype="power_in"/>
+      <node ref="U6" pin="24" pinfunction="GND_24" pintype="power_in"/>
+      <node ref="U6" pin="28" pinfunction="GND_28" pintype="power_in"/>
+      <node ref="U6" pin="3" pinfunction="GND_3" pintype="power_in"/>
+      <node ref="U6" pin="30" pinfunction="GND_30" pintype="power_in"/>
+      <node ref="U6" pin="33" pinfunction="EPAD_33" pintype="power_in"/>
+      <node ref="U6" pin="5" pinfunction="GND_5" pintype="power_in"/>
+      <node ref="U6" pin="7" pinfunction="GND_7" pintype="power_in"/>
+      <node ref="U7" pin="14" pinfunction="~{2OE}_14" pintype="input"/>
+      <node ref="U7" pin="15" pinfunction="~{1OE}_15" pintype="input"/>
+      <node ref="U7" pin="8" pinfunction="GND_8" pintype="power_in"/>
+      <node ref="U7" pin="9" pinfunction="GND_9" pintype="power_in"/>
+      <node ref="U8" pin="1" pinfunction="DIR2_1" pintype="input"/>
+      <node ref="U8" pin="10" pinfunction="DIR1_10" pintype="input"/>
+      <node ref="U8" pin="2" pinfunction="~{OE}_2" pintype="input"/>
+      <node ref="U8" pin="3" pinfunction="GND_3" pintype="power_in"/>
+      <node ref="U8" pin="4" pinfunction="B2_4" pintype="bidirectional"/>
+      <node ref="X1" pin="2" pinfunction="GND_2" pintype="power_in"/>
+    </net>
+    <net code="17" name="LE_4159" class="CTRL">
+      <node ref="J1" pin="27" pinfunction="P27_27" pintype="passive"/>
+      <node ref="U7" pin="6" pinfunction="2A1_6" pintype="bidirectional"/>
+    </net>
+    <net code="18" name="LE_5901" class="CTRL">
+      <node ref="J1" pin="25" pinfunction="P25_25" pintype="passive"/>
+      <node ref="U5" pin="23" pinfunction="LE_23" pintype="input"/>
+    </net>
+    <net code="19" name="LE_5904" class="CTRL">
+      <node ref="J1" pin="26" pinfunction="P26_26" pintype="passive"/>
+      <node ref="U6" pin="10" pinfunction="LE_10" pintype="input"/>
+    </net>
+    <net code="20" name="LO_OUT" class="RF">
+      <node ref="C52" pin="1" pintype="passive"/>
+      <node ref="C74" pin="1" pintype="passive"/>
+    </net>
+    <net code="21" name="Net-(C30-Pad2)" class="PLL">
+      <node ref="C30" pin="2" pintype="passive"/>
+      <node ref="R20" pin="1" pintype="passive"/>
+    </net>
+    <net code="22" name="Net-(C34-Pad2)" class="PLL">
+      <node ref="C34" pin="2" pintype="passive"/>
+      <node ref="R22" pin="1" pintype="passive"/>
+    </net>
+    <net code="23" name="Net-(C35-Pad1)" class="PLL">
+      <node ref="C35" pin="1" pintype="passive"/>
+      <node ref="R21" pin="1" pintype="passive"/>
+      <node ref="R23" pin="2" pintype="passive"/>
+    </net>
+    <net code="24" name="Net-(C53-Pad2)" class="RF">
+      <node ref="C53" pin="2" pintype="passive"/>
+      <node ref="U5" pin="27" pinfunction="AUX_27" pintype="passive"/>
+    </net>
+    <net code="25" name="Net-(C55-Pad1)" class="RF">
+      <node ref="C55" pin="1" pintype="passive"/>
+      <node ref="U5" pin="28" pinfunction="AUX_28" pintype="passive"/>
+    </net>
+    <net code="26" name="Net-(U1-PG)" class="CTRL">
+      <node ref="R1" pin="2" pintype="passive"/>
+      <node ref="U1" pin="7" pinfunction="PG_7" pintype="output"/>
+    </net>
+    <net code="27" name="Net-(U2-PG)" class="CTRL">
+      <node ref="R2" pin="2" pintype="passive"/>
+      <node ref="U2" pin="7" pinfunction="PG_7" pintype="output"/>
+    </net>
+    <net code="28" name="Net-(U4-CE)" class="CTRL">
+      <node ref="U4" pin="13" pinfunction="CE_13" pintype="input"/>
+      <node ref="U7" pin="10" pinfunction="2B2_10" pintype="bidirectional"/>
+    </net>
+    <net code="29" name="Net-(U4-CLK)" class="CTRL">
+      <node ref="U4" pin="14" pinfunction="CLK_14" pintype="input"/>
+      <node ref="U7" pin="13" pinfunction="1B1_13" pintype="bidirectional"/>
+    </net>
+    <net code="30" name="Net-(U4-CP)" class="PLL">
+      <node ref="C33" pin="1" pintype="passive"/>
+      <node ref="C34" pin="1" pintype="passive"/>
+      <node ref="R21" pin="2" pintype="passive"/>
+      <node ref="U4" pin="24" pinfunction="CP_24" pintype="output"/>
+    </net>
+    <net code="31" name="Net-(U4-DATA)" class="CTRL">
+      <node ref="U4" pin="15" pinfunction="DATA_15" pintype="input"/>
+      <node ref="U7" pin="12" pinfunction="1B2_12" pintype="bidirectional"/>
+    </net>
+    <net code="32" name="Net-(U4-LE)" class="CTRL">
+      <node ref="U4" pin="16" pinfunction="LE_16" pintype="input"/>
+      <node ref="U7" pin="11" pinfunction="2B1_11" pintype="bidirectional"/>
+    </net>
+    <net code="33" name="Net-(U4-MUXOUT)" class="CTRL">
+      <node ref="U4" pin="17" pinfunction="MUXOUT_17" pintype="output"/>
+      <node ref="U8" pin="5" pinfunction="B1_5" pintype="bidirectional"/>
+    </net>
+    <net code="34" name="Net-(U4-RFinA)" class="RF">
+      <node ref="C37" pin="2" pintype="passive"/>
+      <node ref="U4" pin="5" pinfunction="RFinA_5" pintype="passive"/>
+    </net>
+    <net code="35" name="Net-(U4-RFinB)" class="RF">
+      <node ref="C36" pin="2" pintype="passive"/>
+      <node ref="U4" pin="4" pinfunction="RFinB_4" pintype="passive"/>
+    </net>
+    <net code="36" name="Net-(U4-RSET)" class="PLL">
+      <node ref="R24" pin="1" pintype="passive"/>
+      <node ref="U4" pin="23" pinfunction="RSET_23" pintype="passive"/>
+    </net>
+    <net code="37" name="Net-(U5-C1)" class="PLL">
+      <node ref="C56" pin="1" pintype="passive"/>
+      <node ref="U5" pin="31" pinfunction="C1_31" pintype="passive"/>
+    </net>
+    <net code="38" name="Net-(U5-C2)" class="PLL">
+      <node ref="C57" pin="1" pintype="passive"/>
+      <node ref="U5" pin="32" pinfunction="C2_32" pintype="passive"/>
+    </net>
+    <net code="39" name="Net-(U5-LOOUT)" class="RF">
+      <node ref="C52" pin="2" pintype="passive"/>
+      <node ref="U5" pin="11" pinfunction="LOOUT_11" pintype="passive"/>
+    </net>
+    <net code="40" name="Net-(U5-RSET)" class="PLL">
+      <node ref="R40" pin="1" pintype="passive"/>
+      <node ref="U5" pin="26" pinfunction="RSET_26" pintype="passive"/>
+    </net>
+    <net code="41" name="Net-(U5-TXOUT1)" class="RF">
+      <node ref="C50" pin="2" pintype="passive"/>
+      <node ref="U5" pin="2" pinfunction="TXOUT1_2" pintype="passive"/>
+    </net>
+    <net code="42" name="Net-(U5-TXOUT2)" class="RF">
+      <node ref="C51" pin="2" pintype="passive"/>
+      <node ref="U5" pin="7" pinfunction="TXOUT2_7" pintype="passive"/>
+    </net>
+    <net code="43" name="Net-(U5-VREG)" class="PLL">
+      <node ref="C58" pin="2" pintype="passive"/>
+      <node ref="U5" pin="18" pinfunction="VREG_18" pintype="power_out"/>
+    </net>
+    <net code="44" name="Net-(U6-LO_IN)" class="RF">
+      <node ref="C74" pin="2" pintype="passive"/>
+      <node ref="U6" pin="29" pinfunction="LO_IN_29" pintype="passive"/>
+    </net>
+    <net code="45" name="Net-(U6-RX1_O)" class="BB_DIFF">
+      <node ref="R60" pin="2" pintype="passive"/>
+      <node ref="U6" pin="32" pinfunction="RX1_O_32" pintype="output"/>
+    </net>
+    <net code="46" name="Net-(U6-RX1_OB)" class="BB_DIFF">
+      <node ref="R61" pin="2" pintype="passive"/>
+      <node ref="U6" pin="31" pinfunction="RX1_OB_31" pintype="output"/>
+    </net>
+    <net code="47" name="Net-(U6-RX1_RF)" class="RF">
+      <node ref="C70" pin="2" pintype="passive"/>
+      <node ref="U6" pin="2" pinfunction="RX1_RF_2" pintype="passive"/>
+    </net>
+    <net code="48" name="Net-(U6-RX2_O)" class="BB_DIFF">
+      <node ref="R62" pin="2" pintype="passive"/>
+      <node ref="U6" pin="8" pinfunction="RX2_O_8" pintype="output"/>
+    </net>
+    <net code="49" name="Net-(U6-RX2_OB)" class="BB_DIFF">
+      <node ref="R63" pin="2" pintype="passive"/>
+      <node ref="U6" pin="9" pinfunction="RX2_OB_9" pintype="output"/>
+    </net>
+    <net code="50" name="Net-(U6-RX2_RF)" class="RF">
+      <node ref="C71" pin="2" pintype="passive"/>
+      <node ref="U6" pin="6" pinfunction="RX2_RF_6" pintype="passive"/>
+    </net>
+    <net code="51" name="Net-(U6-RX3_O)" class="BB_DIFF">
+      <node ref="R64" pin="2" pintype="passive"/>
+      <node ref="U6" pin="25" pinfunction="RX3_O_25" pintype="output"/>
+    </net>
+    <net code="52" name="Net-(U6-RX3_OB)" class="BB_DIFF">
+      <node ref="R65" pin="2" pintype="passive"/>
+      <node ref="U6" pin="26" pinfunction="RX3_OB_26" pintype="output"/>
+    </net>
+    <net code="53" name="Net-(U6-RX3_RF)" class="RF">
+      <node ref="C72" pin="2" pintype="passive"/>
+      <node ref="U6" pin="23" pinfunction="RX3_RF_23" pintype="passive"/>
+    </net>
+    <net code="54" name="Net-(U6-RX4_O)" class="BB_DIFF">
+      <node ref="R66" pin="2" pintype="passive"/>
+      <node ref="U6" pin="17" pinfunction="RX4_O_17" pintype="output"/>
+    </net>
+    <net code="55" name="Net-(U6-RX4_OB)" class="BB_DIFF">
+      <node ref="R67" pin="2" pintype="passive"/>
+      <node ref="U6" pin="16" pinfunction="RX4_OB_16" pintype="output"/>
+    </net>
+    <net code="56" name="Net-(U6-RX4_RF)" class="RF">
+      <node ref="C73" pin="2" pintype="passive"/>
+      <node ref="U6" pin="19" pinfunction="RX4_RF_19" pintype="passive"/>
+    </net>
+    <net code="57" name="Net-(X1-OUT)" class="PLL">
+      <node ref="R20" pin="2" pintype="passive"/>
+      <node ref="X1" pin="3" pinfunction="OUT_3" pintype="output"/>
+    </net>
+    <net code="58" name="RAMP_SYNC" class="CTRL">
+      <node ref="J1" pin="30" pinfunction="P30_30" pintype="passive"/>
+      <node ref="U8" pin="8" pinfunction="A1_8" pintype="bidirectional"/>
+    </net>
+    <net code="59" name="REFIN" class="PLL">
+      <node ref="C30" pin="1" pintype="passive"/>
+      <node ref="U4" pin="9" pinfunction="REFIN_9" pintype="passive"/>
+      <node ref="U5" pin="15" pinfunction="REFIN_15" pintype="passive"/>
+    </net>
+    <net code="60" name="RFIN_DIV" class="RF">
+      <node ref="C37" pin="1" pintype="passive"/>
+      <node ref="C53" pin="1" pintype="passive"/>
+    </net>
+    <net code="61" name="RX1" class="RF">
+      <node ref="C70" pin="1" pintype="passive"/>
+    </net>
+    <net code="62" name="RX2" class="RF">
+      <node ref="C71" pin="1" pintype="passive"/>
+    </net>
+    <net code="63" name="RX3" class="RF">
+      <node ref="C72" pin="1" pintype="passive"/>
+    </net>
+    <net code="64" name="RX4" class="RF">
+      <node ref="C73" pin="1" pintype="passive"/>
+    </net>
+    <net code="65" name="SPI_SCLK" class="CTRL">
+      <node ref="J1" pin="21" pinfunction="P21_21" pintype="passive"/>
+      <node ref="U5" pin="21" pinfunction="CLK_21" pintype="input"/>
+      <node ref="U6" pin="11" pinfunction="CLK_11" pintype="input"/>
+      <node ref="U7" pin="4" pinfunction="1A1_4" pintype="bidirectional"/>
+    </net>
+    <net code="66" name="SPI_SDATA" class="CTRL">
+      <node ref="J1" pin="22" pinfunction="P22_22" pintype="passive"/>
+      <node ref="U5" pin="22" pinfunction="DATA_22" pintype="input"/>
+      <node ref="U6" pin="12" pinfunction="DATA_12" pintype="input"/>
+      <node ref="U7" pin="5" pinfunction="1A2_5" pintype="bidirectional"/>
+    </net>
+    <net code="67" name="SPI_SDO" class="CTRL">
+      <node ref="J1" pin="23" pinfunction="P23_23" pintype="passive"/>
+      <node ref="U6" pin="14" pinfunction="DOUT_14" pintype="output"/>
+    </net>
+    <net code="68" name="TX_ANT" class="RF">
+      <node ref="C50" pin="1" pintype="passive"/>
+    </net>
+    <net code="69" name="TX_EN" class="CTRL">
+      <node ref="J1" pin="29" pinfunction="P29_29" pintype="passive"/>
+      <node ref="U5" pin="20" pinfunction="CE_20" pintype="input"/>
+    </net>
+    <net code="70" name="VTUNE" class="PLL">
+      <node ref="R23" pin="1" pintype="passive"/>
+      <node ref="U5" pin="29" pinfunction="VTUNE_29" pintype="passive"/>
+    </net>
+    <net code="71" name="unconnected-(U1-NC-Pad4)" class="Default">
+      <node ref="U1" pin="4" pinfunction="NC_4" pintype="no_connect"/>
+    </net>
+    <net code="72" name="unconnected-(U2-NC-Pad4)" class="Default">
+      <node ref="U2" pin="4" pinfunction="NC_4" pintype="no_connect"/>
+    </net>
+    <net code="73" name="unconnected-(U3-NC-Pad4)" class="Default">
+      <node ref="U3" pin="4" pinfunction="NC_4" pintype="no_connect"/>
+    </net>
+    <net code="74" name="unconnected-(U4-SW1-Pad20)" class="Default">
+      <node ref="U4" pin="20" pinfunction="SW1_20" pintype="passive+no_connect"/>
+    </net>
+    <net code="75" name="unconnected-(U4-SW2-Pad21)" class="Default">
+      <node ref="U4" pin="21" pinfunction="SW2_21" pintype="passive+no_connect"/>
+    </net>
+    <net code="76" name="unconnected-(U5-ATEST-Pad9)" class="Default">
+      <node ref="U5" pin="9" pinfunction="ATEST_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="77" name="unconnected-(U5-DOUT-Pad24)" class="Default">
+      <node ref="U5" pin="24" pinfunction="DOUT_24" pintype="output+no_connect"/>
+    </net>
+    <net code="78" name="unconnected-(U5-MUXOUT-Pad25)" class="Default">
+      <node ref="U5" pin="25" pinfunction="MUXOUT_25" pintype="output+no_connect"/>
+    </net>
+    <net code="79" name="unconnected-(U6-ATEST-Pad15)" class="Default">
+      <node ref="U6" pin="15" pinfunction="ATEST_15" pintype="output+no_connect"/>
+    </net>
+    <net code="80" name="unconnected-(U8-A2-Pad9)" class="Default">
+      <node ref="U8" pin="9" pinfunction="A2_9" pintype="bidirectional+no_connect"/>
+    </net>
+  </nets>
+</export>

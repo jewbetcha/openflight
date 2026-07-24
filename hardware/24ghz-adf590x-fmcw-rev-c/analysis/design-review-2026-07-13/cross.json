@@ -1,0 +1,625 @@
+{
+  "analyzer_type": "cross_analysis",
+  "schema_version": "1.3.0",
+  "elapsed_s": 0.034,
+  "summary": {
+    "total_findings": 10,
+    "by_severity": {
+      "error": 4,
+      "warning": 4,
+      "info": 2
+    }
+  },
+  "findings": [
+    {
+      "detector": "check_cross_validation",
+      "rule_id": "XV-001",
+      "category": "design_sync",
+      "summary": "5 component(s) in PCB but not schematic",
+      "description": "Extra in PCB: ANT_RX1, ANT_RX2, ANT_RX3, ANT_RX4, ANT_TX1.",
+      "components": [
+        "ANT_RX1",
+        "ANT_RX2",
+        "ANT_RX3",
+        "ANT_RX4",
+        "ANT_TX1"
+      ],
+      "nets": [],
+      "pins": [],
+      "severity": "info",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Verify these are intentional (mounting holes, test points, fiducials).",
+      "report_context": {
+        "section": "Design Sync",
+        "impact": "",
+        "standard_ref": ""
+      },
+      "stages": [
+        "pre_fab"
+      ],
+      "in_active_stage": true
+    },
+    {
+      "detector": "check_return_path_enhanced",
+      "rule_id": "RP-002",
+      "category": "return_path",
+      "summary": "clock net SPI_SCLK crosses GND plane gap",
+      "description": "clock signal SPI_SCLK crosses a gap in GND plane on layer F.Cu.",
+      "components": [],
+      "nets": [
+        "SPI_SCLK",
+        "GND"
+      ],
+      "pins": [],
+      "severity": "error",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Re-route SPI_SCLK to avoid the GND plane gap, or bridge with a stitching capacitor.",
+      "report_context": {
+        "section": "Return Path",
+        "impact": "Increased EMI from enlarged return path loop",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_return_path_enhanced",
+      "rule_id": "RP-002",
+      "category": "return_path",
+      "summary": "spi net SPI_SDO crosses +3V3_RX plane gap",
+      "description": "spi signal SPI_SDO crosses a gap in +3V3_RX plane on layer F.Cu.",
+      "components": [],
+      "nets": [
+        "SPI_SDO",
+        "+3V3_RX"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Re-route SPI_SDO to avoid the +3V3_RX plane gap, or bridge with a stitching capacitor.",
+      "report_context": {
+        "section": "Return Path",
+        "impact": "Increased EMI from enlarged return path loop",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_plane_splits",
+      "rule_id": "PS-002",
+      "category": "plane_integrity",
+      "summary": "GND plane split: 7 islands, 6 signals crossing",
+      "description": "GND plane has 7 disconnected islands. Signals crossing: BB2_N, BB1_P, BB2_P, SPI_SCLK, LE_5904.",
+      "components": [],
+      "nets": [
+        "GND",
+        "BB2_N",
+        "BB1_P",
+        "BB2_P",
+        "SPI_SCLK",
+        "LE_5904"
+      ],
+      "pins": [],
+      "severity": "error",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+      "report_context": {
+        "section": "Plane Integrity",
+        "impact": "Return path discontinuity increases EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_plane_splits",
+      "rule_id": "PS-002",
+      "category": "plane_integrity",
+      "summary": "+3V3_RX plane split: 30 islands, 7 signals crossing",
+      "description": "+3V3_RX plane has 30 disconnected islands. Signals crossing: BB2_N, BB1_P, BB2_P, SPI_SCLK, SPI_SDO.",
+      "components": [],
+      "nets": [
+        "+3V3_RX",
+        "BB2_N",
+        "BB1_P",
+        "BB2_P",
+        "SPI_SCLK",
+        "SPI_SDO"
+      ],
+      "pins": [],
+      "severity": "error",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+      "report_context": {
+        "section": "Plane Integrity",
+        "impact": "Return path discontinuity increases EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_plane_splits",
+      "rule_id": "PS-002",
+      "category": "plane_integrity",
+      "summary": "+1V8_DIG plane split: 7 islands, 3 signals crossing",
+      "description": "+1V8_DIG plane has 7 disconnected islands. Signals crossing: BB2_N, SPI_SCLK, LE_4159.",
+      "components": [],
+      "nets": [
+        "+1V8_DIG",
+        "BB2_N",
+        "SPI_SCLK",
+        "LE_4159"
+      ],
+      "pins": [],
+      "severity": "error",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+      "report_context": {
+        "section": "Plane Integrity",
+        "impact": "Return path discontinuity increases EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_plane_splits",
+      "rule_id": "PS-002",
+      "category": "plane_integrity",
+      "summary": "+5V_REG plane split: 19 islands",
+      "description": "+5V_REG plane has 19 disconnected islands.",
+      "components": [],
+      "nets": [
+        "+5V_REG"
+      ],
+      "pins": [],
+      "severity": "info",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+      "report_context": {
+        "section": "Plane Integrity",
+        "impact": "Return path discontinuity increases EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB4_P/BB4_N: length mismatch 10.7mm (15%)",
+      "description": "Differential pair BB4_P/BB4_N has routing issues: length mismatch 10.7mm (15%).",
+      "components": [],
+      "nets": [
+        "BB4_P",
+        "BB4_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB2_P/BB2_N: length mismatch 30.2mm (48%)",
+      "description": "Differential pair BB2_P/BB2_N has routing issues: length mismatch 30.2mm (48%).",
+      "components": [],
+      "nets": [
+        "BB2_P",
+        "BB2_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    },
+    {
+      "detector": "check_diff_pair_quality",
+      "rule_id": "DP-005",
+      "category": "differential_pair",
+      "summary": "Diff pair BB3_P/BB3_N: length mismatch 5.5mm (21%)",
+      "description": "Differential pair BB3_P/BB3_N has routing issues: length mismatch 5.5mm (21%).",
+      "components": [],
+      "nets": [
+        "BB3_P",
+        "BB3_N"
+      ],
+      "pins": [],
+      "severity": "warning",
+      "confidence": "deterministic",
+      "evidence_source": "topology",
+      "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+      "report_context": {
+        "section": "Differential Pair",
+        "impact": "Degraded signal integrity and increased common-mode EMI",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ],
+      "in_active_stage": false
+    }
+  ],
+  "trust_summary": {
+    "total_findings": 10,
+    "trust_level": "high",
+    "by_confidence": {
+      "deterministic": 10,
+      "heuristic": 0,
+      "datasheet-backed": 0
+    },
+    "by_evidence_source": {
+      "datasheet": 0,
+      "topology": 10,
+      "heuristic_rule": 0,
+      "symbol_footprint": 0,
+      "bom": 0,
+      "geometry": 0,
+      "api_lookup": 0
+    },
+    "provenance_coverage_pct": 0.0
+  },
+  "stage_filter": {
+    "active_stage": "pre_fab",
+    "included_count": 1,
+    "excluded_count": 9
+  },
+  "audience_summary": {
+    "designer": {
+      "total_findings": 10,
+      "by_severity": {
+        "error": 4,
+        "warning": 4,
+        "info": 2
+      },
+      "by_category": {
+        "design_sync": 1,
+        "return_path": 2,
+        "plane_integrity": 4,
+        "differential_pair": 3
+      },
+      "top_issues": [
+        {
+          "detector": "check_return_path_enhanced",
+          "rule_id": "RP-002",
+          "category": "return_path",
+          "summary": "clock net SPI_SCLK crosses GND plane gap",
+          "description": "clock signal SPI_SCLK crosses a gap in GND plane on layer F.Cu.",
+          "components": [],
+          "nets": [
+            "SPI_SCLK",
+            "GND"
+          ],
+          "pins": [],
+          "severity": "error",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Re-route SPI_SCLK to avoid the GND plane gap, or bridge with a stitching capacitor.",
+          "report_context": {
+            "section": "Return Path",
+            "impact": "Increased EMI from enlarged return path loop",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_plane_splits",
+          "rule_id": "PS-002",
+          "category": "plane_integrity",
+          "summary": "GND plane split: 7 islands, 6 signals crossing",
+          "description": "GND plane has 7 disconnected islands. Signals crossing: BB2_N, BB1_P, BB2_P, SPI_SCLK, LE_5904.",
+          "components": [],
+          "nets": [
+            "GND",
+            "BB2_N",
+            "BB1_P",
+            "BB2_P",
+            "SPI_SCLK",
+            "LE_5904"
+          ],
+          "pins": [],
+          "severity": "error",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "report_context": {
+            "section": "Plane Integrity",
+            "impact": "Return path discontinuity increases EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_plane_splits",
+          "rule_id": "PS-002",
+          "category": "plane_integrity",
+          "summary": "+3V3_RX plane split: 30 islands, 7 signals crossing",
+          "description": "+3V3_RX plane has 30 disconnected islands. Signals crossing: BB2_N, BB1_P, BB2_P, SPI_SCLK, SPI_SDO.",
+          "components": [],
+          "nets": [
+            "+3V3_RX",
+            "BB2_N",
+            "BB1_P",
+            "BB2_P",
+            "SPI_SCLK",
+            "SPI_SDO"
+          ],
+          "pins": [],
+          "severity": "error",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "report_context": {
+            "section": "Plane Integrity",
+            "impact": "Return path discontinuity increases EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_plane_splits",
+          "rule_id": "PS-002",
+          "category": "plane_integrity",
+          "summary": "+1V8_DIG plane split: 7 islands, 3 signals crossing",
+          "description": "+1V8_DIG plane has 7 disconnected islands. Signals crossing: BB2_N, SPI_SCLK, LE_4159.",
+          "components": [],
+          "nets": [
+            "+1V8_DIG",
+            "BB2_N",
+            "SPI_SCLK",
+            "LE_4159"
+          ],
+          "pins": [],
+          "severity": "error",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "report_context": {
+            "section": "Plane Integrity",
+            "impact": "Return path discontinuity increases EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_return_path_enhanced",
+          "rule_id": "RP-002",
+          "category": "return_path",
+          "summary": "spi net SPI_SDO crosses +3V3_RX plane gap",
+          "description": "spi signal SPI_SDO crosses a gap in +3V3_RX plane on layer F.Cu.",
+          "components": [],
+          "nets": [
+            "SPI_SDO",
+            "+3V3_RX"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Re-route SPI_SDO to avoid the +3V3_RX plane gap, or bridge with a stitching capacitor.",
+          "report_context": {
+            "section": "Return Path",
+            "impact": "Increased EMI from enlarged return path loop",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB4_P/BB4_N: length mismatch 10.7mm (15%)",
+          "description": "Differential pair BB4_P/BB4_N has routing issues: length mismatch 10.7mm (15%).",
+          "components": [],
+          "nets": [
+            "BB4_P",
+            "BB4_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB2_P/BB2_N: length mismatch 30.2mm (48%)",
+          "description": "Differential pair BB2_P/BB2_N has routing issues: length mismatch 30.2mm (48%).",
+          "components": [],
+          "nets": [
+            "BB2_P",
+            "BB2_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        },
+        {
+          "detector": "check_diff_pair_quality",
+          "rule_id": "DP-005",
+          "category": "differential_pair",
+          "summary": "Diff pair BB3_P/BB3_N: length mismatch 5.5mm (21%)",
+          "description": "Differential pair BB3_P/BB3_N has routing issues: length mismatch 5.5mm (21%).",
+          "components": [],
+          "nets": [
+            "BB3_P",
+            "BB3_N"
+          ],
+          "pins": [],
+          "severity": "warning",
+          "confidence": "deterministic",
+          "evidence_source": "topology",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "report_context": {
+            "section": "Differential Pair",
+            "impact": "Degraded signal integrity and increased common-mode EMI",
+            "standard_ref": ""
+          },
+          "stages": [
+            "layout"
+          ],
+          "in_active_stage": false
+        }
+      ]
+    },
+    "reviewer": {
+      "total_findings": 8,
+      "by_category": {
+        "return_path": 2,
+        "plane_integrity": 3,
+        "differential_pair": 3
+      },
+      "top_issues": [
+        {
+          "rule_id": "RP-002",
+          "severity": "error",
+          "summary": "clock net SPI_SCLK crosses GND plane gap",
+          "recommendation": "Re-route SPI_SCLK to avoid the GND plane gap, or bridge with a stitching capacitor.",
+          "category": "return_path"
+        },
+        {
+          "rule_id": "PS-002",
+          "severity": "error",
+          "summary": "GND plane split: 7 islands, 6 signals crossing",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "category": "plane_integrity"
+        },
+        {
+          "rule_id": "PS-002",
+          "severity": "error",
+          "summary": "+3V3_RX plane split: 30 islands, 7 signals crossing",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "category": "plane_integrity"
+        },
+        {
+          "rule_id": "PS-002",
+          "severity": "error",
+          "summary": "+1V8_DIG plane split: 7 islands, 3 signals crossing",
+          "recommendation": "Bridge the plane gap with copper pour or stitching vias.",
+          "category": "plane_integrity"
+        },
+        {
+          "rule_id": "RP-002",
+          "severity": "warning",
+          "summary": "spi net SPI_SDO crosses +3V3_RX plane gap",
+          "recommendation": "Re-route SPI_SDO to avoid the +3V3_RX plane gap, or bridge with a stitching capacitor.",
+          "category": "return_path"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB4_P/BB4_N: length mismatch 10.7mm (15%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB2_P/BB2_N: length mismatch 30.2mm (48%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        },
+        {
+          "rule_id": "DP-005",
+          "severity": "warning",
+          "summary": "Diff pair BB3_P/BB3_N: length mismatch 5.5mm (21%)",
+          "recommendation": "Match via counts, layer transitions, and trace lengths between P and N.",
+          "category": "differential_pair"
+        }
+      ]
+    },
+    "manager": {
+      "risk_level": "moderate",
+      "blocker_count": 4,
+      "warning_count": 4,
+      "stage_readiness": {
+        "schematic": "pass",
+        "layout": "needs_work",
+        "pre_fab": "pass",
+        "bring_up": "pass"
+      },
+      "one_liner": "4 errors, 4 warnings across 3 categories. Layout stage has blockers."
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "architecture": "as_built_2x2_corporate_fed_patch_array",
+  "validation_basis": "electromagnetic_reciprocity",
+  "source_result": "subarray.json",
+  "source_copper_identity": "TX_ARRAY_2X2 and RX_SUBARRAY_2X2 are generated from the same rectangles",
+  "port_s11_db": {
+    "24.14": -17.26,
+    "24.15": -17.2,
+    "24.20": -16.8,
+    "24.25": -15.67,
+    "band_max_24.15_24.25": -15.67
+  },
+  "phase_balance_deg_max": 3.132,
+  "gain_dbi_est": 10.38,
+  "far_field_validation": {
+    "valid": true,
+    "radiated_power_w": 2.588991260621459e-26,
+    "accepted_power_w": 3.023377124984049e-26,
+    "radiation_efficiency": 0.856324286913138,
+    "directivity_linear": 12.75493295852481,
+    "angular_grid_complete": true,
+    "reason": ""
+  },
+  "far_field_pattern": {
+    "beam_offset_deg": 2.0,
+    "signed_y_beam_deg": -2.0,
+    "phi_peak_deg": -86.0,
+    "peak_directivity_linear": 12.75493295852481,
+    "broadside_directivity_linear": 12.663373122332578
+  },
+  "eirp_check": {
+    "pa_dbm_typ": 8.0,
+    "gain_dbi": 10.38,
+    "eirp_dbm": 18.380000000000003,
+    "exceeds_20dbm": false
+  },
+  "acceptance": {
+    "s11": true,
+    "gain": true,
+    "beam": true,
+    "eirp_review": true,
+    "overall": true
+  }
+}

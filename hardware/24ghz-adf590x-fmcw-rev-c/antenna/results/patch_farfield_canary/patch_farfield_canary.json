@@ -1,0 +1,51 @@
+{
+  "s11_accept": true,
+  "far_field": {
+    "valid": true,
+    "radiated_power_w": 1.5742286243985547e-27,
+    "accepted_power_w": 1.7277927358974653e-27,
+    "radiation_efficiency": 0.911121219398376,
+    "directivity_linear": 5.310640118273037,
+    "angular_grid_complete": true,
+    "reason": ""
+  },
+  "directivity_dbi": 7.251468719437497,
+  "gain_dbi": 6.847230331248802,
+  "domain": {
+    "structure_start_mm": [
+      -10.485,
+      -5.029,
+      0.0
+    ],
+    "structure_stop_mm": [
+      4.485,
+      5.029,
+      0.254
+    ],
+    "simulation_start_mm": [
+      -13.485,
+      -8.029,
+      -3.0
+    ],
+    "simulation_stop_mm": [
+      7.485,
+      8.029,
+      3.254
+    ],
+    "nf2ff_start_mm": [
+      -11.087707800405939,
+      -5.631707800405939,
+      -0.6027078004059395
+    ],
+    "nf2ff_stop_mm": [
+      5.08770780040594,
+      5.631707800405939,
+      0.8567078004059395
+    ],
+    "phase_center_m": [
+      -0.0029999999999999996,
+      0.0,
+      0.000127
+    ]
+  }
+}

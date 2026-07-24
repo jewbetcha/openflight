@@ -1,0 +1,1119 @@
+{
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-07-10T12:11:24",
+    "ignored_checks": [
+        {
+            "description": "Footprint has no courtyard defined",
+            "key": "missing_courtyard"
+        },
+        {
+            "description": "Track endpoint not centered on via",
+            "key": "track_not_centered_on_via"
+        },
+        {
+            "description": "Tuning profile track geometries",
+            "key": "tuning_profile_track_geometries"
+        },
+        {
+            "description": "Footprint doesn't match symbol's footprint filters",
+            "key": "footprint_filters_mismatch"
+        },
+        {
+            "description": "Footprint component type doesn't match footprint pads",
+            "key": "footprint_type_mismatch"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.4",
+    "schematic_parity": [],
+    "source": "openflight-24ghz-fmcw-rf-rev-c.kicad_pcb",
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                },
+                {
+                    "description": "Zone [GND] on F.Cu, priority 0",
+                    "pos": {
+                        "x": 27.0,
+                        "y": 0.4
+                    },
+                    "uuid": "39b65f03-3536-40ed-b8d2-5afa7b79fe4a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 2 [+3V3_RX] of U2 on F.Cu",
+                    "pos": {
+                        "x": 61.525,
+                        "y": 31.365
+                    },
+                    "uuid": "b6c1add6-07bd-46c8-bcf5-076b6996274e"
+                },
+                {
+                    "description": "Pad 1 [+3V3_RX] of R2 on F.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 32.51
+                    },
+                    "uuid": "a4418b40-73f6-4b0c-b1d5-46707c54844d"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 13 [Net-(U4-CE)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 28.75
+                    },
+                    "uuid": "f417476f-af32-4ee5-895a-1fba970b914b"
+                },
+                {
+                    "description": "Pad 10 [Net-(U4-CE)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 35.1375
+                    },
+                    "uuid": "d555ae5a-d7f2-4ca3-9942-83c2cab9f631"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 14 [Net-(U4-CLK)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 29.25
+                    },
+                    "uuid": "603449e5-7b5c-4b7c-b4db-613f9e86c77b"
+                },
+                {
+                    "description": "Pad 13 [Net-(U4-CLK)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 45.675,
+                        "y": 35.1375
+                    },
+                    "uuid": "55894799-114a-4630-b4ac-34a4acd00139"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 15 [Net-(U4-DATA)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 29.75
+                    },
+                    "uuid": "b90ce82c-ffa0-4e69-8479-02cc05d5844d"
+                },
+                {
+                    "description": "Pad 12 [Net-(U4-DATA)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 35.1375
+                    },
+                    "uuid": "92d3342d-80a1-45a7-bdb7-70a1aa82900c"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 16 [Net-(U4-LE)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 30.25
+                    },
+                    "uuid": "a0c9df96-9025-471b-ae61-f9502c53cbc5"
+                },
+                {
+                    "description": "Pad 11 [Net-(U4-LE)] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.975,
+                        "y": 35.1375
+                    },
+                    "uuid": "8be3d6ca-50d8-46a1-95a0-b3100a7639f7"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 17 [Net-(U4-MUXOUT)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 43.75,
+                        "y": 30.75
+                    },
+                    "uuid": "9c7a6938-af18-475e-9e0c-59f5e42bc8a1"
+                },
+                {
+                    "description": "Pad 5 [Net-(U4-MUXOUT)] of U8 on F.Cu",
+                    "pos": {
+                        "x": 54.9,
+                        "y": 40.85
+                    },
+                    "uuid": "a916a9c4-c587-407e-b5ff-ccac9ee3de43"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 23 [Net-(U4-RSET)] of U4 on F.Cu",
+                    "pos": {
+                        "x": 46.25,
+                        "y": 31.75
+                    },
+                    "uuid": "442ab973-4bf1-4838-ac75-7767332a10c0"
+                },
+                {
+                    "description": "Pad 1 [Net-(U4-RSET)] of R24 on F.Cu",
+                    "pos": {
+                        "x": 51.5,
+                        "y": 35.01
+                    },
+                    "uuid": "a6ba9f25-cc4f-4b51-94c9-9ec8eb0e1c8b"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 7 [Net-(U2-PG)] of U2 on F.Cu",
+                    "pos": {
+                        "x": 66.475,
+                        "y": 31.365
+                    },
+                    "uuid": "61f8befe-9ce2-400c-a4e5-6f786d8d42b4"
+                },
+                {
+                    "description": "Pad 2 [Net-(U2-PG)] of R2 on F.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 31.49
+                    },
+                    "uuid": "7e531ae8-6b9b-4782-abf4-346c89ace488"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 1 [Net-(U5-RSET)] of R40 on F.Cu",
+                    "pos": {
+                        "x": 47.0,
+                        "y": 24.51
+                    },
+                    "uuid": "45da0d96-42a1-4097-b0b8-d4854d41434f"
+                },
+                {
+                    "description": "Pad 26 [Net-(U5-RSET)] of U5 on F.Cu",
+                    "pos": {
+                        "x": 49.75,
+                        "y": 25.25
+                    },
+                    "uuid": "08ec4692-702c-4b31-9c30-1dfb3a42c871"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 21 [SPI_SCLK] of J1 on F.Cu",
+                    "pos": {
+                        "x": 46.81,
+                        "y": 47.95
+                    },
+                    "uuid": "fb4550f9-9467-4e99-8125-1bc7cccf3d8b"
+                },
+                {
+                    "description": "Pad 4 [SPI_SCLK] of U7 on F.Cu",
+                    "pos": {
+                        "x": 45.675,
+                        "y": 40.8625
+                    },
+                    "uuid": "291447ec-9795-45e0-b46c-6b1b58ee69d5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 21 [SPI_SCLK] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.25
+                    },
+                    "uuid": "d6d19b34-4153-4e94-9ce5-63dd9e6244cb"
+                },
+                {
+                    "description": "Pad 4 [SPI_SCLK] of U7 on F.Cu",
+                    "pos": {
+                        "x": 45.675,
+                        "y": 40.8625
+                    },
+                    "uuid": "291447ec-9795-45e0-b46c-6b1b58ee69d5"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 21 [SPI_SCLK] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.25
+                    },
+                    "uuid": "d6d19b34-4153-4e94-9ce5-63dd9e6244cb"
+                },
+                {
+                    "description": "Pad 11 [SPI_SCLK] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 24.25
+                    },
+                    "uuid": "28b87a6b-bfd3-49ef-8437-5b44fef7e963"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of J1 on F.Cu",
+                    "pos": {
+                        "x": 46.81,
+                        "y": 44.05
+                    },
+                    "uuid": "79eed695-522f-48a2-8ecb-02440f82d9a8"
+                },
+                {
+                    "description": "Pad 5 [SPI_SDATA] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 40.8625
+                    },
+                    "uuid": "665f8690-2158-419a-bc80-eb541d6461e2"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.75
+                    },
+                    "uuid": "cdcab9c9-a390-45fe-8ca2-314b14a36db0"
+                },
+                {
+                    "description": "Pad 5 [SPI_SDATA] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.325,
+                        "y": 40.8625
+                    },
+                    "uuid": "665f8690-2158-419a-bc80-eb541d6461e2"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 22 [SPI_SDATA] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 23.75
+                    },
+                    "uuid": "cdcab9c9-a390-45fe-8ca2-314b14a36db0"
+                },
+                {
+                    "description": "Pad 12 [SPI_SDATA] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 24.75
+                    },
+                    "uuid": "13ea23a8-0f63-4fab-a3ad-5ae6f6264ff6"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 14 [SPI_SDO] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 25.75
+                    },
+                    "uuid": "eb061fd0-0f47-446d-9849-78083fa58bc7"
+                },
+                {
+                    "description": "Pad 23 [SPI_SDO] of J1 on F.Cu",
+                    "pos": {
+                        "x": 48.08,
+                        "y": 47.95
+                    },
+                    "uuid": "a9320cf6-cc74-434a-8425-6749971b468a"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 23 [LE_5901] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 24.25
+                    },
+                    "uuid": "664c97db-9a6e-4dfa-9923-8178942c739a"
+                },
+                {
+                    "description": "Pad 25 [LE_5901] of J1 on F.Cu",
+                    "pos": {
+                        "x": 49.35,
+                        "y": 47.95
+                    },
+                    "uuid": "9352bc27-b06e-440b-a3b6-b894de834fd1"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 10 [LE_5904] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 23.75
+                    },
+                    "uuid": "cb779893-a51f-48b4-bfb8-9c2ed10e1866"
+                },
+                {
+                    "description": "Pad 26 [LE_5904] of J1 on F.Cu",
+                    "pos": {
+                        "x": 49.35,
+                        "y": 44.05
+                    },
+                    "uuid": "247eb9e0-bd90-4c43-aa1b-bfaef12a4d57"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 6 [LE_4159] of U7 on F.Cu",
+                    "pos": {
+                        "x": 46.975,
+                        "y": 40.8625
+                    },
+                    "uuid": "dda49259-2409-45d2-b1f8-457662059acb"
+                },
+                {
+                    "description": "Pad 27 [LE_4159] of J1 on F.Cu",
+                    "pos": {
+                        "x": 50.62,
+                        "y": 47.95
+                    },
+                    "uuid": "eda6f066-bc7f-4c1d-b46c-fd6ea8cc4e14"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 7 [CE_RX] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 40.8625
+                    },
+                    "uuid": "84710fb5-1d23-4506-bfdc-3c2976b5b5bc"
+                },
+                {
+                    "description": "Pad 13 [CE_RX] of U6 on F.Cu",
+                    "pos": {
+                        "x": 29.25,
+                        "y": 25.25
+                    },
+                    "uuid": "1eca0b08-2cdd-40dc-ad5c-78f8d16e311c"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 28 [CE_RX] of J1 on F.Cu",
+                    "pos": {
+                        "x": 50.62,
+                        "y": 44.05
+                    },
+                    "uuid": "5548bc6a-f664-4f0a-889e-ec0a76a131d3"
+                },
+                {
+                    "description": "Pad 7 [CE_RX] of U7 on F.Cu",
+                    "pos": {
+                        "x": 47.625,
+                        "y": 40.8625
+                    },
+                    "uuid": "84710fb5-1d23-4506-bfdc-3c2976b5b5bc"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 20 [TX_EN] of U5 on F.Cu",
+                    "pos": {
+                        "x": 48.75,
+                        "y": 22.75
+                    },
+                    "uuid": "e8556dad-848c-43b8-8786-8a4d3f9ed250"
+                },
+                {
+                    "description": "Pad 29 [TX_EN] of J1 on F.Cu",
+                    "pos": {
+                        "x": 51.89,
+                        "y": 47.95
+                    },
+                    "uuid": "cfe82544-6864-4ef8-b8af-3a538820cab4"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 30 [RAMP_SYNC] of J1 on F.Cu",
+                    "pos": {
+                        "x": 51.89,
+                        "y": 44.05
+                    },
+                    "uuid": "8ce98f38-e19c-4181-a468-a4c2c58d0b0a"
+                },
+                {
+                    "description": "Pad 8 [RAMP_SYNC] of U8 on F.Cu",
+                    "pos": {
+                        "x": 54.9,
+                        "y": 39.15
+                    },
+                    "uuid": "79319bb2-dd1c-424c-8868-ba1379136c81"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 7 [Net-(U1-PG)] of U1 on F.Cu",
+                    "pos": {
+                        "x": 66.475,
+                        "y": 23.365
+                    },
+                    "uuid": "bb861fec-3819-4457-9cf6-6503dd0f5057"
+                },
+                {
+                    "description": "Pad 2 [Net-(U1-PG)] of R1 on F.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 23.49
+                    },
+                    "uuid": "763e4209-2c98-4c37-afaf-e0103311d288"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Items shorting two nets (nets +5V and BB3_P)",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 13 [BB3_P] of J1 on F.Cu",
+                    "pos": {
+                        "x": 41.73,
+                        "y": 47.95
+                    },
+                    "uuid": "f2def307-2739-41e9-af56-80a42789ba90"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V_REG and +5V)",
+            "items": [
+                {
+                    "description": "Via [+5V_REG] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 29.6
+                    },
+                    "uuid": "1d2aa4db-12a0-49f5-af8a-db70ca1d62e0"
+                },
+                {
+                    "description": "Track [+5V] on In2.Cu, length 37.5000 mm",
+                    "pos": {
+                        "x": 69.0,
+                        "y": 7.0
+                    },
+                    "uuid": "e66111de-f3ab-42b3-a4df-ed79b6ec4d52"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +5V_REG and +5V)",
+            "items": [
+                {
+                    "description": "Via [+5V_REG] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 21.7
+                    },
+                    "uuid": "77337e81-2489-4d33-883c-9d1072e7e733"
+                },
+                {
+                    "description": "Track [+5V] on In2.Cu, length 37.5000 mm",
+                    "pos": {
+                        "x": 69.0,
+                        "y": 7.0
+                    },
+                    "uuid": "e66111de-f3ab-42b3-a4df-ed79b6ec4d52"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Tracks crossing",
+            "items": [
+                {
+                    "description": "Track [+5V] on In2.Cu, length 15.0000 mm",
+                    "pos": {
+                        "x": 69.0,
+                        "y": 44.5
+                    },
+                    "uuid": "1acf4049-3864-4c02-8211-680b401d8f44"
+                },
+                {
+                    "description": "Track [+5V_REG] on In2.Cu, length 2.7125 mm",
+                    "pos": {
+                        "x": 60.0,
+                        "y": 45.2125
+                    },
+                    "uuid": "60406984-691b-4a7d-9ae2-239966de552e"
+                }
+            ],
+            "severity": "error",
+            "type": "tracks_crossing"
+        },
+        {
+            "description": "Items shorting two nets (nets +3V3_RX and +5V)",
+            "items": [
+                {
+                    "description": "Via [+3V3_RX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 33.299999
+                    },
+                    "uuid": "2e26c0cd-35fe-4b6f-80fd-bd83d65c800a"
+                },
+                {
+                    "description": "Track [+5V] on In2.Cu, length 37.5000 mm",
+                    "pos": {
+                        "x": 69.0,
+                        "y": 7.0
+                    },
+                    "uuid": "e66111de-f3ab-42b3-a4df-ed79b6ec4d52"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Items shorting two nets (nets +3V3_TX and +5V)",
+            "items": [
+                {
+                    "description": "Via [+3V3_TX] on F.Cu - B.Cu",
+                    "pos": {
+                        "x": 68.5,
+                        "y": 25.3
+                    },
+                    "uuid": "e2aa4f46-7fba-4d6d-8bee-bc1e521364d6"
+                },
+                {
+                    "description": "Track [+5V] on In2.Cu, length 37.5000 mm",
+                    "pos": {
+                        "x": 69.0,
+                        "y": 7.0
+                    },
+                    "uuid": "e66111de-f3ab-42b3-a4df-ed79b6ec4d52"
+                }
+            ],
+            "severity": "error",
+            "type": "shorting_items"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 3 [GND] of J1 on F.Cu",
+                    "pos": {
+                        "x": 35.38,
+                        "y": 47.95
+                    },
+                    "uuid": "6e6d7b9e-ffbb-44ef-9659-ebe48c794c9c"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 5 [BB1_P] of J1 on F.Cu",
+                    "pos": {
+                        "x": 36.65,
+                        "y": 47.95
+                    },
+                    "uuid": "f1c8597d-f009-4638-874a-056b82b1c91b"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 7 [GND] of J1 on F.Cu",
+                    "pos": {
+                        "x": 37.92,
+                        "y": 47.95
+                    },
+                    "uuid": "6ce614c9-95d4-46dd-b5bd-e2c35488c948"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 9 [BB2_P] of J1 on F.Cu",
+                    "pos": {
+                        "x": 39.19,
+                        "y": 47.95
+                    },
+                    "uuid": "d8668dba-0a07-40f7-a886-33bf840b3b8a"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 11 [GND] of J1 on F.Cu",
+                    "pos": {
+                        "x": 40.46,
+                        "y": 47.95
+                    },
+                    "uuid": "8127806c-f7bb-452b-8dcb-6500471ddd1e"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 13 [BB3_P] of J1 on F.Cu",
+                    "pos": {
+                        "x": 41.73,
+                        "y": 47.95
+                    },
+                    "uuid": "f2def307-2739-41e9-af56-80a42789ba90"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 15 [GND] of J1 on F.Cu",
+                    "pos": {
+                        "x": 43.0,
+                        "y": 47.95
+                    },
+                    "uuid": "a8c9f62e-44d7-4f01-a1a3-1f4bdd9549cf"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 17 [BB4_P] of J1 on F.Cu",
+                    "pos": {
+                        "x": 44.27,
+                        "y": 47.95
+                    },
+                    "uuid": "5c3610c6-2de1-479e-a0f2-e424c918e18e"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 19 [GND] of J1 on F.Cu",
+                    "pos": {
+                        "x": 45.54,
+                        "y": 47.95
+                    },
+                    "uuid": "ee54dd63-2b6f-4f04-a9ad-6c9b0a223883"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 21 [SPI_SCLK] of J1 on F.Cu",
+                    "pos": {
+                        "x": 46.81,
+                        "y": 47.95
+                    },
+                    "uuid": "fb4550f9-9467-4e99-8125-1bc7cccf3d8b"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 23 [SPI_SDO] of J1 on F.Cu",
+                    "pos": {
+                        "x": 48.08,
+                        "y": 47.95
+                    },
+                    "uuid": "a9320cf6-cc74-434a-8425-6749971b468a"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 25 [LE_5901] of J1 on F.Cu",
+                    "pos": {
+                        "x": 49.35,
+                        "y": 47.95
+                    },
+                    "uuid": "9352bc27-b06e-440b-a3b6-b894de834fd1"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 27 [LE_4159] of J1 on F.Cu",
+                    "pos": {
+                        "x": 50.62,
+                        "y": 47.95
+                    },
+                    "uuid": "eda6f066-bc7f-4c1d-b46c-fd6ea8cc4e14"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        },
+        {
+            "description": "Front solder mask aperture bridges items with different nets",
+            "items": [
+                {
+                    "description": "Track [+5V] on F.Cu, length 19.3900 mm",
+                    "pos": {
+                        "x": 34.11,
+                        "y": 49.2
+                    },
+                    "uuid": "2f24115b-ef52-44a4-9228-dd8287bf54ae"
+                },
+                {
+                    "description": "Pad 29 [TX_EN] of J1 on F.Cu",
+                    "pos": {
+                        "x": 51.89,
+                        "y": 47.95
+                    },
+                    "uuid": "cfe82544-6864-4ef8-b8af-3a538820cab4"
+                }
+            ],
+            "severity": "error",
+            "type": "solder_mask_bridge"
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "project": "openflight-adc-pi-interface-rev-c.kicad_pro",
+  "current": "2026-07-01_2100",
+  "runs": {
+    "2026-07-01_2100": {
+      "source_hashes": {
+        "openflight-adc-pi-interface-rev-c.kicad_pcb": "sha256:97aeecbbd7dca3e3935982c3e71ff6222cf26ad26ee2f08b5916f3e317e66363",
+        "openflight-adc-pi-interface-rev-c.kicad_sch": "sha256:fc049412abba12433644bcc0e8704bc77836e38208ceea82e9b1864f44f3c8a2"
+      },
+      "outputs": {
+        "pcb": "pcb.json",
+        "schematic": "schematic.json",
+        "cross_analysis": "cross_analysis.json"
+      },
+      "scripts": {
+        "pcb": "analyze_pcb.py openflight-adc-pi-interface-rev-c.kicad_pcb"
+      },
+      "generated": "2026-07-01T21:01:21-07:00",
+      "pinned": false
+    }
+  }
+}

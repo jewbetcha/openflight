@@ -1,0 +1,64 @@
+{
+  "assessment": "first-article fabrication risk screening",
+  "band_ghz": [
+    24.15,
+    24.25
+  ],
+  "limits_db": {
+    "standalone_s11_max": -10.0,
+    "grid_coupling_max": -20.0,
+    "checkpoint_drift_max": 3.0
+  },
+  "single_port_control": {
+    "source": "grid_single_sanity.json",
+    "worst_s11_db": -16.670325259761725,
+    "maximum_point_delta_from_reference_db": 1.0003252597617251,
+    "acceptance": true
+  },
+  "full_grid_checkpoints": [
+    {
+      "timesteps": 100000,
+      "worst_s11_db": -4.19,
+      "worst_coupling_db": -25.061043610119384,
+      "coupling_acceptance": true,
+      "s11_acceptance": false
+    },
+    {
+      "timesteps": 142000,
+      "worst_s11_db": -15.82,
+      "worst_coupling_db": -28.647036805811993,
+      "coupling_acceptance": true,
+      "s11_acceptance": true
+    },
+    {
+      "timesteps": 200000,
+      "worst_s11_db": -9.55,
+      "worst_coupling_db": -22.950785261404768,
+      "coupling_acceptance": true,
+      "s11_acceptance": false
+    }
+  ],
+  "conservative_coupling_envelope": {
+    "worst_db": -22.950785261404768,
+    "margin_to_limit_db": 2.950785261404768,
+    "all_checkpoints_pass": true
+  },
+  "convergence": {
+    "reference_timesteps": 142000,
+    "final_timesteps": 200000,
+    "maximum_s11_drift_db": 6.529999999999998,
+    "maximum_coupling_drift_db": 9.900000000000002,
+    "acceptance": false,
+    "reason": "The 200000-step run stopped at its cap with -6.69 dB residual energy instead of reaching the requested -15.23 dB criterion."
+  },
+  "release_decision": {
+    "first_article_fabrication_recommendation": "proceed after PCBWay stackup and via confirmations",
+    "rf_qualified_for_repeat_or_volume_build": false,
+    "rationale": "The standalone antenna and exact one-port control pass, and every full-grid checkpoint passes the coupling limit. The full-grid transient is not converged, so its S11 and precise coupling values are screening evidence rather than RF qualification.",
+    "required_before_repeat_or_volume_build": [
+      "VNA measurement of the antenna and RF coupon across 24.150-24.250 GHz",
+      "multiport measurement or channel-isolation test demonstrating at least 20 dB isolation",
+      "comparison of measured results with the simulation envelope"
+    ]
+  }
+}

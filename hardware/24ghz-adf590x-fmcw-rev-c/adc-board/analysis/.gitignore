@@ -1,0 +1,4 @@
+# Analysis output -- regenerable from source files
+*
+!.gitignore
+!manifest.json

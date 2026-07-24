@@ -1,0 +1,10 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "Capacitor_SMD")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Capacitor_SMD.pretty")(options "")(descr "KiCad standard SMD capacitor footprints"))
+  (lib (name "Diode_SMD")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Diode_SMD.pretty")(options "")(descr "KiCad standard SMD diode footprints"))
+  (lib (name "Inductor_SMD")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Inductor_SMD.pretty")(options "")(descr "KiCad standard SMD inductor footprints"))
+  (lib (name "Package_DFN_QFN")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Package_DFN_QFN.pretty")(options "")(descr "KiCad standard DFN/QFN footprints"))
+  (lib (name "Package_SO")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Package_SO.pretty")(options "")(descr "KiCad standard SO/TSSOP footprints"))
+  (lib (name "Resistor_SMD")(type "KiCad")(uri "${KICAD10_FOOTPRINT_DIR}/Resistor_SMD.pretty")(options "")(descr "KiCad standard SMD resistor footprints"))
+  (lib (name "openflight-revc")(type "KiCad")(uri "${KIPRJMOD}/../../library/openflight-revc.pretty")(options "")(descr "OpenFlight Rev C custom footprints"))
+)

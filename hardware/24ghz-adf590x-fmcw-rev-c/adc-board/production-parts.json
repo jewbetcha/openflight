@@ -1,0 +1,34 @@
+{
+  "100nF|Capacitor_SMD:C_0402_1005Metric": {
+    "manufacturer": "Murata Electronics",
+    "mpn": "GRM155R71C104KA88D"
+  },
+  "10uF|Capacitor_SMD:C_0402_1005Metric": {
+    "manufacturer": "Murata Electronics",
+    "mpn": "GRM155R60J106ME11D"
+  },
+  "1uF|Capacitor_SMD:C_0402_1005Metric": {
+    "manufacturer": "Murata Electronics",
+    "mpn": "GRM155R61A105KE15D"
+  },
+  "820pF|Capacitor_SMD:C_0402_1005Metric": {
+    "manufacturer": "Murata Electronics",
+    "mpn": "GRM1555C1H821JA01D"
+  },
+  "0R|Resistor_SMD:R_0402_1005Metric": {
+    "manufacturer": "Yageo",
+    "mpn": "RC0402JR-070RL"
+  },
+  "1k|Resistor_SMD:R_0402_1005Metric": {
+    "manufacturer": "Yageo",
+    "mpn": "RC0402FR-071KL"
+  },
+  "4.7k|Resistor_SMD:R_0402_1005Metric": {
+    "manufacturer": "Yageo",
+    "mpn": "RC0402FR-074K7L"
+  },
+  "FerriteBead|Resistor_SMD:R_0402_1005Metric": {
+    "manufacturer": "Murata Electronics",
+    "mpn": "BLM15AG601SN1D"
+  }
+}

@@ -1,0 +1,33 @@
+Line#,Qty,Designator,MPN,Manufacturer,Description,Package,Type
+1,1,C1,GRM155R60J106ME11D,Murata Electronics,AVDD bulk,C_0402_1005Metric,SMD
+2,1,C2,GRM155R61A105KE15D,Murata Electronics,AVDD,C_0402_1005Metric,SMD
+3,1,C3,GRM155R71C104KA88D,Murata Electronics,AVDD HF,C_0402_1005Metric,SMD
+4,1,C4,GRM155R71C104KA88D,Murata Electronics,AREG,C_0402_1005Metric,SMD
+5,1,C5,GRM155R61A105KE15D,Murata Electronics,VREF filter,C_0402_1005Metric,SMD
+6,1,C6,GRM155R60J106ME11D,Murata Electronics,IOVDD bulk,C_0402_1005Metric,SMD
+7,1,C7,GRM155R71C104KA88D,Murata Electronics,IOVDD HF,C_0402_1005Metric,SMD
+8,1,C8,GRM155R60J106ME11D,Murata Electronics,DREG bulk,C_0402_1005Metric,SMD
+9,1,C9,GRM155R71C104KA88D,Murata Electronics,DREG HF,C_0402_1005Metric,SMD
+10,1,C10,GRM155R61A105KE15D,Murata Electronics,"MICBIAS (unused, decoupled)",C_0402_1005Metric,SMD
+11,1,CD1,GRM1555C1H821JA01D,Murata Electronics,AA differential cap ch1,C_0402_1005Metric,SMD
+12,1,CD2,GRM1555C1H821JA01D,Murata Electronics,AA differential cap ch2,C_0402_1005Metric,SMD
+13,1,CD3,GRM1555C1H821JA01D,Murata Electronics,AA differential cap ch3,C_0402_1005Metric,SMD
+14,1,CD4,GRM1555C1H821JA01D,Murata Electronics,AA differential cap ch4,C_0402_1005Metric,SMD
+15,1,FB1,BLM15AG601SN1D,Murata Electronics,Ferrite bead (AVDD supply isolation),R_0402_1005Metric,SMD
+16,1,J1,FTSH-115-01-L-DV-K,Samtec,2x15 1.27mm SMD interface header (RF board <-> ADC board),HDR_2x15_1.27MM_SMD,SMD
+17,1,J2,ESQ-120-58-S-D,Samtec,Bottom-mounted 16.13mm elevated Raspberry Pi 40-pin female socket,PinSocket_2x20_P2.54mm_Vertical,THT
+18,1,R1,RC0402FR-074K7L,Yageo,I2C SDA pullup to 3V3,R_0402_1005Metric,SMD
+19,1,R2,RC0402FR-074K7L,Yageo,I2C SCL pullup to 3V3,R_0402_1005Metric,SMD
+20,1,R3,RC0402JR-070RL,Yageo,ADDR0 strap to GND (A0=0),R_0402_1005Metric,SMD
+21,1,R4,RC0402JR-070RL,Yageo,ADDR1 strap to GND (A1=0),R_0402_1005Metric,SMD
+22,1,R6,RC0402FR-0710KL,Yageo,CE_RX default-off pulldown,R_0402_1005Metric,SMD
+23,1,R7,RC0402FR-0710KL,Yageo,TX_EN default-off pulldown,R_0402_1005Metric,SMD
+24,1,RN1,RC0402FR-071KL,Yageo,AA series R ch1 N,R_0402_1005Metric,SMD
+25,1,RN2,RC0402FR-071KL,Yageo,AA series R ch2 N,R_0402_1005Metric,SMD
+26,1,RN3,RC0402FR-071KL,Yageo,AA series R ch3 N,R_0402_1005Metric,SMD
+27,1,RN4,RC0402FR-071KL,Yageo,AA series R ch4 N,R_0402_1005Metric,SMD
+28,1,RP1,RC0402FR-071KL,Yageo,AA series R ch1 P,R_0402_1005Metric,SMD
+29,1,RP2,RC0402FR-071KL,Yageo,AA series R ch2 P,R_0402_1005Metric,SMD
+30,1,RP3,RC0402FR-071KL,Yageo,AA series R ch3 P,R_0402_1005Metric,SMD
+31,1,RP4,RC0402FR-071KL,Yageo,AA series R ch4 P,R_0402_1005Metric,SMD
+32,1,U1,TLV320ADC3140IRTWT,Texas Instruments,4-Channel Burr-Brown Audio ADC,TLV320ADC3140_WQFN24,SMD

@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "openflight-revc")(type "KiCad")(uri "${KIPRJMOD}/../../library/openflight-revc.kicad_sym")(options "")(descr "OpenFlight Rev C custom symbols (MMICs, LDOs, TCXO, ADC, interface header)"))
+)

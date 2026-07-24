@@ -1,0 +1,40 @@
+{
+  "model": "grid_port_single_rx1_sanity",
+  "band_max_s11_db": -15.77247461211921,
+  "s11_db": {
+    "24.15": -15.77247461211921,
+    "24.20": -17.398604666266152,
+    "24.25": -19.247289850115287
+  },
+  "source_subarray_band_max_s11_db": -15.67,
+  "acceptance": {
+    "s11": true,
+    "agrees_with_source_within_db": true
+  },
+  "simulation": {
+    "mesh_div": 20.0,
+    "end_criteria": 0.0001,
+    "domain": {
+      "substrate_start_mm": [
+        -15.088000000000001,
+        -22.452822064634653,
+        0.0
+      ],
+      "substrate_stop_mm": [
+        1.3100000000000005,
+        1.8789999999999996,
+        0.254
+      ],
+      "simulation_start_mm": [
+        -18.088,
+        -25.452822064634653,
+        -3.0
+      ],
+      "simulation_stop_mm": [
+        4.3100000000000005,
+        4.879,
+        3.254
+      ]
+    }
+  }
+}

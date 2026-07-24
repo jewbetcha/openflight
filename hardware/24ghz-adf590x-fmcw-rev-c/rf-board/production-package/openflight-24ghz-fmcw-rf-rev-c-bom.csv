@@ -1,0 +1,34 @@
+Line#,Qty,Designator,MPN,Manufacturer,Description,Package,Type
+1,1,C1,GRM188R61A475KE15D,Murata Electronics,Bulk input cap on +5V_REG,C_0603_1608Metric,SMD
+2,7,"C15,C22,C27,C18,C83,C86,C89",GRM155R71C104KA88D,Murata Electronics,TX_AHI decoupling triad (0.1uF/1nF/10pF) per adf5901.md pin4/5 + ev-radar-mmic2.md Fig.13 C15/C18/C21,C_0402_1005Metric,SMD
+3,6,"C2,C3,C4,C5,C6,C7",GRM188R71C105KA12D,Murata Electronics,U1 input cap CIN (ADP7104 Fig.1: 1uF),C_0603_1608Metric,SMD
+4,9,"C30,C37,C16,C23,C28,C19,C84,C87,C90",GRM1555C1H102JA01D,Murata Electronics,"REFIN AC-coupling cap (C17 equiv, 1 nF, ev-radar-mmic2.md Fig.11)",C_0402_1005Metric,SMD
+5,1,C31,GRM21BR61A226ME44L,Murata Electronics,"TCXO supply bulk cap (C40 equiv, 22 uF, ev-radar-mmic2.md Fig.16)",C_0805_2012Metric,SMD
+6,12,"C32,C39,C42,C44,C46,C17,C24,C29,C20,C85,C88,C91",GJM1555C1H100JB01D,Murata Electronics,"TCXO supply hf cap (C41 equiv, 10 pF, ev-radar-mmic2.md Fig.16)",C_0402_1005Metric,SMD
+7,1,C33,GRM1555C1H221JA01D,Murata Electronics,"Loop filter C12 (220 pF fast pole, ev-radar-mmic2.md Fig.12/BOM Table 2)",C_0402_1005Metric,SMD
+8,1,C34,GRM155R71H332KA01D,Murata Electronics,"Loop filter C13 (3.3 nF main pole, ev-radar-mmic2.md Fig.12/BOM Table 2)",C_0402_1005Metric,SMD
+9,1,C35,GJM1555C1H470JB01D,Murata Electronics,"Rev C loop filter final-pole capacitor, retuned from UG-866 C14 for >=50 deg tolerance-corner phase margin",C_0402_1005Metric,SMD
+10,10,"C36,C55,C75,C76,C77,C78,C79,C80,C81,C82",GJM1555C1H101JB01D,Murata Electronics,"RFinB decoupling cap, ~100 pF per datasheet pin note (adf4159.md pin 4)",C_0402_1005Metric,SMD
+11,9,"C38,C40,C41,C43,C45,C47,C48,C49,C59",GRM155R71C104KA88D,Murata Electronics,"AVDD(6) decoupling 100nF (C3 class, ev-radar-mmic2.md Fig.11)",C_0402_1005Metric,SMD
+12,7,"C50,C52,C70,C71,C72,C73,C74",550L104KTT,KYOCERA AVX,"24 GHz ultra-broadband DC block, TXOUT1 -> TX_ANT; 16 kHz to 70 GHz, <0.5 dB typical insertion loss",C_0402_1005Metric,SMD
+13,1,C53,0201ZK100FBSTR,KYOCERA AVX,"High-Q 10 pF 0201 AC coupling, AUX (VCO/2 ~12 GHz) -> ADF4159 RFinA",C_0201_0603Metric,SMD
+14,1,C56,GRM155R71A473KA01D,Murata Electronics,"C1 pin (31) decoupling cap to GND, 47nF per adf5901.md pin table",C_0402_1005Metric,SMD
+15,2,"C57,C58",GRM155R71A224KE01D,Murata Electronics,"C2 pin (32) decoupling cap to GND, 220nF per adf5901.md pin table",C_0402_1005Metric,SMD
+16,1,D1,MBR0520LT1G,onsemi,Schottky reverse/clamp diode on +5V (EV-RADAR-MMIC2 D2),D_SOD-123,SMD
+17,1,FB1,742792642,Wurth Elektronik,"Ferrite bead, +5V input isolation, 470 ohm at 100 MHz, 0603 (EV-RADAR-MMIC2 E1)",L_0603_1608Metric,SMD
+18,1,J1,FTSH-115-01-L-DV-K,Samtec,2x15 1.27mm SMD interface header (RF board to ADC board),HDR_2x15_1.27MM_SMD,SMD
+19,2,"R1,R2",RC0402FR-07100KL,YAGEO,U1 PG open-drain pull-up to +3V3_TX,R_0402_1005Metric,SMD
+20,1,R20,RC0402FR-071KL,YAGEO,"TCXO OUT series resistor (R41 equiv, 1.0k, ev-radar-mmic2.md Fig.16)",R_0402_1005Metric,SMD
+21,1,R21,RC0402FR-07510RL,YAGEO,"Rev C loop filter series resistor, retuned from UG-866 R19 for >=50 deg tolerance-corner phase margin",R_0402_1005Metric,SMD
+22,1,R22,RC0402FR-07620RL,YAGEO,"Rev C loop filter damping resistor, retuned from UG-866 R18 for >=50 deg tolerance-corner phase margin",R_0402_1005Metric,SMD
+23,1,R23,RC0402JR-070RL,YAGEO,"Loop filter R20 (0 Ohm series to VTUNE, ev-radar-mmic2.md Fig.12/BOM Table 2)",R_0402_1005Metric,SMD
+24,2,"R24,R40",RC0402FR-075K1L,YAGEO,"RSET (R17 equiv, 5.1 kOhm -> I_CP_MAX 4.8 mA, adf4159.md / ev-radar-mmic2.md)",R_0402_1005Metric,SMD
+25,8,"R60,R61,R62,R63,R64,R65,R66,R67",RC0402FR-07100RL,YAGEO,Resistor,R_0402_1005Metric,SMD
+26,2,"U1,U2",ADP7104ARDZ-3.3,Analog Devices,20V/500mA ultralow-noise LDO -> +3V3_TX (ADF5901 Tx MMIC rails),ADP7104_SOIC8_EP,SMD
+27,1,U3,ADP150AUJZ-1.8,Analog Devices,150mA CMOS LDO -> +1V8_DIG (ADF4159 DVDD/SDVDD digital rail),ADP150_TSOT23_5,SMD
+28,1,U4,ADF4159CCPZ,Analog Devices,13 GHz Fractional-N FMCW Ramp Generator / PLL,ADF4159_LFCSP24,SMD
+29,1,U5,ADF5901WCCPZ,Analog Devices,"24 GHz VCO + PGA, 2-Channel Tx MMIC (Rev C FMCW Tx)",ADF5901_LFCSP32,SMD
+30,1,U6,ADF5904WCCPZ,Analog Devices,"4-Channel, 24 GHz Receiver Downconverter MMIC (Rev C FMCW Rx)",ADF5904_LFCSP32,SMD
+31,1,U7,SN74AVC4T245PW,Texas Instruments,"3.3V<->1.8V level shifter: SCLK/SDATA/LE/CE -> ADF4159 CLK/DATA/LE/CE (A=+3V3_RX, B=+1V8_DIG, DIR=A->B)",TSSOP-16_4.4x5mm_P0.65mm,SMD
+32,1,U8,SN74AVC2T245RSWR,Texas Instruments,"1.8V->3.3V level shifter: ADF4159 MUXOUT -> RAMP_SYNC (A=+3V3_RX, B=+1V8_DIG, DIR=B->A)",Texas_RSW0010A_UQFN-10_1.4x1.8mm_P0.4mm,SMD
+33,1,X1,CWX113-100.0M,Connor-Winfield,100 MHz TCXO reference oscillator (ADF4159/ADF5901 REFIN source),TCXO_CWX113_SMD4,SMD

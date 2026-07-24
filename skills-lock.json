@@ -6,6 +6,18 @@
       "sourceType": "github",
       "computedHash": "f343ef02aa0ada0f8b13a77b6db7fb6a11f88d8067128215585500ef4fd3b5e0"
     },
+    "kicad": {
+      "source": "aklofas/kicad-happy",
+      "sourceType": "github",
+      "skillPath": "skills/kicad/SKILL.md",
+      "computedHash": "98418efb9cc3a7a723d2653924eaa4aadaef99212fcdc947be25bcaec438ed22"
+    },
+    "pcbway": {
+      "source": "aklofas/kicad-happy",
+      "sourceType": "github",
+      "skillPath": "skills/pcbway/SKILL.md",
+      "computedHash": "3a62deb954a2cad046656910c484e9403288966c3b167373f8856201c1e3f447"
+    },
     "prd-to-plan": {
       "source": "mattpocock/skills",
       "sourceType": "github",

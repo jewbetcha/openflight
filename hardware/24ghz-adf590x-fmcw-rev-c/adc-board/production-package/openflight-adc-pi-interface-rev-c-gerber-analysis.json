@@ -1,0 +1,1069 @@
+{
+  "analyzer_type": "gerber",
+  "schema_version": "1.3.0",
+  "directory": "hardware/24ghz-adf590x-fmcw-rev-c/adc-board/gerbers/openflight-adc-pi-interface-rev-c-production-2026-07-13",
+  "generator": "Pcbnew 10.0.4",
+  "layer_count": 4,
+  "board_dimensions": {
+    "width_mm": 55.1,
+    "height_mm": 65.1,
+    "area_mm2": 3587.0,
+    "source": "gbrjob"
+  },
+  "statistics": {
+    "gerber_files": 13,
+    "drill_files": 2,
+    "total_holes": 120,
+    "total_flashes": 998,
+    "total_draws": 22679
+  },
+  "completeness": {
+    "found_layers": [
+      "B.Cu",
+      "B.Mask",
+      "B.Paste",
+      "B.SilkS",
+      "Edge.Cuts",
+      "F.Cu",
+      "F.Mask",
+      "F.Paste",
+      "F.SilkS",
+      "In1.Cu",
+      "In2.Cu"
+    ],
+    "expected_layers": [
+      "B.Cu",
+      "B.Mask",
+      "B.Paste",
+      "B.SilkS",
+      "Edge.Cuts",
+      "F.Cu",
+      "F.Mask",
+      "F.Paste",
+      "F.SilkS",
+      "In1.Cu",
+      "In2.Cu"
+    ],
+    "missing": [],
+    "extra": [],
+    "has_pth_drill": true,
+    "has_npth_drill": true,
+    "complete": true,
+    "source": "gbrjob"
+  },
+  "alignment": {
+    "aligned": true,
+    "issues": [],
+    "layer_extents": {
+      "B.Cu": {
+        "width": 53.999,
+        "height": 62.999
+      },
+      "B.Mask": {
+        "width": 49.0,
+        "height": 58.0
+      },
+      "B.Paste": {
+        "width": 0,
+        "height": 0
+      },
+      "B.SilkS": {
+        "width": 0,
+        "height": 0
+      },
+      "Edge.Cuts": {
+        "width": 55.0,
+        "height": 65.0
+      },
+      "F.Cu": {
+        "width": 54.099,
+        "height": 63.999
+      },
+      "F.Mask": {
+        "width": 49.0,
+        "height": 58.5
+      },
+      "F.Paste": {
+        "width": 33.45,
+        "height": 35.89
+      },
+      "F.SilkS": {
+        "width": 50.8,
+        "height": 44.38
+      },
+      "In1.Cu": {
+        "width": 53.999,
+        "height": 63.999
+      },
+      "In2.Cu": {
+        "width": 53.999,
+        "height": 63.999
+      },
+      "drill_NPTH": {
+        "width": 49.0,
+        "height": 58.0
+      },
+      "drill_PTH": {
+        "width": 51.4,
+        "height": 53.6
+      }
+    }
+  },
+  "drill_classification": {
+    "vias": {
+      "count": 72,
+      "tools": [
+        {
+          "diameter_mm": 0.3,
+          "count": 72
+        }
+      ]
+    },
+    "component_holes": {
+      "count": 44,
+      "tools": [
+        {
+          "diameter_mm": 0.3,
+          "count": 4
+        },
+        {
+          "diameter_mm": 1.0,
+          "count": 40
+        }
+      ]
+    },
+    "mounting_holes": {
+      "count": 4,
+      "tools": [
+        {
+          "diameter_mm": 2.7,
+          "count": 4,
+          "type": "NPTH"
+        }
+      ]
+    },
+    "classification_method": "x2_attributes"
+  },
+  "pad_summary": {
+    "smd_apertures": 155,
+    "via_apertures": 288,
+    "heatsink_apertures": 17,
+    "tht_holes": 44,
+    "smd_source": "x2_aperture_function",
+    "smd_ratio": 0.78
+  },
+  "trace_widths": {
+    "unique_widths_mm": [
+      0.15,
+      0.2,
+      0.25,
+      0.4
+    ],
+    "min_trace_mm": 0.15,
+    "max_trace_mm": 0.4,
+    "width_count": 4,
+    "min_feature_mm": 0.12
+  },
+  "component_analysis": {
+    "total_unique": 70,
+    "front_side": 70,
+    "back_side": 0,
+    "component_refs": [
+      "C1",
+      "C10",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "C6",
+      "C7",
+      "C8",
+      "C9",
+      "CCN1",
+      "CCN2",
+      "CCN3",
+      "CCN4",
+      "CCP1",
+      "CCP2",
+      "CCP3",
+      "CCP4",
+      "CD1",
+      "CD2",
+      "CD3",
+      "CD4",
+      "FB1",
+      "FID1",
+      "FID2",
+      "FID3",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "J1",
+      "J2",
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "RN1",
+      "RN2",
+      "RN3",
+      "RN4",
+      "RP1",
+      "RP2",
+      "RP3",
+      "RP4",
+      "TP1",
+      "TP10",
+      "TP11",
+      "TP12",
+      "TP13",
+      "TP14",
+      "TP15",
+      "TP16",
+      "TP17",
+      "TP18",
+      "TP19",
+      "TP2",
+      "TP20",
+      "TP21",
+      "TP22",
+      "TP3",
+      "TP4",
+      "TP5",
+      "TP6",
+      "TP7",
+      "TP8",
+      "TP9",
+      "U1"
+    ],
+    "has_x2_data": true,
+    "pads_per_component": {
+      "C1": 2,
+      "C10": 2,
+      "C2": 2,
+      "C3": 2,
+      "C4": 2,
+      "C5": 2,
+      "C6": 2,
+      "C7": 2,
+      "C8": 2,
+      "C9": 2,
+      "CCN1": 2,
+      "CCN2": 2,
+      "CCN3": 2,
+      "CCN4": 2,
+      "CCP1": 2,
+      "CCP2": 2,
+      "CCP3": 2,
+      "CCP4": 2,
+      "CD1": 2,
+      "CD2": 2,
+      "CD3": 2,
+      "CD4": 2,
+      "FB1": 2,
+      "FID1": 1,
+      "FID2": 1,
+      "FID3": 1,
+      "H1": 1,
+      "H2": 1,
+      "H3": 1,
+      "H4": 1,
+      "J1": 30,
+      "J2": 40,
+      "R1": 2,
+      "R2": 2,
+      "R3": 2,
+      "R4": 2,
+      "R5": 2,
+      "R6": 2,
+      "R7": 2,
+      "RN1": 2,
+      "RN2": 2,
+      "RN3": 2,
+      "RN4": 2,
+      "RP1": 2,
+      "RP2": 2,
+      "RP3": 2,
+      "RP4": 2,
+      "TP1": 1,
+      "TP10": 1,
+      "TP11": 1,
+      "TP12": 1,
+      "TP13": 1,
+      "TP14": 1,
+      "TP15": 1,
+      "TP16": 1,
+      "TP17": 1,
+      "TP18": 1,
+      "TP19": 1,
+      "TP2": 1,
+      "TP20": 1,
+      "TP21": 1,
+      "TP22": 1,
+      "TP3": 1,
+      "TP4": 1,
+      "TP5": 1,
+      "TP6": 1,
+      "TP7": 1,
+      "TP8": 1,
+      "TP9": 1,
+      "U1": 28
+    },
+    "total_pads": 203
+  },
+  "net_analysis": {
+    "total_unique": 44,
+    "named_nets": 44,
+    "unnamed_nets": 0,
+    "power_nets": [
+      "+3V3",
+      "+3V3_A",
+      "+5V",
+      "GND"
+    ],
+    "signal_nets": [
+      "",
+      "ADC_SHDNZ",
+      "ADDR0",
+      "ADDR1",
+      "AREG",
+      "BB1_N",
+      "BB1_P",
+      "BB2_N",
+      "BB2_P",
+      "BB3_N",
+      "BB3_P",
+      "BB4_N",
+      "BB4_P",
+      "CE_RX",
+      "DREG",
+      "GPIO1_NC",
+      "I2C_SCL",
+      "I2C_SDA",
+      "I2S_BCLK",
+      "I2S_DIN",
+      "I2S_LRCLK",
+      "IN1M",
+      "IN1P",
+      "IN2M",
+      "IN2P",
+      "IN3M",
+      "IN3P",
+      "IN4M",
+      "IN4P",
+      "LE_4159",
+      "LE_5901",
+      "LE_5904",
+      "MICBIAS",
+      "N/C",
+      "RAMP_SYNC",
+      "SPI_SCLK",
+      "SPI_SDATA",
+      "SPI_SDO",
+      "TX_EN",
+      "VREF"
+    ],
+    "total_pins": 196
+  },
+  "gerbers": [
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-B_Cu.gbl",
+      "layer_type": "B.Cu",
+      "units": "mm",
+      "aperture_count": 8,
+      "flash_count": 116,
+      "draw_count": 4335,
+      "region_count": 2,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Copper,L4,Bot",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "by_function": {
+          "HeatsinkPad": 1,
+          "ComponentPad": 2,
+          "ViaPad": 1,
+          "Conductor": 4
+        },
+        "by_function_flashes": {
+          "HeatsinkPad": 4,
+          "ComponentPad": 40,
+          "ViaPad": 72,
+          "Conductor": 0
+        },
+        "conductor_widths_mm": [
+          0.15,
+          0.2,
+          0.25,
+          0.4
+        ],
+        "min_feature_mm": 0.15
+      },
+      "x2_component_count": 0,
+      "x2_net_count": 30,
+      "x2_pin_count": 41
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-B_Mask.gbs",
+      "layer_type": "B.Mask",
+      "units": "mm",
+      "aperture_count": 3,
+      "flash_count": 44,
+      "draw_count": 0,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Soldermask,Bot",
+        "FilePolarity": "Negative"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 1.7
+      },
+      "x2_component_count": 5,
+      "x2_net_count": 0,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-B_Paste.gbp",
+      "layer_type": "B.Paste",
+      "units": "mm",
+      "aperture_count": 0,
+      "flash_count": 0,
+      "draw_count": 0,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Paste,Bot",
+        "FilePolarity": "Positive"
+      }
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-B_Silkscreen.gbo",
+      "layer_type": "B.SilkS",
+      "units": "mm",
+      "aperture_count": 0,
+      "flash_count": 0,
+      "draw_count": 0,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Legend,Bot",
+        "FilePolarity": "Positive"
+      }
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-Edge_Cuts.gm1",
+      "layer_type": "Edge.Cuts",
+      "units": "mm",
+      "aperture_count": 1,
+      "flash_count": 0,
+      "draw_count": 4,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Profile,NP"
+      },
+      "aperture_analysis": {
+        "by_function": {
+          "Profile": 1
+        },
+        "by_function_flashes": {
+          "Profile": 0
+        },
+        "min_feature_mm": 0.1
+      }
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-F_Cu.gtl",
+      "layer_type": "F.Cu",
+      "units": "mm",
+      "aperture_count": 18,
+      "flash_count": 272,
+      "draw_count": 7851,
+      "region_count": 10,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Copper,L1,Top",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "by_function": {
+          "SMDPad": 9,
+          "HeatsinkPad": 2,
+          "ComponentPad": 2,
+          "ViaPad": 1,
+          "Conductor": 4
+        },
+        "by_function_flashes": {
+          "SMDPad": 155,
+          "HeatsinkPad": 5,
+          "ComponentPad": 40,
+          "ViaPad": 72,
+          "Conductor": 0
+        },
+        "conductor_widths_mm": [
+          0.15,
+          0.2,
+          0.25,
+          0.4
+        ],
+        "min_feature_mm": 0.12
+      },
+      "x2_component_count": 0,
+      "x2_net_count": 44,
+      "x2_pin_count": 196
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-F_Mask.gts",
+      "layer_type": "F.Mask",
+      "units": "mm",
+      "aperture_count": 13,
+      "flash_count": 200,
+      "draw_count": 0,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Soldermask,Top",
+        "FilePolarity": "Negative"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 0.12
+      },
+      "x2_component_count": 70,
+      "x2_net_count": 0,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-F_Paste.gtp",
+      "layer_type": "F.Paste",
+      "units": "mm",
+      "aperture_count": 8,
+      "flash_count": 134,
+      "draw_count": 0,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Paste,Top",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 0.12
+      },
+      "x2_component_count": 40,
+      "x2_net_count": 0,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-F_Silkscreen.gto",
+      "layer_type": "F.SilkS",
+      "units": "mm",
+      "aperture_count": 2,
+      "flash_count": 0,
+      "draw_count": 142,
+      "region_count": 2,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Legend,Top",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 0.05
+      },
+      "x2_component_count": 62,
+      "x2_net_count": 0,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-In1_Cu.g1",
+      "layer_type": "In1.Cu",
+      "units": "mm",
+      "aperture_count": 6,
+      "flash_count": 116,
+      "draw_count": 4404,
+      "region_count": 1,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Copper,L2,Inr",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "by_function": {
+          "HeatsinkPad": 1,
+          "ComponentPad": 2,
+          "ViaPad": 1,
+          "Conductor": 2
+        },
+        "by_function_flashes": {
+          "HeatsinkPad": 4,
+          "ComponentPad": 40,
+          "ViaPad": 72,
+          "Conductor": 0
+        },
+        "conductor_widths_mm": [
+          0.15,
+          0.2
+        ],
+        "min_feature_mm": 0.15
+      },
+      "x2_component_count": 2,
+      "x2_net_count": 30,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-In2_Cu.g2",
+      "layer_type": "In2.Cu",
+      "units": "mm",
+      "aperture_count": 6,
+      "flash_count": 116,
+      "draw_count": 4363,
+      "region_count": 1,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:35:58-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Copper,L3,Inr",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "by_function": {
+          "HeatsinkPad": 1,
+          "ComponentPad": 2,
+          "ViaPad": 1,
+          "Conductor": 2
+        },
+        "by_function_flashes": {
+          "HeatsinkPad": 4,
+          "ComponentPad": 40,
+          "ViaPad": 72,
+          "Conductor": 0
+        },
+        "conductor_widths_mm": [
+          0.15,
+          0.2
+        ],
+        "min_feature_mm": 0.15
+      },
+      "x2_component_count": 2,
+      "x2_net_count": 30,
+      "x2_pin_count": 0
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-NPTH-drl_map.gbr",
+      "layer_type": "unknown",
+      "units": "mm",
+      "aperture_count": 3,
+      "flash_count": 0,
+      "draw_count": 439,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:36:04-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Drillmap",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 0.1
+      }
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-PTH-drl_map.gbr",
+      "layer_type": "unknown",
+      "units": "mm",
+      "aperture_count": 2,
+      "flash_count": 0,
+      "draw_count": 1141,
+      "region_count": 0,
+      "x2_attributes": {
+        "GenerationSoftware": "KiCad,Pcbnew,10.0.4",
+        "CreationDate": "2026-07-13T17:36:04-07:00",
+        "ProjectId": "openflight-adc-pi-interface-rev-c,6f70656e-666c-4696-9768-742d6164632d,rev?",
+        "SameCoordinates": "Original",
+        "FileFunction": "Drillmap",
+        "FilePolarity": "Positive"
+      },
+      "aperture_analysis": {
+        "min_feature_mm": 0.1
+      }
+    }
+  ],
+  "drills": [
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-NPTH.drl",
+      "type": "NPTH",
+      "units": "mm",
+      "hole_count": 4,
+      "tools": {
+        "T1": {
+          "diameter_mm": 2.7,
+          "hole_count": 4,
+          "aper_function": "NonPlated,NPTH,ComponentDrill"
+        }
+      },
+      "layer_span": [
+        1,
+        4
+      ],
+      "x2_attributes": {
+        "CreationDate": "2026-07-13T17:36:04-07:00",
+        "GenerationSoftware": "Kicad,Pcbnew,10.0.4",
+        "FileFunction": "NonPlated,1,4,NPTH"
+      }
+    },
+    {
+      "filename": "openflight-adc-pi-interface-rev-c-PTH.drl",
+      "type": "PTH",
+      "units": "mm",
+      "hole_count": 116,
+      "tools": {
+        "T1": {
+          "diameter_mm": 0.3,
+          "hole_count": 72,
+          "aper_function": "Plated,PTH,ViaDrill"
+        },
+        "T2": {
+          "diameter_mm": 0.3,
+          "hole_count": 4,
+          "aper_function": "Plated,PTH,ComponentDrill"
+        },
+        "T3": {
+          "diameter_mm": 1.0,
+          "hole_count": 40,
+          "aper_function": "Plated,PTH,ComponentDrill"
+        }
+      },
+      "layer_span": [
+        1,
+        4
+      ],
+      "x2_attributes": {
+        "CreationDate": "2026-07-13T17:36:04-07:00",
+        "GenerationSoftware": "Kicad,Pcbnew,10.0.4",
+        "FileFunction": "Plated,1,4,PTH"
+      }
+    }
+  ],
+  "drill_tools": {
+    "2.7mm": {
+      "diameter_mm": 2.7,
+      "count": 4,
+      "type": "NPTH"
+    },
+    "0.3mm": {
+      "diameter_mm": 0.3,
+      "count": 76,
+      "type": "PTH"
+    },
+    "1.0mm": {
+      "diameter_mm": 1.0,
+      "count": 40,
+      "type": "PTH"
+    }
+  },
+  "job_file": {
+    "generator": "Pcbnew 10.0.4",
+    "vendor": "KiCad",
+    "creation_date": "2026-07-13T17:35:58-07:00",
+    "board_width_mm": 55.1,
+    "board_height_mm": 65.1,
+    "layer_count": 4,
+    "board_thickness_mm": 1.6,
+    "finish": "None",
+    "project_name": "openflight-adc-pi-interface-rev-c",
+    "design_rules": [
+      {
+        "layers": "Outer",
+        "PadToPad": 0.09,
+        "PadToTrack": 0.09,
+        "TrackToTrack": 0.09,
+        "MinLineWidth": 0.15,
+        "TrackToRegion": 0.2,
+        "RegionToRegion": 0.2
+      },
+      {
+        "layers": "Inner",
+        "PadToPad": 0.0,
+        "PadToTrack": 0.0,
+        "TrackToTrack": 0.09,
+        "MinLineWidth": 0.15,
+        "TrackToRegion": 0.2,
+        "RegionToRegion": 0.2
+      }
+    ],
+    "expected_files": [
+      {
+        "path": "openflight-adc-pi-interface-rev-c-F_Cu.gtl",
+        "function": "Copper,L1,Top",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-In1_Cu.g1",
+        "function": "Copper,L2,Inr",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-In2_Cu.g2",
+        "function": "Copper,L3,Inr",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-B_Cu.gbl",
+        "function": "Copper,L4,Bot",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-F_Paste.gtp",
+        "function": "SolderPaste,Top",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-B_Paste.gbp",
+        "function": "SolderPaste,Bot",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-F_Silkscreen.gto",
+        "function": "Legend,Top",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-B_Silkscreen.gbo",
+        "function": "Legend,Bot",
+        "polarity": "Positive"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-F_Mask.gts",
+        "function": "SolderMask,Top",
+        "polarity": "Negative"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-B_Mask.gbs",
+        "function": "SolderMask,Bot",
+        "polarity": "Negative"
+      },
+      {
+        "path": "openflight-adc-pi-interface-rev-c-Edge_Cuts.gm1",
+        "function": "Profile",
+        "polarity": "Positive"
+      }
+    ],
+    "stackup": [
+      {
+        "type": "Legend",
+        "name": "Top Silk Screen"
+      },
+      {
+        "type": "SolderPaste",
+        "name": "Top Solder Paste"
+      },
+      {
+        "type": "SolderMask",
+        "name": "Top Solder Mask",
+        "thickness_mm": 0.01
+      },
+      {
+        "type": "Copper",
+        "name": "F.Cu",
+        "thickness_mm": 0.035
+      },
+      {
+        "type": "Dielectric",
+        "name": "F.Cu/In1.Cu",
+        "thickness_mm": 0.48,
+        "material": "FR4"
+      },
+      {
+        "type": "Copper",
+        "name": "In1.Cu",
+        "thickness_mm": 0.035
+      },
+      {
+        "type": "Dielectric",
+        "name": "In1.Cu/In2.Cu",
+        "thickness_mm": 0.48,
+        "material": "FR4"
+      },
+      {
+        "type": "Copper",
+        "name": "In2.Cu",
+        "thickness_mm": 0.035
+      },
+      {
+        "type": "Dielectric",
+        "name": "In2.Cu/B.Cu",
+        "thickness_mm": 0.48,
+        "material": "FR4"
+      },
+      {
+        "type": "Copper",
+        "name": "B.Cu",
+        "thickness_mm": 0.035
+      },
+      {
+        "type": "SolderMask",
+        "name": "Bottom Solder Mask",
+        "thickness_mm": 0.01
+      },
+      {
+        "type": "SolderPaste",
+        "name": "Bottom Solder Paste"
+      },
+      {
+        "type": "Legend",
+        "name": "Bottom Silk Screen"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "detector": "analyze_gerbers",
+      "rule_id": "GR-004",
+      "category": "gerber_completeness",
+      "severity": "warning",
+      "confidence": "heuristic",
+      "evidence_source": "topology",
+      "summary": "F paste layer: 134 flashes vs 272 copper (49%)",
+      "description": "F-side paste layer has significantly fewer flashes (134) than copper layer (272). This may indicate missing solder paste apertures.",
+      "components": [],
+      "nets": [],
+      "pins": [],
+      "recommendation": "Check solder paste aperture generation \u2014 missing apertures cause assembly defects.",
+      "report_context": {
+        "section": "Gerber Completeness",
+        "impact": "Assembly solder joint quality",
+        "standard_ref": ""
+      },
+      "stages": [
+        "pre_fab"
+      ]
+    }
+  ],
+  "summary": {
+    "total_findings": 1,
+    "by_severity": {
+      "error": 0,
+      "warning": 1,
+      "info": 0
+    }
+  },
+  "trust_summary": {
+    "total_findings": 1,
+    "trust_level": "low",
+    "by_confidence": {
+      "deterministic": 0,
+      "heuristic": 1,
+      "datasheet-backed": 0
+    },
+    "by_evidence_source": {
+      "datasheet": 0,
+      "topology": 1,
+      "heuristic_rule": 0,
+      "symbol_footprint": 0,
+      "bom": 0,
+      "geometry": 0,
+      "api_lookup": 0
+    },
+    "provenance_coverage_pct": 0.0
+  },
+  "audience_summary": {
+    "designer": {
+      "total_findings": 1,
+      "by_severity": {
+        "error": 0,
+        "warning": 1,
+        "info": 0
+      },
+      "by_category": {
+        "gerber_completeness": 1
+      },
+      "top_issues": [
+        {
+          "detector": "analyze_gerbers",
+          "rule_id": "GR-004",
+          "category": "gerber_completeness",
+          "severity": "warning",
+          "confidence": "heuristic",
+          "evidence_source": "topology",
+          "summary": "F paste layer: 134 flashes vs 272 copper (49%)",
+          "description": "F-side paste layer has significantly fewer flashes (134) than copper layer (272). This may indicate missing solder paste apertures.",
+          "components": [],
+          "nets": [],
+          "pins": [],
+          "recommendation": "Check solder paste aperture generation \u2014 missing apertures cause assembly defects.",
+          "report_context": {
+            "section": "Gerber Completeness",
+            "impact": "Assembly solder joint quality",
+            "standard_ref": ""
+          },
+          "stages": [
+            "pre_fab"
+          ]
+        }
+      ]
+    },
+    "reviewer": {
+      "total_findings": 1,
+      "by_category": {
+        "gerber_completeness": 1
+      },
+      "top_issues": [
+        {
+          "rule_id": "GR-004",
+          "severity": "warning",
+          "summary": "F paste layer: 134 flashes vs 272 copper (49%)",
+          "recommendation": "Check solder paste aperture generation \u2014 missing apertures cause assembly defects.",
+          "category": "gerber_completeness"
+        }
+      ]
+    },
+    "manager": {
+      "risk_level": "low",
+      "blocker_count": 0,
+      "warning_count": 1,
+      "stage_readiness": {
+        "schematic": "pass",
+        "layout": "pass",
+        "pre_fab": "needs_review",
+        "bring_up": "pass"
+      },
+      "one_liner": "1 warning across 1 category."
+    }
+  }
+}

@@ -1,0 +1,227 @@
+{
+  "analyzer_type": "thermal",
+  "schema_version": "1.3.0",
+  "summary": {
+    "total_findings": 3,
+    "components_assessed": 3,
+    "active": 3,
+    "suppressed": 0,
+    "by_severity": {
+      "error": 0,
+      "warning": 0,
+      "info": 3
+    },
+    "thermal_score": 100,
+    "total_board_dissipation_w": 0.1,
+    "hottest_component": {
+      "ref": "U3",
+      "tj_estimated_c": 31.8
+    },
+    "components_analyzed": 3,
+    "components_above_85c": 0,
+    "components_above_tjmax": 0,
+    "ambient_c": 25.0
+  },
+  "findings": [
+    {
+      "ref": "U3",
+      "value": "ADP150AUJZ-1.8",
+      "component_type": "ldo",
+      "pdiss_w": 0.045,
+      "pdiss_source": "(5.0V - 1.8V) \u00d7 0.014A",
+      "pdiss_confidence": "heuristic",
+      "package": "unknown",
+      "rtheta_ja_raw": 150.0,
+      "rtheta_ja_source": "default",
+      "pcb_correction": 1.0,
+      "pcb_correction_notes": [],
+      "rtheta_ja_effective": 150.0,
+      "ambient_c": 25.0,
+      "tj_estimated_c": 31.8,
+      "tj_max_c": 125.0,
+      "tj_max_source": "default_125",
+      "margin_c": 93.2,
+      "position": {
+        "x": 64.0,
+        "y": 40.0
+      },
+      "detector": "analyze_thermal",
+      "rule_id": "TH-DET",
+      "category": "thermal",
+      "severity": "info",
+      "confidence": "heuristic",
+      "evidence_source": "heuristic_rule",
+      "summary": "Thermal: U3 Tj=31.8C (margin 93.2C)",
+      "description": "Component U3 in unknown package: Tj=31.8C, margin 93.2C to Tj_max (125.0C).",
+      "components": [
+        "U3"
+      ],
+      "nets": [],
+      "pins": [],
+      "recommendation": "",
+      "report_context": {
+        "section": "Thermal",
+        "impact": "",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ]
+    },
+    {
+      "ref": "U2",
+      "value": "ADP7104ARDZ-3.3",
+      "component_type": "ldo",
+      "pdiss_w": 0.031,
+      "pdiss_source": "(5.0V - 3.3V) \u00d7 0.018A",
+      "pdiss_confidence": "heuristic",
+      "package": "SOIC8",
+      "rtheta_ja_raw": 120.0,
+      "rtheta_ja_source": "package_table",
+      "pcb_correction": 1.0,
+      "pcb_correction_notes": [
+        "thermal pad but no vias"
+      ],
+      "rtheta_ja_effective": 120.0,
+      "ambient_c": 25.0,
+      "tj_estimated_c": 28.7,
+      "tj_max_c": 125.0,
+      "tj_max_source": "default_125",
+      "margin_c": 96.3,
+      "position": {
+        "x": 64.0,
+        "y": 32.0
+      },
+      "detector": "analyze_thermal",
+      "rule_id": "TH-DET",
+      "category": "thermal",
+      "severity": "info",
+      "confidence": "deterministic",
+      "evidence_source": "datasheet",
+      "summary": "Thermal: U2 Tj=28.7C (margin 96.3C)",
+      "description": "Component U2 in SOIC8 package: Tj=28.7C, margin 96.3C to Tj_max (125.0C).",
+      "components": [
+        "U2"
+      ],
+      "nets": [],
+      "pins": [],
+      "recommendation": "",
+      "report_context": {
+        "section": "Thermal",
+        "impact": "",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ]
+    },
+    {
+      "ref": "U1",
+      "value": "ADP7104ARDZ-3.3",
+      "component_type": "ldo",
+      "pdiss_w": 0.024,
+      "pdiss_source": "(5.0V - 3.3V) \u00d7 0.014A",
+      "pdiss_confidence": "heuristic",
+      "package": "SOIC8",
+      "rtheta_ja_raw": 120.0,
+      "rtheta_ja_source": "package_table",
+      "pcb_correction": 1.0,
+      "pcb_correction_notes": [
+        "thermal pad but no vias"
+      ],
+      "rtheta_ja_effective": 120.0,
+      "ambient_c": 25.0,
+      "tj_estimated_c": 27.9,
+      "tj_max_c": 125.0,
+      "tj_max_source": "default_125",
+      "margin_c": 97.1,
+      "position": {
+        "x": 64.0,
+        "y": 24.0
+      },
+      "detector": "analyze_thermal",
+      "rule_id": "TH-DET",
+      "category": "thermal",
+      "severity": "info",
+      "confidence": "deterministic",
+      "evidence_source": "datasheet",
+      "summary": "Thermal: U1 Tj=27.9C (margin 97.1C)",
+      "description": "Component U1 in SOIC8 package: Tj=27.9C, margin 97.1C to Tj_max (125.0C).",
+      "components": [
+        "U1"
+      ],
+      "nets": [],
+      "pins": [],
+      "recommendation": "",
+      "report_context": {
+        "section": "Thermal",
+        "impact": "",
+        "standard_ref": ""
+      },
+      "stages": [
+        "layout"
+      ]
+    }
+  ],
+  "elapsed_s": 0.0,
+  "missing_info": {
+    "default_rtheta_ja": [
+      "U3"
+    ],
+    "default_tj_max": [
+      "U3",
+      "U2",
+      "U1"
+    ]
+  },
+  "trust_summary": {
+    "total_findings": 3,
+    "trust_level": "mixed",
+    "by_confidence": {
+      "deterministic": 2,
+      "heuristic": 1,
+      "datasheet-backed": 0
+    },
+    "by_evidence_source": {
+      "datasheet": 2,
+      "topology": 0,
+      "heuristic_rule": 1,
+      "symbol_footprint": 0,
+      "bom": 0,
+      "geometry": 0,
+      "api_lookup": 0
+    },
+    "provenance_coverage_pct": 0.0
+  },
+  "audience_summary": {
+    "designer": {
+      "total_findings": 3,
+      "by_severity": {
+        "error": 0,
+        "warning": 0,
+        "info": 3
+      },
+      "by_category": {
+        "thermal": 3
+      },
+      "top_issues": []
+    },
+    "reviewer": {
+      "total_findings": 0,
+      "by_category": {},
+      "top_issues": []
+    },
+    "manager": {
+      "risk_level": "none",
+      "blocker_count": 0,
+      "warning_count": 0,
+      "stage_readiness": {
+        "schematic": "pass",
+        "layout": "pass",
+        "pre_fab": "pass",
+        "bring_up": "pass"
+      },
+      "one_liner": "No errors or warnings \u2014 all stages ready."
+    }
+  }
+}

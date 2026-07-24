@@ -1,0 +1,118 @@
+{
+  "architecture": "four_2x2_subarrays_outward_feeds",
+  "pitch_mm": 12.5,
+  "phase_centers": [
+    {
+      "channel": "RX1",
+      "x_mm": -6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    }
+  ],
+  "feed_ports": [
+    {
+      "channel": "RX1",
+      "x_mm": -8.988000000000001,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 3.511999999999999,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -3.511999999999999,
+      "y_mm": 19.452822064634653
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 8.988000000000001,
+      "y_mm": 19.452822064634653
+    }
+  ],
+  "minimum_copper_clearance_mm": 0.2,
+  "coupling_db_max": -25.061043610119384,
+  "acceptance": {
+    "geometry": true,
+    "coupling": true,
+    "source_subarray": true,
+    "s11": false,
+    "overall": false
+  },
+  "coupling_db_by_port": {
+    "RX2": {
+      "24.15": -44.44,
+      "24.20": -44.46,
+      "24.25": -44.53,
+      "band_max_24.15_24.25": -44.44
+    },
+    "RX3": {
+      "24.15": -25.06,
+      "24.20": -25.18,
+      "24.25": -25.36,
+      "band_max_24.15_24.25": -25.06
+    },
+    "RX4": {
+      "24.15": -36.1,
+      "24.20": -36.25,
+      "24.25": -36.46,
+      "band_max_24.15_24.25": -36.1
+    }
+  },
+  "port_s11_db": {
+    "24.15": -4.19,
+    "24.20": -4.64,
+    "24.25": -5.15,
+    "band_max_24.15_24.25": -4.19
+  },
+  "simulation": {
+    "excited_port": "RX1",
+    "symmetry_basis": "RX1 spans adjacent, opposed, and diagonal relationships; reciprocity covers reverse pairs",
+    "mesh_method": "translated validated standalone-subarray mesh",
+    "mesh_div": 20.0,
+    "minimum_merged_spacing_mm": 0.0035,
+    "end_criteria": 0.03,
+    "max_timesteps": 100000,
+    "domain": {
+      "substrate_start_mm": [
+        -15.088000000000001,
+        -22.452822064634653,
+        0.0
+      ],
+      "substrate_stop_mm": [
+        15.088000000000001,
+        22.452822064634653,
+        0.254
+      ],
+      "simulation_start_mm": [
+        -18.088,
+        -25.452822064634653,
+        -3.0
+      ],
+      "simulation_stop_mm": [
+        18.088,
+        25.452822064634653,
+        3.254
+      ]
+    }
+  }
+}

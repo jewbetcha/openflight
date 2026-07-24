@@ -1,0 +1,126 @@
+{
+  "architecture": "four_2x2_subarrays_outward_feeds",
+  "pitch_mm": 12.5,
+  "phase_centers": [
+    {
+      "channel": "RX1",
+      "x_mm": -6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 6.25,
+      "y_mm": -6.25,
+      "rotation_deg": 0
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 6.25,
+      "y_mm": 6.25,
+      "rotation_deg": 180
+    }
+  ],
+  "feed_ports": [
+    {
+      "channel": "RX1",
+      "x_mm": -8.988000000000001,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX2",
+      "x_mm": 3.511999999999999,
+      "y_mm": -19.452822064634653
+    },
+    {
+      "channel": "RX3",
+      "x_mm": -3.511999999999999,
+      "y_mm": 19.452822064634653
+    },
+    {
+      "channel": "RX4",
+      "x_mm": 8.988000000000001,
+      "y_mm": 19.452822064634653
+    }
+  ],
+  "minimum_copper_clearance_mm": 0.2,
+  "coupling_db_max": -22.950785261404768,
+  "acceptance": {
+    "geometry": true,
+    "coupling": true,
+    "source_subarray": true,
+    "s11": false,
+    "convergence": false,
+    "overall": false
+  },
+  "coupling_db_by_port": {
+    "RX2": {
+      "24.15": -32.3,
+      "24.20": -32.41,
+      "24.25": -32.55,
+      "band_max_24.15_24.25": -32.3
+    },
+    "RX3": {
+      "24.15": -22.95,
+      "24.20": -23.28,
+      "24.25": -23.67,
+      "band_max_24.15_24.25": -22.95
+    },
+    "RX4": {
+      "24.15": -30.56,
+      "24.20": -31.26,
+      "24.25": -32.02,
+      "band_max_24.15_24.25": -30.56
+    }
+  },
+  "port_s11_db": {
+    "24.15": -9.55,
+    "24.20": -10.53,
+    "24.25": -11.53,
+    "band_max_24.15_24.25": -9.55
+  },
+  "simulation": {
+    "excited_port": "RX1",
+    "symmetry_basis": "RX1 spans adjacent, opposed, and diagonal relationships; reciprocity covers reverse pairs",
+    "mesh_method": "translated validated standalone-subarray mesh",
+    "mesh_div": 20.0,
+    "minimum_merged_spacing_mm": 0.0035,
+    "end_criteria": 0.03,
+    "max_timesteps": 200000,
+    "domain": {
+      "substrate_start_mm": [
+        -15.088000000000001,
+        -22.452822064634653,
+        0.0
+      ],
+      "substrate_stop_mm": [
+        15.088000000000001,
+        22.452822064634653,
+        0.254
+      ],
+      "simulation_start_mm": [
+        -18.088,
+        -25.452822064634653,
+        -3.0
+      ],
+      "simulation_stop_mm": [
+        18.088,
+        25.452822064634653,
+        3.254
+      ]
+    }
+  },
+  "convergence": {
+    "s11_max_delta_db": 6.529999999999998,
+    "coupling_max_delta_db": 9.900000000000002,
+    "max_delta_db": 3.0,
+    "acceptance": false,
+    "reference": "results/grid_direct_142k.json"
+  }
+}

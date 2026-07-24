@@ -1,0 +1,156 @@
+(footprint "ADP150_TSOT23_5"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "ADP150AUJZ (ultralow-noise LDO, per datasheets/extracted/ev-radar-mmic2.md BOM: U4=ADP150AUJZ-3.0 feeds AVDD_PLL, U5=ADP150AUJZ-1.8 feeds DVDD_PLL for ADF4159). Package: 5-Lead TSOT (=SOT-23-5 equivalent thin outline), confirmed via ADI ADP150 datasheet pin configuration search: Pin1=VIN, Pin2=GND, Pin3=EN, Pin4=NC, Pin5=VOUT. Land pattern modeled on KiCad stock Package_TO_SOT_SMD.pretty/TSOT-23-5.kicad_mod (pad 1.325x0.6mm, 0.95mm pitch) - standard SOT-23-5 JEDEC land, no ADI-specific deviation found for this small SOT variant.")
+	(tags "ADP150 LDO TSOT23-5 SOT23-5 regulator")
+	(property "Reference" "REF**"
+		(at 0 -2.65 0)
+		(layer "F.SilkS")
+		(uuid "00000000-0000-0000-0000-000000000001")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "ADP150_TSOT23_5"
+		(at 0 2.65 0)
+		(layer "F.Fab")
+		(uuid "00000000-0000-0000-0000-000000000002")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f415d856-add2-4515-b91a-42c86ba9fee8")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "21ad34f0-4e2f-4018-b955-22276a33f1cb")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -0.95 1.6)
+		(end -0.35 1.6)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "bcd18a82-4029-4c62-ab81-7d3e7f82baff")
+	)
+	(fp_line
+		(start 0.95 1.6)
+		(end 0.35 1.6)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "8b06b630-6f51-4e35-bed5-f5347bec0d19")
+	)
+	(fp_poly
+		(pts
+			(xy -0.95 -1.95) (xy -0.95 -1.6) (xy -1.3 -1.6)
+		)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "9c268109-bf8b-4092-b4c5-d3ca3e17892d")
+	)
+	(fp_rect
+		(start -1.65 -1.7)
+		(end 1.65 1.7)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "ac9d4474-8a43-4717-b445-bc35ebaa2221")
+	)
+	(fp_rect
+		(start -0.8 -1.45)
+		(end 0.8 1.45)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "87767b07-298f-4a76-83bc-73433e3880a1")
+	)
+	(fp_poly
+		(pts
+			(xy -0.8 -1.45) (xy -0.3 -1.45) (xy -0.8 -0.95)
+		)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "41fc7e0e-c3c9-4ebe-9c08-4437536048c7")
+	)
+	(pad "1" smd roundrect
+		(at -1.1375 -0.95)
+		(size 1.325 0.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(uuid "23bc26f0-eadb-42d0-acab-5e7b0fe3a713")
+	)
+	(pad "2" smd roundrect
+		(at -1.1375 0)
+		(size 1.325 0.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(uuid "3e6d475c-c10d-4de7-bc92-8da84298f623")
+	)
+	(pad "3" smd roundrect
+		(at -1.1375 0.95)
+		(size 1.325 0.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(uuid "76607774-1b1a-4f6d-8bc4-bb0ff6f4bcf2")
+	)
+	(pad "4" smd roundrect
+		(at 1.1375 0.95)
+		(size 1.325 0.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(uuid "ba1ae62d-a6c9-4ff9-8a9b-3eeec459121b")
+	)
+	(pad "5" smd roundrect
+		(at 1.1375 -0.95)
+		(size 1.325 0.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(uuid "e91e0d2c-8e0e-4ffc-afc9-c88ae45187a6")
+	)
+	(embedded_fonts no)
+)

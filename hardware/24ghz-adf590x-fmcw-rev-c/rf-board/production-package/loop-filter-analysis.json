@@ -1,0 +1,2002 @@
+{
+  "analysis": "linear_small_signal_charge_pump_pll",
+  "source_topology": "ADI UG-866 Figure 12",
+  "component_values": {
+    "R21_series_ohm": 510.0,
+    "C33_cp_shunt_f": 2.2e-10,
+    "C34_damping_f": 3.3e-09,
+    "R22_damping_ohm": 620.0,
+    "C35_vtune_shunt_f": 4.7e-11,
+    "R23_output_ohm": 0.0
+  },
+  "assumptions": {
+    "pfd_hz": 100000000.0,
+    "feedback_divider": 2,
+    "n_divider": 121.0,
+    "ramp_time_s": 0.00015,
+    "feedback_vco_gain_basis": "ADF5901 Figure 11 estimate over the Rev C band after AUX divide-by-2",
+    "charge_pump_current_basis": "ADF4159 2.5 mA typical example and 4.8 mA RSET maximum",
+    "component_tolerances": {
+      "R21_R22": "+/-1%",
+      "C33_C35": "+/-5%",
+      "C34": "+/-10%"
+    }
+  },
+  "corners": [
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 157707.41881774156,
+      "phase_at_unity_deg": -128.3150914549361,
+      "phase_margin_deg": 51.684908545063905,
+      "unity_gain_cycles_per_ramp": 23.656112822661232
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 157461.83973332235,
+      "phase_at_unity_deg": -128.6037615892142,
+      "phase_margin_deg": 51.3962384107858,
+      "unity_gain_cycles_per_ramp": 23.61927595999835
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 154279.8114962815,
+      "phase_at_unity_deg": -124.10625587789204,
+      "phase_margin_deg": 55.89374412210796,
+      "unity_gain_cycles_per_ramp": 23.14197172444222
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 154060.07565486422,
+      "phase_at_unity_deg": -124.38844177361288,
+      "phase_margin_deg": 55.61155822638712,
+      "unity_gain_cycles_per_ramp": 23.109011348229632
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 156656.56477344583,
+      "phase_at_unity_deg": -129.0445594765681,
+      "phase_margin_deg": 50.95544052343189,
+      "unity_gain_cycles_per_ramp": 23.498484716016872
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 156413.38058047663,
+      "phase_at_unity_deg": -129.32846200554513,
+      "phase_margin_deg": 50.671537994454866,
+      "unity_gain_cycles_per_ramp": 23.46200708707149
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 153348.3841973443,
+      "phase_at_unity_deg": -124.81750257033285,
+      "phase_margin_deg": 55.18249742966715,
+      "unity_gain_cycles_per_ramp": 23.002257629601644
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 153129.89505823562,
+      "phase_at_unity_deg": -125.09548642399973,
+      "phase_margin_deg": 54.90451357600027,
+      "unity_gain_cycles_per_ramp": 22.969484258735342
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 159610.5789044582,
+      "phase_at_unity_deg": -127.81918507484177,
+      "phase_margin_deg": 52.18081492515823,
+      "unity_gain_cycles_per_ramp": 23.94158683566873
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 159356.48775575732,
+      "phase_at_unity_deg": -128.11300497042436,
+      "phase_margin_deg": 51.886995029575644,
+      "unity_gain_cycles_per_ramp": 23.903473163363596
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 156382.33351472995,
+      "phase_at_unity_deg": -123.66820209917108,
+      "phase_margin_deg": 56.33179790082892,
+      "unity_gain_cycles_per_ramp": 23.45735002720949
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 156154.2218787919,
+      "phase_at_unity_deg": -123.95585281695921,
+      "phase_margin_deg": 56.04414718304079,
+      "unity_gain_cycles_per_ramp": 23.42313328181878
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 158525.44492680457,
+      "phase_at_unity_deg": -128.56552346844606,
+      "phase_margin_deg": 51.43447653155394,
+      "unity_gain_cycles_per_ramp": 23.778816739020684
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 158273.82622052127,
+      "phase_at_unity_deg": -128.85437884284514,
+      "phase_margin_deg": 51.145621157154864,
+      "unity_gain_cycles_per_ramp": 23.741073933078187
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 155417.5544405582,
+      "phase_at_unity_deg": -124.39709511260908,
+      "phase_margin_deg": 55.60290488739092,
+      "unity_gain_cycles_per_ramp": 23.312633166083728
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 155190.7098568393,
+      "phase_at_unity_deg": -124.68034543436262,
+      "phase_margin_deg": 55.31965456563738,
+      "unity_gain_cycles_per_ramp": 23.27860647852589
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 157704.90622816174,
+      "phase_at_unity_deg": -128.34070824469666,
+      "phase_margin_deg": 51.65929175530334,
+      "unity_gain_cycles_per_ramp": 23.655735934224257
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 157458.8001050363,
+      "phase_at_unity_deg": -128.63199175812008,
+      "phase_margin_deg": 51.36800824187992,
+      "unity_gain_cycles_per_ramp": 23.618820015755443
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 154277.30140292083,
+      "phase_at_unity_deg": -124.13134820323748,
+      "phase_margin_deg": 55.86865179676252,
+      "unity_gain_cycles_per_ramp": 23.141595210438123
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 154057.03620904635,
+      "phase_at_unity_deg": -124.41610146121089,
+      "phase_margin_deg": 55.583898538789114,
+      "unity_gain_cycles_per_ramp": 23.10855543135695
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 156654.13278603653,
+      "phase_at_unity_deg": -129.06999329801303,
+      "phase_margin_deg": 50.93000670198697,
+      "unity_gain_cycles_per_ramp": 23.498119917905477
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 156410.4384399618,
+      "phase_at_unity_deg": -129.35648970881417,
+      "phase_margin_deg": 50.643510291185834,
+      "unity_gain_cycles_per_ramp": 23.46156576599427
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 153345.94678359246,
+      "phase_at_unity_deg": -124.84243048916952,
+      "phase_margin_deg": 55.157569510830484,
+      "unity_gain_cycles_per_ramp": 23.001892017538868
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 153126.94368843513,
+      "phase_at_unity_deg": -125.12296378196281,
+      "phase_margin_deg": 54.87703621803719,
+      "unity_gain_cycles_per_ramp": 22.969041553265267
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 159607.9288077687,
+      "phase_at_unity_deg": -127.84509999795695,
+      "phase_margin_deg": 52.15490000204305,
+      "unity_gain_cycles_per_ramp": 23.941189321165304
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 159353.28238518882,
+      "phase_at_unity_deg": -128.1415609681908,
+      "phase_margin_deg": 51.85843903180921,
+      "unity_gain_cycles_per_ramp": 23.90299235777832
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 156379.67654830051,
+      "phase_at_unity_deg": -123.69362279000458,
+      "phase_margin_deg": 56.30637720999542,
+      "unity_gain_cycles_per_ramp": 23.456951482245074
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 156151.00520781096,
+      "phase_at_unity_deg": -123.98387145280171,
+      "phase_margin_deg": 56.01612854719829,
+      "unity_gain_cycles_per_ramp": 23.42265078117164
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 158522.88164661478,
+      "phase_at_unity_deg": -128.59124917134133,
+      "phase_margin_deg": 51.40875082865867,
+      "unity_gain_cycles_per_ramp": 23.778432246992214
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 158270.72583950413,
+      "phase_at_unity_deg": -128.8827254506128,
+      "phase_margin_deg": 51.11727454938719,
+      "unity_gain_cycles_per_ramp": 23.740608875925616
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 155414.97662618855,
+      "phase_at_unity_deg": -124.4223455008983,
+      "phase_margin_deg": 55.5776544991017,
+      "unity_gain_cycles_per_ramp": 23.31224649392828
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 155187.5890916746,
+      "phase_at_unity_deg": -124.7081752211723,
+      "phase_margin_deg": 55.2918247788277,
+      "unity_gain_cycles_per_ramp": 23.27813836375119
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 241156.70861422038,
+      "phase_at_unity_deg": -124.07654700662013,
+      "phase_margin_deg": 55.92345299337987,
+      "unity_gain_cycles_per_ramp": 36.173506292133055
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 240619.84456410242,
+      "phase_at_unity_deg": -124.48419095192246,
+      "phase_margin_deg": 55.51580904807754,
+      "unity_gain_cycles_per_ramp": 36.09297668461536
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 239919.8611937828,
+      "phase_at_unity_deg": -120.85977595272645,
+      "phase_margin_deg": 59.14022404727355,
+      "unity_gain_cycles_per_ramp": 35.987979179067416
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 239415.82426768853,
+      "phase_at_unity_deg": -121.26564550820464,
+      "phase_margin_deg": 58.73435449179536,
+      "unity_gain_cycles_per_ramp": 35.91237364015328
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 239008.26075346317,
+      "phase_at_unity_deg": -125.05067560966909,
+      "phase_margin_deg": 54.949324390330915,
+      "unity_gain_cycles_per_ramp": 35.851239113019474
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 238478.0594430371,
+      "phase_at_unity_deg": -125.44938981424895,
+      "phase_margin_deg": 54.550610185751054,
+      "unity_gain_cycles_per_ramp": 35.771708916455566
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 237933.42009826604,
+      "phase_at_unity_deg": -121.83080598908656,
+      "phase_margin_deg": 58.16919401091344,
+      "unity_gain_cycles_per_ramp": 35.690013014739904
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 237433.39249086325,
+      "phase_at_unity_deg": -122.22824785301412,
+      "phase_margin_deg": 57.771752146985875,
+      "unity_gain_cycles_per_ramp": 35.615008873629485
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 244667.26742267457,
+      "phase_at_unity_deg": -123.8959533351058,
+      "phase_margin_deg": 56.1040466648942,
+      "unity_gain_cycles_per_ramp": 36.70009011340118
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 244106.7900410219,
+      "phase_at_unity_deg": -124.31082061476707,
+      "phase_margin_deg": 55.68917938523293,
+      "unity_gain_cycles_per_ramp": 36.61601850615328
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 243655.13990235867,
+      "phase_at_unity_deg": -120.77301338220381,
+      "phase_margin_deg": 59.226986617796186,
+      "unity_gain_cycles_per_ramp": 36.548270985353795
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 243127.1201968933,
+      "phase_at_unity_deg": -121.18656234808941,
+      "phase_margin_deg": 58.81343765191059,
+      "unity_gain_cycles_per_ramp": 36.46906802953399
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 242429.71998909648,
+      "phase_at_unity_deg": -124.89226538118949,
+      "phase_margin_deg": 55.10773461881051,
+      "unity_gain_cycles_per_ramp": 36.36445799836447
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 241876.43686057007,
+      "phase_at_unity_deg": -125.29775719015534,
+      "phase_margin_deg": 54.70224280984466,
+      "unity_gain_cycles_per_ramp": 36.28146552908551
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 241578.95391865246,
+      "phase_at_unity_deg": -121.76770825323221,
+      "phase_margin_deg": 58.232291746767785,
+      "unity_gain_cycles_per_ramp": 36.236843087797865
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 241055.36946032205,
+      "phase_at_unity_deg": -122.17236419316778,
+      "phase_margin_deg": 57.82763580683222,
+      "unity_gain_cycles_per_ramp": 36.158305419048304
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 241147.20068924976,
+      "phase_at_unity_deg": -124.11529419230374,
+      "phase_margin_deg": 55.884705807696264,
+      "unity_gain_cycles_per_ramp": 36.17208010338746
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 240608.38859847042,
+      "phase_at_unity_deg": -124.52679479335322,
+      "phase_margin_deg": 55.47320520664678,
+      "unity_gain_cycles_per_ramp": 36.09125828977056
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 239910.06173102607,
+      "phase_at_unity_deg": -120.89830015036777,
+      "phase_margin_deg": 59.101699849632226,
+      "unity_gain_cycles_per_ramp": 35.98650925965391
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 239404.00830041393,
+      "phase_at_unity_deg": -121.3080068807766,
+      "phase_margin_deg": 58.6919931192234,
+      "unity_gain_cycles_per_ramp": 35.91060124506209
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 238999.16035271465,
+      "phase_at_unity_deg": -125.0890466054996,
+      "phase_margin_deg": 54.910953394500396,
+      "unity_gain_cycles_per_ramp": 35.8498740529072
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 238467.0949681945,
+      "phase_at_unity_deg": -125.4915797148686,
+      "phase_margin_deg": 54.50842028513139,
+      "unity_gain_cycles_per_ramp": 35.77006424522917
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 237924.01444309394,
+      "phase_at_unity_deg": -121.86897716728822,
+      "phase_margin_deg": 58.13102283271178,
+      "unity_gain_cycles_per_ramp": 35.68860216646409
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 237422.05153266856,
+      "phase_at_unity_deg": -122.27021897087073,
+      "phase_margin_deg": 57.72978102912927,
+      "unity_gain_cycles_per_ramp": 35.61330772990028
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 244657.22762109456,
+      "phase_at_unity_deg": -123.93520752319567,
+      "phase_margin_deg": 56.06479247680433,
+      "unity_gain_cycles_per_ramp": 36.69858414316418
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 244094.69886491448,
+      "phase_at_unity_deg": -124.35397231197265,
+      "phase_margin_deg": 55.646027688027345,
+      "unity_gain_cycles_per_ramp": 36.61420482973717
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 243644.777819406,
+      "phase_at_unity_deg": -120.81207517717597,
+      "phase_margin_deg": 59.18792482282403,
+      "unity_gain_cycles_per_ramp": 36.5467166729109
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 243114.6309840094,
+      "phase_at_unity_deg": -121.22950347784686,
+      "phase_margin_deg": 58.77049652215314,
+      "unity_gain_cycles_per_ramp": 36.4671946476014
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 242420.1229170749,
+      "phase_at_unity_deg": -124.93112829257124,
+      "phase_margin_deg": 55.068871707428755,
+      "unity_gain_cycles_per_ramp": 36.36301843756124
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 241864.87843745694,
+      "phase_at_unity_deg": -125.3404774912125,
+      "phase_margin_deg": 54.659522508787504,
+      "unity_gain_cycles_per_ramp": 36.279731765618536
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 241569.0219005814,
+      "phase_at_unity_deg": -121.80640206866583,
+      "phase_margin_deg": 58.19359793133417,
+      "unity_gain_cycles_per_ramp": 36.23535328508721
+    },
+    {
+      "charge_pump_current_ma": 2.5,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 241043.39859856197,
+      "phase_at_unity_deg": -122.21489826748422,
+      "phase_margin_deg": 57.785101732515784,
+      "unity_gain_cycles_per_ramp": 36.156509789784295
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 272483.4825500109,
+      "phase_at_unity_deg": -123.71942057884416,
+      "phase_margin_deg": 56.280579421155835,
+      "unity_gain_cycles_per_ramp": 40.87252238250163
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 271801.80259436317,
+      "phase_at_unity_deg": -124.1674729803625,
+      "phase_margin_deg": 55.832527019637496,
+      "unity_gain_cycles_per_ramp": 40.77027038915447
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 271977.58174509276,
+      "phase_at_unity_deg": -120.83717781562582,
+      "phase_margin_deg": 59.16282218437418,
+      "unity_gain_cycles_per_ramp": 40.79663726176391
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 271329.02341459243,
+      "phase_at_unity_deg": -121.28499599934037,
+      "phase_margin_deg": 58.71500400065963,
+      "unity_gain_cycles_per_ramp": 40.699353512188864
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 269816.35692582576,
+      "phase_at_unity_deg": -124.77175777228558,
+      "phase_margin_deg": 55.22824222771442,
+      "unity_gain_cycles_per_ramp": 40.472453538873864
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 269144.6458110708,
+      "phase_at_unity_deg": -125.20902182985755,
+      "phase_margin_deg": 54.79097817014245,
+      "unity_gain_cycles_per_ramp": 40.37169687166062
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 269480.3977283844,
+      "phase_at_unity_deg": -121.8917735581093,
+      "phase_margin_deg": 58.10822644189069,
+      "unity_gain_cycles_per_ramp": 40.422059659257656
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 268838.5657617498,
+      "phase_at_unity_deg": -122.32923291957704,
+      "phase_margin_deg": 57.67076708042296,
+      "unity_gain_cycles_per_ramp": 40.32578486426247
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 276528.87393661356,
+      "phase_at_unity_deg": -123.64778870160765,
+      "phase_margin_deg": 56.35221129839235,
+      "unity_gain_cycles_per_ramp": 41.47933109049203
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 275815.9954624803,
+      "phase_at_unity_deg": -124.10345263368546,
+      "phase_margin_deg": 55.896547366314536,
+      "unity_gain_cycles_per_ramp": 41.37239931937204
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 276239.36015126185,
+      "phase_at_unity_deg": -120.86113650167762,
+      "phase_margin_deg": 59.13886349832238,
+      "unity_gain_cycles_per_ramp": 41.43590402268927
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 275558.89823482826,
+      "phase_at_unity_deg": -121.31700213802418,
+      "phase_margin_deg": 58.68299786197582,
+      "unity_gain_cycles_per_ramp": 41.33383473522424
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 273745.8252579189,
+      "phase_at_unity_deg": -124.72316092666647,
+      "phase_margin_deg": 55.276839073333534,
+      "unity_gain_cycles_per_ramp": 41.061873788687834
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 273043.8429598269,
+      "phase_at_unity_deg": -125.16748878818119,
+      "phase_margin_deg": 54.83251121181881,
+      "unity_gain_cycles_per_ramp": 40.956576443974036
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 273624.36811889143,
+      "phase_at_unity_deg": -121.94024539236078,
+      "phase_margin_deg": 58.05975460763922,
+      "unity_gain_cycles_per_ramp": 41.04365521783371
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 272951.45710105496,
+      "phase_at_unity_deg": -122.38518005275274,
+      "phase_margin_deg": 57.614819947247256,
+      "unity_gain_cycles_per_ramp": 40.94271856515824
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 272469.76938522037,
+      "phase_at_unity_deg": -123.76293586669047,
+      "phase_margin_deg": 56.23706413330953,
+      "unity_gain_cycles_per_ramp": 40.87046540778305
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 271785.3095272006,
+      "phase_at_unity_deg": -124.21526849498149,
+      "phase_margin_deg": 55.78473150501851,
+      "unity_gain_cycles_per_ramp": 40.767796429080086
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 271963.39385932486,
+      "phase_at_unity_deg": -120.88055806952927,
+      "phase_margin_deg": 59.11944193047073,
+      "unity_gain_cycles_per_ramp": 40.79450907889873
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 271311.9470436842,
+      "phase_at_unity_deg": -121.33264117460786,
+      "phase_margin_deg": 58.66735882539214,
+      "unity_gain_cycles_per_ramp": 40.696792056552624
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 269803.290386919,
+      "phase_at_unity_deg": -124.81480999098625,
+      "phase_margin_deg": 55.18519000901375,
+      "unity_gain_cycles_per_ramp": 40.470493558037845
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 269128.9294215505,
+      "phase_at_unity_deg": -125.25630790436226,
+      "phase_margin_deg": 54.74369209563774,
+      "unity_gain_cycles_per_ramp": 40.36933941323257
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 269466.8447967631,
+      "phase_at_unity_deg": -121.93471533311882,
+      "phase_margin_deg": 58.06528466688118,
+      "unity_gain_cycles_per_ramp": 40.42002671951446
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 268822.2533480301,
+      "phase_at_unity_deg": -122.37639487956443,
+      "phase_margin_deg": 57.62360512043557,
+      "unity_gain_cycles_per_ramp": 40.32333800220451
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 276514.4152395796,
+      "phase_at_unity_deg": -123.69186844100184,
+      "phase_margin_deg": 56.308131558998156,
+      "unity_gain_cycles_per_ramp": 41.47716228593694
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 275798.61394868523,
+      "phase_at_unity_deg": -124.15185344046182,
+      "phase_margin_deg": 55.84814655953818,
+      "unity_gain_cycles_per_ramp": 41.36979209230278
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 276224.3875734081,
+      "phase_at_unity_deg": -120.90510886917534,
+      "phase_margin_deg": 59.094891130824664,
+      "unity_gain_cycles_per_ramp": 41.43365813601121
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 275540.8864231995,
+      "phase_at_unity_deg": -121.36528204661028,
+      "phase_margin_deg": 58.634717953389725,
+      "unity_gain_cycles_per_ramp": 41.331132963479924
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 273732.0692260046,
+      "phase_at_unity_deg": -124.76675890505545,
+      "phase_margin_deg": 55.233241094944546,
+      "unity_gain_cycles_per_ramp": 41.05981038390068
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 273027.30517418496,
+      "phase_at_unity_deg": -125.21536135431586,
+      "phase_margin_deg": 54.78463864568414,
+      "unity_gain_cycles_per_ramp": 40.954095776127744
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 273610.08845748764,
+      "phase_at_unity_deg": -121.98376016397327,
+      "phase_margin_deg": 58.01623983602673,
+      "unity_gain_cycles_per_ramp": 41.04151326862314
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 75.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 272934.27842622483,
+      "phase_at_unity_deg": -122.43295608625694,
+      "phase_margin_deg": 57.56704391374306,
+      "unity_gain_cycles_per_ramp": 40.940141763933724
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 423620.6891509608,
+      "phase_at_unity_deg": -125.84664869334173,
+      "phase_margin_deg": 54.153351306658266,
+      "unity_gain_cycles_per_ramp": 63.54310337264412
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 421948.2312147313,
+      "phase_at_unity_deg": -126.45636615089131,
+      "phase_margin_deg": 53.54363384910869,
+      "unity_gain_cycles_per_ramp": 63.29223468220969
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 425688.76407709776,
+      "phase_at_unity_deg": -124.11814082464163,
+      "phase_margin_deg": 55.88185917535837,
+      "unity_gain_cycles_per_ramp": 63.853314611564656
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 424035.6328071942,
+      "phase_at_unity_deg": -124.73162557856327,
+      "phase_margin_deg": 55.26837442143673,
+      "unity_gain_cycles_per_ramp": 63.60534492107912
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 417599.9925895936,
+      "phase_at_unity_deg": -127.17503498926408,
+      "phase_margin_deg": 52.82496501073592,
+      "unity_gain_cycles_per_ramp": 62.63999888843903
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 415979.5469779578,
+      "phase_at_unity_deg": -127.76420587865285,
+      "phase_margin_deg": 52.235794121347155,
+      "unity_gain_cycles_per_ramp": 62.39693204669367
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 419819.7474812758,
+      "phase_at_unity_deg": -125.46391671262893,
+      "phase_margin_deg": 54.53608328737107,
+      "unity_gain_cycles_per_ramp": 62.97296212219137
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 418213.8504089032,
+      "phase_at_unity_deg": -126.05687405760067,
+      "phase_margin_deg": 53.943125942399334,
+      "unity_gain_cycles_per_ramp": 62.73207756133547
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 429604.8354285092,
+      "phase_at_unity_deg": -126.16690382890465,
+      "phase_margin_deg": 53.83309617109535,
+      "unity_gain_cycles_per_ramp": 64.44072531427638
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 427856.56873015023,
+      "phase_at_unity_deg": -126.78340699205357,
+      "phase_margin_deg": 53.21659300794643,
+      "unity_gain_cycles_per_ramp": 64.17848530952253
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 431806.955001568,
+      "phase_at_unity_deg": -124.51756378988975,
+      "phase_margin_deg": 55.48243621011025,
+      "unity_gain_cycles_per_ramp": 64.7710432502352
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 430075.80315275985,
+      "phase_at_unity_deg": -125.1379823469603,
+      "phase_margin_deg": 54.8620176530397,
+      "unity_gain_cycles_per_ramp": 64.51137047291397
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 423312.0828725009,
+      "phase_at_unity_deg": -127.5143895451663,
+      "phase_margin_deg": 52.485610454833704,
+      "unity_gain_cycles_per_ramp": 63.496812430875124
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 421621.0692744155,
+      "phase_at_unity_deg": -128.10951103000872,
+      "phase_margin_deg": 51.89048896999128,
+      "unity_gain_cycles_per_ramp": 63.24316039116232
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 425657.61494047026,
+      "phase_at_unity_deg": -125.88303479604784,
+      "phase_margin_deg": 54.11696520395216,
+      "unity_gain_cycles_per_ramp": 63.848642241070536
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 0.99,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 423979.0203263411,
+      "phase_at_unity_deg": -126.48205885694084,
+      "phase_margin_deg": 53.51794114305916,
+      "unity_gain_cycles_per_ramp": 63.59685304895116
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 423572.8615207505,
+      "phase_at_unity_deg": -125.91180615534783,
+      "phase_margin_deg": 54.08819384465217,
+      "unity_gain_cycles_per_ramp": 63.53592922811257
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 421891.2335993975,
+      "phase_at_unity_deg": -126.52749666927991,
+      "phase_margin_deg": 53.47250333072009,
+      "unity_gain_cycles_per_ramp": 63.28368503990962
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 425639.22939483175,
+      "phase_at_unity_deg": -124.1833958293263,
+      "phase_margin_deg": 55.8166041706737,
+      "unity_gain_cycles_per_ramp": 63.84588440922476
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 423976.5871775433,
+      "phase_at_unity_deg": -124.80283598167732,
+      "phase_margin_deg": 55.19716401832268,
+      "unity_gain_cycles_per_ramp": 63.596488076631495
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 417555.4142823493,
+      "phase_at_unity_deg": -127.239253080151,
+      "phase_margin_deg": 52.760746919849,
+      "unity_gain_cycles_per_ramp": 62.63331214235239
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 415926.3952864568,
+      "phase_at_unity_deg": -127.83432480288579,
+      "phase_margin_deg": 52.16567519711421,
+      "unity_gain_cycles_per_ramp": 62.388959292968515
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 419773.52068678086,
+      "phase_at_unity_deg": -125.52825553566313,
+      "phase_margin_deg": 54.471744464336865,
+      "unity_gain_cycles_per_ramp": 62.96602810301712
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 0.99,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 418158.7173660638,
+      "phase_at_unity_deg": -126.12709967395739,
+      "phase_margin_deg": 53.87290032604261,
+      "unity_gain_cycles_per_ramp": 62.72380760490957
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 429554.99346460606,
+      "phase_at_unity_deg": -126.23275177698316,
+      "phase_margin_deg": 53.767248223016836,
+      "unity_gain_cycles_per_ramp": 64.4332490196909
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 427797.2147548697,
+      "phase_at_unity_deg": -126.85525506830929,
+      "phase_margin_deg": 53.14474493169071,
+      "unity_gain_cycles_per_ramp": 64.16958221323046
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 431755.35456261435,
+      "phase_at_unity_deg": -124.58352143458856,
+      "phase_margin_deg": 55.41647856541144,
+      "unity_gain_cycles_per_ramp": 64.76330318439214
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 0.95,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 430014.33671966376,
+      "phase_at_unity_deg": -125.20992427752053,
+      "phase_margin_deg": 54.79007572247947,
+      "unity_gain_cycles_per_ramp": 64.50215050794955
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 423265.72290596325,
+      "phase_at_unity_deg": -127.57927173797533,
+      "phase_margin_deg": 52.42072826202467,
+      "unity_gain_cycles_per_ramp": 63.48985843589448
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 0.9,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 421565.83359814185,
+      "phase_at_unity_deg": -128.18032079658374,
+      "phase_margin_deg": 51.81967920341626,
+      "unity_gain_cycles_per_ramp": 63.234875039721274
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 0.95
+      },
+      "unity_gain_hz": 425609.56861592253,
+      "phase_at_unity_deg": -125.94804739622782,
+      "phase_margin_deg": 54.05195260377218,
+      "unity_gain_cycles_per_ramp": 63.841435292388375
+    },
+    {
+      "charge_pump_current_ma": 4.8,
+      "feedback_vco_gain_mhz_per_v": 125.0,
+      "component_tolerance_factors": {
+        "R21": 1.01,
+        "R22": 1.01,
+        "C33": 1.05,
+        "C34": 1.1,
+        "C35": 1.05
+      },
+      "unity_gain_hz": 423921.759588348,
+      "phase_at_unity_deg": -126.55298505813614,
+      "phase_margin_deg": 53.447014941863856,
+      "unity_gain_cycles_per_ramp": 63.58826393825219
+    }
+  ],
+  "worst_case": {
+    "charge_pump_current_ma": 2.5,
+    "feedback_vco_gain_mhz_per_v": 75.0,
+    "component_tolerance_factors": {
+      "R21": 1.01,
+      "R22": 0.99,
+      "C33": 1.05,
+      "C34": 0.9,
+      "C35": 1.05
+    },
+    "unity_gain_hz": 156410.4384399618,
+    "phase_at_unity_deg": -129.35648970881417,
+    "phase_margin_deg": 50.643510291185834,
+    "unity_gain_cycles_per_ramp": 23.46156576599427
+  },
+  "slowest_corner": {
+    "charge_pump_current_ma": 2.5,
+    "feedback_vco_gain_mhz_per_v": 75.0,
+    "component_tolerance_factors": {
+      "R21": 1.01,
+      "R22": 0.99,
+      "C33": 1.05,
+      "C34": 1.1,
+      "C35": 1.05
+    },
+    "unity_gain_hz": 153126.94368843513,
+    "phase_at_unity_deg": -125.12296378196281,
+    "phase_margin_deg": 54.87703621803719,
+    "unity_gain_cycles_per_ramp": 22.969041553265267
+  },
+  "fastest_corner": {
+    "charge_pump_current_ma": 4.8,
+    "feedback_vco_gain_mhz_per_v": 125.0,
+    "component_tolerance_factors": {
+      "R21": 0.99,
+      "R22": 1.01,
+      "C33": 0.95,
+      "C34": 1.1,
+      "C35": 0.95
+    },
+    "unity_gain_hz": 431806.955001568,
+    "phase_at_unity_deg": -124.51756378988975,
+    "phase_margin_deg": 55.48243621011025,
+    "unity_gain_cycles_per_ramp": 64.7710432502352
+  },
+  "acceptance": {
+    "phase_margin_at_least_50_deg": true,
+    "at_least_10_unity_gain_cycles_per_ramp": true,
+    "unity_gain_below_pfd_over_10": true,
+    "overall": true
+  },
+  "limitations": [
+    "This is a linear small-signal model, not ADIsimPLL nonlinear ramp simulation.",
+    "ADF5901 tuning gain is estimated from the datasheet plot; bench chirp linearity remains a bring-up measurement."
+  ]
+}

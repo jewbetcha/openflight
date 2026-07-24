@@ -1,0 +1,1 @@
+PASS: 98 schematic + 16 fixture footprints, 350 pad-net assignments, 4 layers, 82x50 mm outline

@@ -1,0 +1,27 @@
+{
+  "status": "pass",
+  "rf_header_pins_verified": 30,
+  "pi_required_pins_verified": 27,
+  "rf_enable_nets": [
+    "CE_RX",
+    "TX_EN"
+  ],
+  "j2_side": "Bottom",
+  "dnp_references": [
+    "CCN1",
+    "CCN2",
+    "CCN3",
+    "CCN4",
+    "CCP1",
+    "CCP2",
+    "CCP3",
+    "CCP4",
+    "R5"
+  ],
+  "copper_layer_order": [
+    "F.Cu",
+    "In1.Cu",
+    "In2.Cu",
+    "B.Cu"
+  ]
+}
