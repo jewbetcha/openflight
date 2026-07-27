@@ -9,7 +9,6 @@ export function BallPicker() {
   const [newBall, setNewBall] = useState('');
   const { balls, customBalls, selectedBall, addBall, removeBall, selectBall } = useBallStore();
   const connected = useSystemStore((state) => state.connected);
-  const serverBallName = useSystemStore((state) => state.serverBallName);
 
   useEffect(() => {
     if (connected) {
@@ -17,21 +16,13 @@ export function BallPicker() {
     }
   }, [connected, selectedBall]);
 
-  useEffect(() => {
-    if (serverBallName && serverBallName !== selectedBall) {
-      selectBall(serverBallName);
-    }
-  }, [serverBallName, selectedBall, selectBall]);
-
   const handleSelect = (ballName: string) => {
     selectBall(ballName);
-    socketService.setBall(ballName);
     setIsOpen(false);
   };
 
   const handleAdd = () => {
-    const ballName = addBall(newBall);
-    socketService.setBall(ballName);
+    addBall(newBall);
     setNewBall('');
     setIsOpen(false);
   };
@@ -39,7 +30,7 @@ export function BallPicker() {
   const handleRemove = (ballName: string) => {
     removeBall(ballName);
     if (ballName === selectedBall) {
-      socketService.setBall('Unknown Ball');
+      selectBall('Unknown Ball');
     }
   };
 
