@@ -69,6 +69,10 @@ class SocketService {
       useSystemStore.getState().setServerClub(data.club);
     });
 
+    this.socket.on('ball_changed', (data: { ball_name: string }) => {
+      useSystemStore.getState().setServerBallName(data.ball_name);
+    });
+
     this.socket.on(
       'session_state',
       (
@@ -79,6 +83,7 @@ class SocketService {
           camera_enabled?: boolean;
           camera_streaming?: boolean;
           ball_detected?: boolean;
+          ball_name?: string;
         }
       ) => {
         console.log('Session state received:', data);
@@ -91,6 +96,9 @@ class SocketService {
         }
         if (data.debug_mode !== undefined) {
           systemStore.setDebugMode(data.debug_mode);
+        }
+        if (data.ball_name !== undefined) {
+          systemStore.setServerBallName(data.ball_name);
         }
 
         // Update camera status from session state
@@ -157,6 +165,10 @@ class SocketService {
 
   setClub(club: string) {
     this.socket?.emit('set_club', { club });
+  }
+
+  setBall(ballName: string) {
+    this.socket?.emit('set_ball', { ball_name: ballName });
   }
 
   simulateShot() {

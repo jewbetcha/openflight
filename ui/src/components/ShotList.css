@@ -59,6 +59,24 @@
   text-align: center;
 }
 
+.shot-row__ball {
+  max-width: 8rem;
+  min-width: 5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-cream);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .shot-row__stat {
   display: flex;
   flex-direction: column;
@@ -159,6 +177,13 @@
   .shot-row__club {
     font-size: 0.6875rem;
     min-width: 3rem;
+    padding: 2px var(--space-xs);
+  }
+
+  .shot-row__ball {
+    max-width: 5.75rem;
+    min-width: 3.75rem;
+    font-size: 0.625rem;
     padding: 2px var(--space-xs);
   }
 

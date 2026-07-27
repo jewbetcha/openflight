@@ -43,6 +43,13 @@
   font-size: 1.125rem;
 }
 
+.club-picker__value--ball {
+  max-width: 8.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .club-picker__arrow {
   width: 14px;
   height: 14px;
@@ -88,6 +95,10 @@
     0 10px 40px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(212, 175, 55, 0.1);
   animation: dropdown-enter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.club-picker__dropdown--ball {
+  min-width: 360px;
 }
 
 @keyframes dropdown-enter {
@@ -155,6 +166,85 @@
   box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
 }
 
+.club-picker__ball-list {
+  display: grid;
+  gap: var(--space-xs);
+  max-height: min(56vh, 420px);
+  overflow-y: auto;
+  padding-right: var(--space-xs);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.45) transparent;
+}
+
+.club-picker__ball-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.club-picker__ball-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.club-picker__ball-list::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.35);
+  border-radius: var(--radius-sm);
+}
+
+.club-picker__ball-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-xs);
+}
+
+.club-picker__option--ball {
+  min-height: 40px;
+  text-align: left;
+}
+
+.club-picker__remove,
+.club-picker__add {
+  min-height: 40px;
+  padding: 0 var(--space-sm);
+  background: transparent;
+  border: 1px solid rgba(245, 240, 230, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.club-picker__remove:hover,
+.club-picker__add:hover {
+  color: var(--color-gold);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.club-picker__add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.club-picker__input {
+  min-height: 40px;
+  min-width: 0;
+  padding: 0 var(--space-sm);
+  background: rgba(5, 5, 8, 0.45);
+  border: 1px solid rgba(245, 240, 230, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--color-cream);
+  font-size: 0.875rem;
+}
+
+.club-picker__input:focus {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
+}
+
 /* Responsive for 7" screen - bottom sheet style */
 @media (max-width: 800px) {
   .club-picker__dropdown {
@@ -204,5 +294,9 @@
 
   .club-picker__value {
     font-size: 1rem;
+  }
+
+  .club-picker__value--ball {
+    max-width: 6.25rem;
   }
 }

@@ -705,6 +705,7 @@ class TestShotToDict:
         assert result["ball_speed_mph"] == 150.5
         assert result["club_speed_mph"] == 103.2
         assert result["club"] == "driver"
+        assert result["ball_name"] == "Unknown Ball"
         assert result["timestamp"] == "2024-01-15T10:30:00"
         assert "estimated_carry_yards" in result
         assert "carry_range" in result
@@ -793,6 +794,25 @@ class TestShotToDict:
         assert result["spin_phase_agreement_pct"] == 2.1
         assert result["spin_phase_confirmed"] is True
         assert result["spin_rejection_reason"] == "SNR too low (2.96, need 3.0)"
+
+    def test_set_ball_updates_future_shot_payloads(self, monkeypatch):
+        """Selected UI ball should be stamped on subsequent shot payloads."""
+        emitted = []
+        monkeypatch.setattr(server_module, "current_ball_name", "Unknown Ball")
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args))
+        monkeypatch.setattr(server_module, "monitor", SimpleNamespace(get_session_stats=lambda: {}))
+
+        server_module.handle_set_ball({"ball_name": "Titleist Pro V1"})
+        shot = Shot(
+            ball_speed_mph=150.0,
+            timestamp=datetime(2024, 1, 15, 10, 30, 0),
+            club=ClubType.DRIVER,
+        )
+        server_module.on_shot_detected(shot)
+
+        assert server_module.current_ball_name == "Titleist Pro V1"
+        shot_payload = next(payload for name, payload in emitted if name == "shot")
+        assert shot_payload["shot"]["ball_name"] == "Titleist Pro V1"
 
 
 class TestEstimateLaunchAngle:

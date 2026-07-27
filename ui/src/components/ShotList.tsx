@@ -23,6 +23,7 @@ const ShotRow = memo(function ShotRow({ shot, shotNumber, unitSystem, distanceUn
     <div className="shot-row">
       <span className="shot-row__number">#{shotNumber}</span>
       <span className="shot-row__club">{shot.club}</span>
+      <span className="shot-row__ball">{shot.ball_name ?? 'Unknown Ball'}</span>
       <span className="shot-row__stat">
         <span className="shot-row__value">{formatSpeed(shot.ball_speed_mph, unitSystem, 1)}</span>
         <span className="shot-row__label">ball</span>

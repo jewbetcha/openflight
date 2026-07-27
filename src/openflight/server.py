@@ -82,6 +82,7 @@ mock_mode: bool = False
 debug_mode: bool = False
 debug_log_file = None
 debug_log_path: Optional[Path] = None
+current_ball_name: str = "Unknown Ball"
 
 # K-LD7 angle radars (vertical = launch angle, horizontal = club path)
 kld7_vertical = None
@@ -804,6 +805,7 @@ def _kld7_radc_tuning_kwargs(args) -> dict:
 def _session_start_config() -> dict:
     """Return session-start config including experimental K-LD7 provenance."""
     config = radar_config.copy()
+    config["ball_name"] = current_ball_name
     config["kld7_experiments"] = {
         "trackman_calibration_enabled": False,
         "trackman_calibration_model": None,
@@ -837,6 +839,7 @@ def shot_to_dict(shot: Shot) -> dict:
             round(shot.estimated_carry_range[1]),
         ],
         "club": shot.club.value,
+        "ball_name": shot.ball_name,
         "timestamp": shot.timestamp.isoformat(),
         "peak_magnitude": shot.peak_magnitude,
         # Launch angle data
@@ -1502,6 +1505,7 @@ def handle_connect():
                 "camera_enabled": camera_enabled,
                 "camera_streaming": camera_streaming,
                 "ball_detected": ball_detected,
+                "ball_name": current_ball_name,
             },
         )
         socketio.emit("trigger_status", _get_trigger_status())
@@ -1532,6 +1536,17 @@ def handle_set_club(data):
         pass
 
 
+@socketio.on("set_ball")
+def handle_set_ball(data):
+    """Handle active golf ball selection changes."""
+    global current_ball_name  # pylint: disable=global-statement
+
+    raw_name = data.get("ball_name", "Unknown Ball") if isinstance(data, dict) else "Unknown Ball"
+    ball_name = str(raw_name).strip()[:64] or "Unknown Ball"
+    current_ball_name = ball_name
+    socketio.emit("ball_changed", {"ball_name": current_ball_name})
+
+
 @socketio.on("clear_session")
 def handle_clear_session():
     """Clear all recorded shots."""
@@ -1546,7 +1561,10 @@ def handle_get_session():
     if monitor:
         stats = monitor.get_session_stats()
         shots = [shot_to_dict(s) for s in monitor.get_shots()]
-        socketio.emit("session_state", {"stats": stats, "shots": shots})
+        socketio.emit(
+            "session_state",
+            {"stats": stats, "shots": shots, "ball_name": current_ball_name},
+        )
 
 
 @socketio.on("simulate_shot")
@@ -2025,6 +2043,7 @@ def on_shot_detected(shot: Shot):
     """Callback when a shot is detected - emit to all clients."""
     global ball_detected, ball_detection_confidence  # pylint: disable=global-statement
 
+    shot.ball_name = current_ball_name
     logger.info("[SERVER] Shot callback: %.1f mph", shot.ball_speed_mph)
 
     iwr6843_ms = _process_iwr6843_angle(shot)
@@ -2452,6 +2471,7 @@ def on_shot_detected(shot: Shot):
                 club_path_deg=shot.club_path_deg,
                 spin_axis_deg=shot.spin_axis_deg,
                 impact_timestamp=shot.impact_timestamp,
+                ball_name=shot.ball_name,
                 pipeline_ms={
                     "iwr6843": (round(iwr6843_ms, 1) if iwr6843_ms is not None else None),
                     "kld7": round(kld7_ms, 1) if kld7_ms is not None else None,

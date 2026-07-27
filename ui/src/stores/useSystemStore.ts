@@ -8,12 +8,14 @@ interface SystemState {
   simStatuses: Record<string, SimStatus>;
   latestSimShots: Record<string, SimShotInfo>;
   serverClub: string | null;
+  serverBallName: string | null;
   setConnected: (connected: boolean) => void;
   setMockMode: (mockMode: boolean) => void;
   setDebugMode: (debugMode: boolean) => void;
   setSimStatus: (status: SimStatus) => void;
   setLatestSimShot: (shot: SimShotInfo) => void;
   setServerClub: (club: string | null) => void;
+  setServerBallName: (ballName: string | null) => void;
 }
 
 export const useSystemStore = create<SystemState>((set) => ({
@@ -23,6 +25,7 @@ export const useSystemStore = create<SystemState>((set) => ({
   simStatuses: {},
   latestSimShots: {},
   serverClub: null,
+  serverBallName: null,
   setConnected: (connected) => set({ connected }),
   setMockMode: (mockMode) => set({ mockMode }),
   setDebugMode: (debugMode) => set({ debugMode }),
@@ -35,4 +38,5 @@ export const useSystemStore = create<SystemState>((set) => ({
       latestSimShots: { ...state.latestSimShots, [shot.target]: shot },
     })),
   setServerClub: (serverClub) => set({ serverClub }),
+  setServerBallName: (serverBallName) => set({ serverBallName }),
 }));

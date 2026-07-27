@@ -16,6 +16,7 @@ import { SimStatus } from './components/SimStatus';
 import { SimShotBadges } from './components/SimShotBadges';
 import { ClubPicker } from './components/ClubPicker';
 import { ClubSelectScreen } from './components/ClubSelectScreen';
+import { BallPicker } from './components/BallPicker';
 import { BallDetectionIndicator } from './components/BallDetectionIndicator';
 import { DisplayMode } from './components/DisplayMode';
 import {
@@ -188,6 +189,7 @@ function AppContent() {
               KMH/M
             </button>
           </div>
+          <BallPicker />
           <ClubPicker selectedClub={selectedClub} onClubChange={handleClubChange} />
           <BallDetectionIndicator
             available={cameraStatus.available}

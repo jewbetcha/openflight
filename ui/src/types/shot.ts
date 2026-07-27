@@ -7,6 +7,7 @@ export interface Shot {
   estimated_carry_yards: number;
   carry_range: [number, number];
   club: string;
+  ball_name?: string;
   timestamp: string;
   peak_magnitude: number | null;
   // Launch angle data (from K-LD7 radar (deprecated), camera, or estimation)

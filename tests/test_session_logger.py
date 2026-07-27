@@ -243,12 +243,14 @@ class TestLogShot:
             launch_angle_vertical_source="radar",
             launch_angle_horizontal_source="estimated",
             impact_timestamp=1234567890.25,
+            ball_name="Titleist Pro V1",
         )
 
         lines = logger.session_path.read_text().strip().split("\n")
         entry = json.loads(lines[-1])
 
         assert entry["type"] == "shot_detected"
+        assert entry["ball_name"] == "Titleist Pro V1"
         assert entry["spin_rpm"] is None
         assert entry["spin_snr"] == 2.96
         assert entry["spin_candidate_rpm"] == 5713
