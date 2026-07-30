@@ -168,3 +168,108 @@ class TestSimulate:
     def test_total_distance_includes_rollout(self):
         traj = simulate(_driver())
         assert traj.total_yards > traj.carry_yards
+
+
+class TestAirDensityAtAltitude:
+    """Tests for the ISA air density function."""
+
+    def test_sea_level_matches_standard(self):
+        """At 0 m altitude should return standard sea-level density."""
+        from openflight.ballistics import AIR_DENSITY_STD, air_density_at_altitude
+
+        assert air_density_at_altitude(0) == pytest.approx(AIR_DENSITY_STD, rel=1e-3)
+
+    def test_density_decreases_with_altitude(self):
+        """Higher altitude should produce lower air density."""
+        from openflight.ballistics import air_density_at_altitude
+
+        assert air_density_at_altitude(1000) < air_density_at_altitude(0)
+        assert air_density_at_altitude(2000) < air_density_at_altitude(1000)
+
+    def test_denver_altitude(self):
+        """Denver (~1609 m / 5280 ft) should be ~83% of sea-level density."""
+        from openflight.ballistics import AIR_DENSITY_STD, air_density_at_altitude
+
+        denver = air_density_at_altitude(1609)
+        ratio = denver / AIR_DENSITY_STD
+        assert 0.84 <= ratio <= 0.87
+
+    def test_high_altitude_course(self):
+        """Leadville, CO (~3094 m / 10,152 ft) should be ~70% of sea level."""
+        from openflight.ballistics import AIR_DENSITY_STD, air_density_at_altitude
+
+        leadville = air_density_at_altitude(3094)
+        ratio = leadville / AIR_DENSITY_STD
+        assert 0.72 <= ratio <= 0.75
+
+    def test_negative_altitude_clamped_to_sea_level(self):
+        """Below sea level (e.g. Dead Sea) should return sea-level density."""
+        from openflight.ballistics import air_density_at_altitude
+
+        assert air_density_at_altitude(-100) == pytest.approx(air_density_at_altitude(0), rel=1e-6)
+
+    def test_returns_float(self):
+        from openflight.ballistics import air_density_at_altitude
+
+        assert isinstance(air_density_at_altitude(1000), float)
+
+
+class TestSimulateAltitude:
+    """Tests for altitude_m parameter on simulate()."""
+
+    def _conditions(self):
+        from openflight.ballistics import LaunchConditions
+
+        return LaunchConditions(
+            ball_speed_mph=150.0,
+            launch_angle_v=12.0,
+            launch_angle_h=0.0,
+            spin_rpm=2700,
+            spin_axis_deg=0.0,
+            spin_source="club_typical",
+        )
+
+    def test_altitude_increases_carry(self):
+        """Higher altitude should produce longer carry due to thinner air."""
+        from openflight.ballistics import simulate
+
+        sea_level = simulate(self._conditions(), altitude_m=0)
+        denver = simulate(self._conditions(), altitude_m=1609)
+        assert denver.carry_yards > sea_level.carry_yards
+
+    def test_high_altitude_carry_significantly_longer(self):
+        """At 2000m carry should be meaningfully longer than sea level."""
+        from openflight.ballistics import simulate
+
+        sea_level = simulate(self._conditions(), altitude_m=0)
+        high = simulate(self._conditions(), altitude_m=2000)
+        # Expect at least 5% more carry at 2000m
+        assert high.carry_yards > sea_level.carry_yards * 1.03
+
+    def test_altitude_overrides_air_density(self):
+        """altitude_m should override explicit air_density argument."""
+        from openflight.ballistics import AIR_DENSITY_STD, air_density_at_altitude, simulate
+
+        result_via_altitude = simulate(
+            self._conditions(), air_density=AIR_DENSITY_STD, altitude_m=1609
+        )
+        result_via_density = simulate(self._conditions(), air_density=air_density_at_altitude(1609))
+        assert result_via_altitude.carry_yards == pytest.approx(
+            result_via_density.carry_yards, rel=1e-6
+        )
+
+    def test_zero_altitude_matches_default(self):
+        """altitude_m=0 should match the default sea-level simulation."""
+        from openflight.ballistics import simulate
+
+        default = simulate(self._conditions())
+        explicit = simulate(self._conditions(), altitude_m=0)
+        assert explicit.carry_yards == pytest.approx(default.carry_yards, rel=1e-3)
+
+    def test_none_altitude_uses_air_density_param(self):
+        """altitude_m=None should leave air_density param untouched."""
+        from openflight.ballistics import AIR_DENSITY_STD, simulate
+
+        default = simulate(self._conditions())
+        explicit = simulate(self._conditions(), altitude_m=None, air_density=AIR_DENSITY_STD)
+        assert explicit.carry_yards == pytest.approx(default.carry_yards, rel=1e-6)
