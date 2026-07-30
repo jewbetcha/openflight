@@ -30,6 +30,7 @@ export interface RadarConfig {
   max_speed: number;
   min_magnitude: number;
   transmit_power: number;
+  altitude_m: number;
 }
 
 export interface DebugShotLog {

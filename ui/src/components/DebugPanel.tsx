@@ -50,6 +50,81 @@ function formatTime(timestamp: string): string {
   });
 }
 
+
+const FT_PER_M = 3.28084;
+
+function AltitudeControl({
+  altitudeM,
+  onChange,
+}: {
+  altitudeM: number;
+  onChange: (metres: number) => void;
+}) {
+  const [useFeet, setUseFeet] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [localM, setLocalM] = useState(altitudeM);
+  const [prevM, setPrevM] = useState(altitudeM);
+
+  if (prevM !== altitudeM) {
+    setPrevM(altitudeM);
+    if (!dragging) setLocalM(altitudeM);
+  }
+
+  const displayValue = useFeet ? Math.round(localM * FT_PER_M) : localM;
+  const maxDisplay = useFeet ? 14764 : 4500; // 4500m ≈ 14,764 ft
+  const stepDisplay = useFeet ? 100 : 50;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDragging(true);
+    const raw = parseInt(e.target.value, 10);
+    setLocalM(useFeet ? Math.round(raw / FT_PER_M) : raw);
+  };
+
+  const handleRelease = () => {
+    setDragging(false);
+    if (localM !== altitudeM) onChange(localM);
+  };
+
+  const toggleUnit = () => setUseFeet((f) => !f);
+
+  return (
+    <div className="slider-control">
+      <div className="slider-control__header">
+        <span className="slider-control__label">Altitude</span>
+        <span className="slider-control__value">
+          {displayValue}
+          <button
+            onClick={toggleUnit}
+            style={{
+              marginLeft: '6px',
+              fontSize: '0.75em',
+              padding: '1px 5px',
+              cursor: 'pointer',
+              borderRadius: '3px',
+              border: '1px solid currentColor',
+              background: 'transparent',
+              color: 'inherit',
+            }}
+          >
+            {useFeet ? 'ft' : 'm'}
+          </button>
+        </span>
+      </div>
+      <input
+        type="range"
+        className="slider-control__input"
+        min={0}
+        max={maxDisplay}
+        step={stepDisplay}
+        value={displayValue}
+        onChange={handleChange}
+        onMouseUp={handleRelease}
+        onTouchEnd={handleRelease}
+      />
+    </div>
+  );
+}
+
 interface SliderControlProps {
   label: string;
   value: number;
@@ -387,8 +462,12 @@ export function DebugPanel({
                 disabled={mockMode}
                 onChange={(v) => onUpdateConfig({ transmit_power: v })}
               />
+                <AltitudeControl
+                  altitudeM={radarConfig.altitude_m}
+                  onChange={(m) => onUpdateConfig({ altitude_m: m })}
+                />
             </div>
-            <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range</p>
+            <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range. Altitude: metres above sea level (affects carry distance).</p>
           </div>
         )}
       </div>
