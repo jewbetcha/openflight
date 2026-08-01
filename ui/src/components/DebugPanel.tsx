@@ -50,16 +50,9 @@ function formatTime(timestamp: string): string {
   });
 }
 
-
 const FT_PER_M = 3.28084;
 
-function AltitudeControl({
-  altitudeM,
-  onChange,
-}: {
-  altitudeM: number;
-  onChange: (metres: number) => void;
-}) {
+function AltitudeControl({ altitudeM, onChange }: { altitudeM: number; onChange: (metres: number) => void }) {
   const [useFeet, setUseFeet] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [localM, setLocalM] = useState(altitudeM);
@@ -462,12 +455,11 @@ export function DebugPanel({
                 disabled={mockMode}
                 onChange={(v) => onUpdateConfig({ transmit_power: v })}
               />
-                <AltitudeControl
-                  altitudeM={radarConfig.altitude_m}
-                  onChange={(m) => onUpdateConfig({ altitude_m: m })}
-                />
+              <AltitudeControl altitudeM={radarConfig.altitude_m} onChange={(m) => onUpdateConfig({ altitude_m: m })} />
             </div>
-            <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range. Altitude: metres above sea level (affects carry distance).</p>
+            <p className="debug-panel__hint">
+              TX Power: 0 = max range, 7 = min range. Altitude: metres above sea level (affects carry distance).
+            </p>
           </div>
         )}
       </div>
