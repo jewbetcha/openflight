@@ -4,6 +4,7 @@ Contract (firmware <-> Pi), little-endian:
   header (20 B): magic 'ILD1', u16 version, u16 n_frames, u16 chirps_per_frame,
                  u8 n_tx, u8 n_rx, u16 n_samples, u8 sample_fmt (0=int16 I/Q),
                  u8 pad, u16 trigger_frame, u16 pad2
+  header extension (v5+ only, 24 B): device-time + temperature report
   payload: per frame, per chirp, per rx: n_samples x (int16 Q, int16 I)
   (TI ADCBUF native complex order is IMAG-first ["ImRe"] -- VERIFIED ON HW
   2026-07-12: parsing Re-first put the ceiling/hand at negative range bins)
@@ -13,8 +14,8 @@ loop = c // n_tx. The rotated-board elevation virtual array is
 [tx0.rx0..rx(nrx-1), tx1.rx0..] = n_tx*n_rx lambda/2 elements.
 
 Current firmware stores windowed complex range-FFT snapshots. Earlier dump
-versions remain parseable so recorded sessions can still be replayed, but only
-the version 4 windowed format is produced by the supported firmware release.
+versions remain parseable so recorded sessions can still be replayed, and the
+supported firmware may append a v5 temperature report after the fixed header.
 """
 
 from __future__ import annotations
@@ -27,6 +28,22 @@ from openflight.iwr6843.music import est_music_fbss, steer
 
 MAGIC = b"ILD1"
 HEADER = struct.Struct("<4sHHHBBHBBHH")
+TEMP_REPORT = struct.Struct("<Ihhhhhhhhhh")
+MAX_SUPPORTED_DUMP_VERSION = 5
+# TI mmWaveLink rlRfTempData_t temperature fields are signed, 1 LSB = 1 deg C.
+TEMP_REPORT_KEYS = (
+    "device_time_ms",
+    "rx0_c",
+    "rx1_c",
+    "rx2_c",
+    "rx3_c",
+    "tx0_c",
+    "tx1_c",
+    "tx2_c",
+    "pm_c",
+    "dig0_c",
+    "dig1_c",
+)
 SAMPLE_INT16_IQ = 0
 SAMPLE_RANGE_FFT_IQ16 = 1
 SAMPLE_RANGE_FFT_IQ16_WINDOWED = 2
@@ -42,6 +59,7 @@ def pack_dump(
     sample_fmt: int = SAMPLE_INT16_IQ,
     range_bin_start: int = 0,
     range_bin_starts: tuple[int, ...] | list[int] | None = None,
+    temperature_report: dict[str, int] | None = None,
 ) -> bytes:
     """Complex cube [n_frames, chirps_per_frame, n_rx, n_samples] -> dump bytes.
 
@@ -55,6 +73,18 @@ def pack_dump(
         SAMPLE_RANGE_FFT_IQ16_WINDOWED,
     ):
         raise ValueError(f"unsupported sample_fmt {sample_fmt}")
+    temp_prefix = b""
+    if temperature_report is not None:
+        if version < 5:
+            raise ValueError("temperature reports require dump version 5+")
+        try:
+            temp_values = tuple(int(temperature_report[key]) for key in TEMP_REPORT_KEYS)
+        except KeyError as exc:  # pragma: no cover - defensive validation
+            missing = exc.args[0]
+            raise ValueError(f"temperature report missing {missing!r}") from exc
+        temp_prefix = TEMP_REPORT.pack(*temp_values)
+    elif version >= 5:
+        raise ValueError("dump version 5+ requires a temperature report")
     frame_prefix = b""
     if sample_fmt == SAMPLE_RANGE_FFT_IQ16_WINDOWED:
         if version < 4:
@@ -82,23 +112,37 @@ def pack_dump(
     iq = np.empty(flat.size * 2, dtype="<i2")
     iq[0::2] = np.clip(np.round(flat.imag), -32768, 32767).astype("<i2")  # Im first (TI ImRe)
     iq[1::2] = np.clip(np.round(flat.real), -32768, 32767).astype("<i2")
-    return hdr + frame_prefix + iq.tobytes()
+    return hdr + temp_prefix + frame_prefix + iq.tobytes()
 
 
 def parse_header(raw: bytes) -> dict:
-    """Unpack just the 20-byte header -> meta dict (validates magic + format).
+    """Unpack the fixed header and optional v5 temperature extension.
 
     Lets the runtime size the burst before the full payload has arrived.
     """
+    if len(raw) < HEADER.size:
+        raise ValueError(f"short header: {len(raw)} bytes < {HEADER.size} needed")
     (magic, ver, nf, cpf, ntx, nrx, ns, fmt, _pad, trig, period_us) = HEADER.unpack_from(raw, 0)
     if magic != MAGIC:
         raise ValueError(f"bad magic {magic!r} (expected {MAGIC!r})")
+    if ver > MAX_SUPPORTED_DUMP_VERSION:
+        raise ValueError(
+            f"unsupported dump version {ver}; max supported is {MAX_SUPPORTED_DUMP_VERSION}"
+        )
     if fmt not in (
         SAMPLE_INT16_IQ,
         SAMPLE_RANGE_FFT_IQ16,
         SAMPLE_RANGE_FFT_IQ16_WINDOWED,
     ):
         raise ValueError(f"unsupported sample_fmt {fmt}")
+    header_nbytes = HEADER.size
+    temperature_report = None
+    if ver >= 5:
+        if len(raw) < HEADER.size + TEMP_REPORT.size:
+            raise ValueError("short temperature report extension")
+        temp = TEMP_REPORT.unpack_from(raw, HEADER.size)
+        temperature_report = dict(zip(TEMP_REPORT_KEYS, temp, strict=True))
+        header_nbytes += TEMP_REPORT.size
     return dict(
         version=ver,
         n_frames=nf,
@@ -111,6 +155,8 @@ def parse_header(raw: bytes) -> dict:
         sample_fmt=fmt,
         range_bin_start=_pad if fmt == SAMPLE_RANGE_FFT_IQ16 else 0,
         frame_metadata_nbytes=nf if fmt == SAMPLE_RANGE_FFT_IQ16_WINDOWED else 0,
+        header_nbytes=header_nbytes,
+        temperature_report=temperature_report,
     )
 
 
@@ -124,12 +170,18 @@ def parse_dump(raw: bytes):
     """Dump bytes -> (meta dict, complex cube [n_frames, cpf, n_rx, n_samples])."""
     meta = parse_header(raw)
     nf, cpf, nrx, ns = (meta["n_frames"], meta["chirps_per_frame"], meta["n_rx"], meta["n_samples"])
-    payload_offset = HEADER.size + meta.get("frame_metadata_nbytes", 0)
+    payload_offset = meta["header_nbytes"] + meta.get("frame_metadata_nbytes", 0)
     if meta["sample_fmt"] == SAMPLE_RANGE_FFT_IQ16_WINDOWED:
         if len(raw) < payload_offset:
             raise ValueError("short per-frame range-window table")
-        meta["range_bin_starts"] = tuple(raw[HEADER.size : payload_offset])
+        meta["range_bin_starts"] = tuple(raw[meta["header_nbytes"] : payload_offset])
     n = nf * cpf * nrx * ns
+    expected_payload_nbytes = n * 4
+    actual_payload_nbytes = len(raw) - payload_offset
+    if actual_payload_nbytes < expected_payload_nbytes:
+        raise ValueError(
+            f"short payload: {actual_payload_nbytes} bytes < {expected_payload_nbytes} needed"
+        )
     body = np.frombuffer(raw, dtype="<i2", offset=payload_offset, count=2 * n)
     if body.size < 2 * n:
         raise ValueError(f"short payload: {body.size} i16 < {2 * n} needed")
@@ -182,6 +234,7 @@ def project_tx_pair(raw: bytes, tx_indices: tuple[int, int] = (0, 1)) -> bytes:
         sample_fmt=meta.get("sample_fmt", SAMPLE_INT16_IQ),
         range_bin_start=meta.get("range_bin_start", 0),
         range_bin_starts=meta.get("range_bin_starts"),
+        temperature_report=meta.get("temperature_report"),
     )
 
 

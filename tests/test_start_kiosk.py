@@ -1,10 +1,24 @@
 """Tests for the kiosk entry script flag wiring."""
 
+import shutil
 import subprocess
+from pathlib import Path
+
+import pytest
+
+# The contract under test is the bash script's flag forwarding; without a
+# POSIX shell there is nothing to exercise. With one present (e.g. Git Bash
+# on Windows) --dry-run works everywhere.
+pytestmark = pytest.mark.skipif(
+    shutil.which("bash") is None, reason="start-kiosk.sh contract tests need bash"
+)
 
 
 def _dry_run(*args: str, check: bool = True):
-    repo_root = __file__.rsplit("/tests/", 1)[0]
+    # pathlib, not string-splitting on "/tests/": __file__ uses backslashes
+    # on Windows, which made repo_root the test file itself (cwd=<file> ->
+    # NotADirectoryError in CreateProcess).
+    repo_root = Path(__file__).resolve().parents[1]
     return subprocess.run(
         ["bash", "scripts/start-kiosk.sh", *args, "--dry-run"],
         cwd=repo_root,

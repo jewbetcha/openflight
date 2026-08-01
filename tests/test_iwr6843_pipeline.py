@@ -15,8 +15,11 @@ import pytest
 from openflight.iwr6843 import Calibration, estimate_lcmf_v1, lcmf, process_dump
 from openflight.iwr6843.dump import (
     HEADER,
+    MAGIC,
+    MAX_SUPPORTED_DUMP_VERSION,
     SAMPLE_RANGE_FFT_IQ16,
     SAMPLE_RANGE_FFT_IQ16_WINDOWED,
+    TEMP_REPORT_KEYS,
     pack_dump,
     parse_dump,
     parse_header,
@@ -171,6 +174,61 @@ def test_header_carries_period_and_trigger():
     assert geo.n_loops == 16
 
 
+def test_parse_header_rejects_future_dump_version():
+    raw = synth_shot()
+    future = bytearray(raw[:HEADER.size])
+    future[4:6] = int(MAX_SUPPORTED_DUMP_VERSION + 1).to_bytes(2, "little")
+
+    with pytest.raises(ValueError, match="unsupported dump version"):
+        parse_header(bytes(future))
+
+
+def test_parse_header_rejects_short_temperature_extension():
+    raw = synth_shot()
+    v5_header_only = bytearray(raw[:HEADER.size])
+    v5_header_only[4:6] = int(MAX_SUPPORTED_DUMP_VERSION).to_bytes(2, "little")
+
+    with pytest.raises(ValueError, match="short temperature report extension"):
+        parse_header(bytes(v5_header_only))
+
+
+def test_pack_dump_rejects_temperature_version_mismatches():
+    cube = np.zeros((2, 4, 4, 8), dtype=complex)
+    report = {key: index for index, key in enumerate(TEMP_REPORT_KEYS)}
+
+    with pytest.raises(ValueError, match="temperature reports require dump version 5"):
+        pack_dump(cube, n_tx=2, version=4, temperature_report=report)
+
+    with pytest.raises(ValueError, match="dump version 5\\+ requires a temperature report"):
+        pack_dump(cube, n_tx=2, version=5)
+
+
+def test_parse_dump_rejects_short_window_table():
+    header = HEADER.pack(
+        MAGIC,
+        4,
+        4,
+        6,
+        3,
+        4,
+        53,
+        SAMPLE_RANGE_FFT_IQ16_WINDOWED,
+        0,
+        0,
+        4000,
+    )
+
+    with pytest.raises(ValueError, match="short per-frame range-window table"):
+        parse_dump(header + b"\x14\x14")
+
+
+def test_parse_dump_rejects_truncated_payload():
+    raw = synth_shot()
+
+    with pytest.raises(ValueError, match="short payload"):
+        parse_dump(raw[:-1])
+
+
 def test_recovers_speed_and_launch_angle(cal):
     truth_v, truth_la = 45.0, 18.0
     raw = synth_shot(speed_ms=truth_v, launch_deg=truth_la)
@@ -231,6 +289,35 @@ def test_windowed_snapshot_round_trip_and_size():
     assert len(snapshot) == HEADER.size + payload_nbytes(header)
     assert cube.shape == (12, 20, 4, 53)
     assert tuple(meta["range_bin_starts"][(3 + index) % 12] for index in range(12)) == starts
+
+
+def test_windowed_snapshot_temperature_report_round_trip_and_projection():
+    rng = np.random.default_rng(24)
+    starts = (20, 20, 32, 32)
+    cube = rng.standard_normal((4, 6, 4, 53)) + 1j * rng.standard_normal((4, 6, 4, 53))
+    report = {key: index + 100 for index, key in enumerate(TEMP_REPORT_KEYS)}
+    raw = pack_dump(
+        cube,
+        n_tx=3,
+        trigger_frame=1,
+        version=5,
+        frame_period_us=4000,
+        sample_fmt=SAMPLE_RANGE_FFT_IQ16_WINDOWED,
+        range_bin_starts=starts,
+        temperature_report=report,
+    )
+
+    header = parse_header(raw)
+    meta, parsed = parse_dump(raw)
+    projected_meta, projected = parse_dump(project_tx_pair(raw, (0, 2)))
+
+    assert header["temperature_report"] == report
+    assert header["header_nbytes"] == HEADER.size + 24
+    assert meta["range_bin_starts"] == starts
+    assert parsed.shape == cube.shape
+    assert projected_meta["temperature_report"] == report
+    assert projected_meta["range_bin_starts"] == starts
+    assert projected.shape == (4, 4, 4, 53)
 
 
 def test_windowed_snapshot_recovers_speed_and_launch_angle(cal):

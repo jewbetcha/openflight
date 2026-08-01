@@ -113,7 +113,11 @@ def test_production_build_uses_balanced_geometry_and_single_release():
     assert "--define=SNAPSHOT_MIDDLE_BIN_START=32" in target
     assert "--define=SNAPSHOT_LATE_BIN_START=47" in target
     assert "--define=SNAPSHOT_BINS=53" in target
-    assert "RELEASE_NAME ?= l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_v2.bin" in source
+    assert (
+        "RELEASE_NAME ?= "
+        "l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin"
+        in source
+    )
     assert '"$(RELEASE_DIR)/$(RELEASE_NAME)"' in target
     assert source.count("\nbuild-native:") == 1
 

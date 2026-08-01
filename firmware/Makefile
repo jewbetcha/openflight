@@ -8,7 +8,7 @@ SYSCONFIG_INSTALL_PATH ?= $(TI_ROOT)/sysconfig
 XWR68XX_RADARSS_IMAGE_BIN ?= $(TI_ROOT)/sdk/mmwave_sdk_03_06_02_00-LTS/firmware/radarss/xwr6xxx_radarss_rprc.bin
 FIRMWARE_DIR ?= iwr6843
 RELEASE_DIR ?= releases
-RELEASE_NAME ?= l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_v2.bin
+RELEASE_NAME ?= l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin
 
 SDK_INSTALLER := $(INSTALLER_DIR)/mmwave_sdk_03_06_02_00-LTS-Linux-x86-Install.bin
 R4F_INSTALLER := $(INSTALLER_DIR)/ti_cgt_tms470_20.2.7.LTS_linux-x64_installer.bin

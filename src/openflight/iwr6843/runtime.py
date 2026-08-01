@@ -59,7 +59,7 @@ class IWR6843Runtime:
             club=club,
             net_range_m=self.net_range_m,
             tx_order=self.tx_order,
-            tdm_sign_policy="positive",
+            tdm_sign_policy=self.tdm_sign_policy,
         )
         club_path = None
         # No OPS club speed means no identity gate to distinguish the club

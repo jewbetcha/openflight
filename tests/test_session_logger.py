@@ -474,6 +474,19 @@ class TestLogIWR6843Capture:
             "launch_angle_deg": 17.4,
             "components_deg": {"channel_two8_deg": 14.1},
         }
+        temperature_report = {
+            "device_time_ms": 123456,
+            "rx0_c": 42,
+            "rx1_c": 43,
+            "rx2_c": 44,
+            "rx3_c": 45,
+            "tx0_c": 46,
+            "tx1_c": 47,
+            "tx2_c": 48,
+            "pm_c": 49,
+            "dig0_c": 50,
+            "dig1_c": 51,
+        }
 
         logger.log_iwr6843_capture(
             shot_number=2,
@@ -485,6 +498,7 @@ class TestLogIWR6843Capture:
             capture_error=None,
             ball_speed_mph=101.2,
             measurement=measurement,
+            temperature_report=temperature_report,
         )
 
         entry = json.loads(logger.session_path.read_text().strip().split("\n")[-1])
@@ -494,6 +508,7 @@ class TestLogIWR6843Capture:
         assert entry["capture_bytes"] == 786452
         assert entry["ball_speed_source"] == "ops243"
         assert entry["measurement"] == measurement
+        assert entry["temperature_report"] == temperature_report
 
     def test_iwr6843_capture_logs_club_path(self, tmp_path):
         """Club path evidence must be replayable from the session log alone."""
@@ -505,7 +520,7 @@ class TestLogIWR6843Capture:
             shot_timestamp=100.0,
             trigger_timestamp=100.002,
             capture_path="/tmp/x.l3dump",
-            capture_bytes=549542,
+            capture_bytes=549566,
             dump_duration_s=5.33,
             capture_error=None,
             ball_speed_mph=94.5,
@@ -517,6 +532,7 @@ class TestLogIWR6843Capture:
         assert entry["type"] == "iwr6843_capture"
         assert entry["club_path"]["path_deg"] == 2.4
         assert entry["measurement"]["track_span_s"] == 0.0334
+        assert entry["temperature_report"] is None
 
     def test_iwr6843_capture_club_path_defaults_to_none(self, tmp_path):
         logger = SessionLogger(log_dir=tmp_path, enabled=True)

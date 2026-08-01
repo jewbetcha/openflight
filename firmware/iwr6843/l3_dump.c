@@ -1034,7 +1034,7 @@ static void l3_hwaRearmTask(UArg arg0, UArg arg1)
 }
 #endif
 
-/* Fill the 20-byte dump header (dump_format.h / iwr6843_l3dump.HEADER). */
+/* Fill the 20-byte fixed dump header (dump_format.h / iwr6843_l3dump.HEADER). */
 static void l3_fill_header(l3_dump_header_t *h, uint16_t n_frames,
                            uint16_t trigger_frame)
 {
@@ -1061,6 +1061,31 @@ static void l3_fill_header(l3_dump_header_t *h, uint16_t n_frames,
 #endif
     h->trigger_frame    = trigger_frame;
     h->frame_period_us  = gFramePeriodUs;
+}
+
+static int32_t l3_readTemperatureReport(l3_temperature_report_t *report)
+{
+    rlRfTempData_t tempData;
+    int32_t errCode;
+
+    memset((void *)&tempData, 0, sizeof(tempData));
+    errCode = rlRfGetTemperatureReport(RL_DEVICE_MAP_INTERNAL_BSS, &tempData);
+    if (errCode != 0) {
+        return errCode;
+    }
+
+    report->device_time_ms = tempData.time;
+    report->tmpRx0Sens = tempData.tmpRx0Sens;
+    report->tmpRx1Sens = tempData.tmpRx1Sens;
+    report->tmpRx2Sens = tempData.tmpRx2Sens;
+    report->tmpRx3Sens = tempData.tmpRx3Sens;
+    report->tmpTx0Sens = tempData.tmpTx0Sens;
+    report->tmpTx1Sens = tempData.tmpTx1Sens;
+    report->tmpTx2Sens = tempData.tmpTx2Sens;
+    report->tmpPmSens = tempData.tmpPmSens;
+    report->tmpDig0Sens = tempData.tmpDig0Sens;
+    report->tmpDig1Sens = tempData.tmpDig1Sens;
+    return 0;
 }
 
 #ifndef HWA_CHAINED_SNAPSHOT_RING
@@ -1135,7 +1160,18 @@ int32_t l3_cli_dump(int32_t argc, char *argv[])
     l3_fill_header(&h, RING_FRAMES,
                    (gRingFrame >= RING_FRAMES)
                        ? (uint16_t)(gRingFrame % RING_FRAMES) : 0U);
-    UART_writePolling(gDataUart, (uint8_t *)&h, sizeof(h));
+    {
+        l3_temperature_report_t tempReport;
+
+        memset((void *)&tempReport, 0, sizeof(tempReport));
+        if (l3_readTemperatureReport(&tempReport) == 0) {
+            h.version = L3_DUMP_VERSION_TEMPERATURE;
+            UART_writePolling(gDataUart, (uint8_t *)&h, sizeof(h));
+            UART_writePolling(gDataUart, (uint8_t *)&tempReport, sizeof(tempReport));
+        } else {
+            UART_writePolling(gDataUart, (uint8_t *)&h, sizeof(h));
+        }
+    }
 #ifdef SNAPSHOT_DYNAMIC_WINDOWS
     UART_writePolling(gDataUart, gFrameBinStart, sizeof(gFrameBinStart));
 #endif

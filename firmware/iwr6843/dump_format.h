@@ -11,6 +11,8 @@
  *     n_frames uint8 start-bin values immediately follow this header, then
  *     the same frame/chirp/rx/IQ payload. Each frame can therefore retain a
  *     different contiguous range window without making the decoder guess.
+ *   temperature extension (version 5+):
+ *     a 24-byte temperature report immediately follows the fixed header.
  * Chirp order is TDM-interleaved: chirp c -> tx = c % n_tx, loop = c / n_tx.
  */
 #ifndef L3_DUMP_FORMAT_H
@@ -22,6 +24,7 @@
 #define L3_DUMP_VERSION     3   /* v2: trigger_frame = oldest ring slot;
                                  * v3: frame_period_us populated */
 #define L3_DUMP_VERSION_WINDOWED 4
+#define L3_DUMP_VERSION_TEMPERATURE 5
 #define L3_SAMPLE_INT16_IQ  0
 #define L3_SAMPLE_RANGE_FFT_IQ16 1
 #define L3_SAMPLE_RANGE_FFT_IQ16_WINDOWED 2
@@ -43,5 +46,20 @@ typedef struct __attribute__((packed)) {
                                  * (self-describing timing for the range-walk
                                  * speed fit). 0 in v1/v2 dumps (was padding). */
 } l3_dump_header_t;             /* sizeof == 20 */
+
+typedef struct __attribute__((packed)) {
+    uint32_t device_time_ms;    /* radarSS local time from powerup */
+    /* TI mmWaveLink rlRfTempData_t temperature fields: signed, 1 LSB = 1 deg C. */
+    int16_t  tmpRx0Sens;        /* RX0 temperature sensor reading */
+    int16_t  tmpRx1Sens;        /* RX1 temperature sensor reading */
+    int16_t  tmpRx2Sens;        /* RX2 temperature sensor reading */
+    int16_t  tmpRx3Sens;        /* RX3 temperature sensor reading */
+    int16_t  tmpTx0Sens;        /* TX0 temperature sensor reading */
+    int16_t  tmpTx1Sens;        /* TX1 temperature sensor reading */
+    int16_t  tmpTx2Sens;        /* TX2 temperature sensor reading */
+    int16_t  tmpPmSens;         /* PM temperature sensor reading */
+    int16_t  tmpDig0Sens;       /* Digital temperature sensor reading */
+    int16_t  tmpDig1Sens;       /* Second digital temperature sensor reading */
+} l3_temperature_report_t;      /* sizeof == 24 */
 
 #endif /* L3_DUMP_FORMAT_H */

@@ -1952,6 +1952,9 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
                 ball_speed_mph=shot.ball_speed_mph,
                 measurement=(measurement.to_dict() if measurement is not None else None),
                 club_path=(club_path.to_dict() if club_path is not None else None),
+                temperature_report=(
+                    getattr(capture, "temperature_report", None) if capture is not None else None
+                ),
             )
 
         if capture is None:

@@ -180,7 +180,8 @@ class IWR6843Radar:
                 if idx >= 0 and len(buf) - idx >= HEADER.size:
                     buf = buf[idx:]
                     try:
-                        expected = HEADER.size + payload_nbytes(parse_header(buf))
+                        metadata = parse_header(buf)
+                        expected = metadata["header_nbytes"] + payload_nbytes(metadata)
                     except ValueError:
                         expected = None
             elif len(buf) >= expected:

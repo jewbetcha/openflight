@@ -116,7 +116,7 @@ def load_session(path: Path) -> Session:
     """Parse a session JSONL into a :class:`Session`."""
     sess = Session()
     offsets: Counter = Counter()
-    with path.open() as fh:
+    with path.open(encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
             if not line:
@@ -480,7 +480,9 @@ def main(argv: list[str] | None = None) -> int:
     rows = collect_rows(sess, geom, sess.tuning)
     out_html = render_html(rows, args.session.stem, geom)
     out_path = args.output or args.session.with_suffix(".report.html")
-    out_path.write_text(out_html)
+    # Explicit encoding: the report contains non-ASCII glyphs (″, °), which
+    # crash on Windows' default cp1252 codec.
+    out_path.write_text(out_html, encoding="utf-8")
 
     t1 = sum(1 for r in rows if r["tier"] == 1)
     t2 = sum(1 for r in rows if r["tier"] == 2)

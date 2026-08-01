@@ -49,6 +49,7 @@ class IWR6843Capture:
     raw: bytes | None
     path: Path | None
     error: str | None = None
+    temperature_report: dict[str, int] | None = None
 
     @property
     def valid(self) -> bool:
@@ -178,13 +179,14 @@ class IWR6843CaptureMonitor:
             self._condition.notify_all()
         return True
 
-    def _validate_dump(self, raw: bytes) -> None:
+    def _validate_dump(self, raw: bytes) -> dict:
         if len(raw) < HEADER.size:
             raise ValueError(f"short IWR6843 dump: {len(raw)} bytes")
         metadata = parse_header(raw)
-        expected = HEADER.size + payload_nbytes(metadata)
+        expected = metadata["header_nbytes"] + payload_nbytes(metadata)
         if len(raw) != expected:
             raise ValueError(f"short IWR6843 dump: {len(raw)} bytes, expected {expected}")
+        return metadata
 
     def _capture_path(self, sequence: int, trigger_timestamp: float) -> Path:
         timestamp = datetime.fromtimestamp(trigger_timestamp).strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -203,13 +205,14 @@ class IWR6843CaptureMonitor:
             raw = None
             path = None
             error = None
+            metadata = None
             try:
                 logger.info(
                     "[IWR6843] Trigger #%d: dumping firmware-frozen L3 ring",
                     sequence,
                 )
                 raw = self.radar.read_dump()
-                self._validate_dump(raw)
+                metadata = self._validate_dump(raw)
                 if self.save_dumps:
                     path = self._capture_path(sequence, edge_timestamp)
                     path.write_bytes(raw)
@@ -226,6 +229,9 @@ class IWR6843CaptureMonitor:
                 raw=raw,
                 path=path,
                 error=error,
+                temperature_report=(
+                    metadata.get("temperature_report") if metadata is not None else None
+                ),
             )
             with self._condition:
                 self._capture_active = False

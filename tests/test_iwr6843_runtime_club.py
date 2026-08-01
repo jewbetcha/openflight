@@ -116,3 +116,32 @@ def test_no_club_speed_skips_the_estimate():
             impact_timestamp=1.0, ball_speed_mph=100.0, club="7i", club_speed_mph=None
         )
     assert result.club_path is None
+
+
+def test_ball_estimate_receives_the_configured_tdm_sign_policy():
+    """``tdm_sign_policy`` must cross the runtime -> LCMF boundary.
+
+    Same trap as the azimuth-offset test above: the dataclass exposes a
+    configurable ``tdm_sign_policy``, and the club-path fallback honors it,
+    but the ball-estimate call passed a hardcoded ``"positive"`` literal.
+    ``replay.replay_capture`` plumbs a caller-supplied policy end to end, so
+    any non-default setting silently produced different live-vs-replay
+    answers for the same capture. A non-default value is required here: with
+    ``"positive"`` the assertion would pass against the literal too.
+    """
+    seen = {}
+
+    def fake_lcmf(raw, cal, **kw):
+        seen.update(kw)
+
+        class Measurement:
+            tdm_sign_used = 1
+
+        return Measurement()
+
+    with patch("openflight.iwr6843.runtime.estimate_lcmf_v1", side_effect=fake_lcmf):
+        _runtime(tdm_sign_policy="auto").process_shot(
+            impact_timestamp=1.0, ball_speed_mph=100.0, club="7i", club_speed_mph=None
+        )
+
+    assert seen["tdm_sign_policy"] == "auto"
