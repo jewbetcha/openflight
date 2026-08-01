@@ -1591,6 +1591,7 @@ radar_config = {
     "max_speed": 220,
     "min_magnitude": 0,
     "transmit_power": 0,
+    "altitude_m": 0,
 }
 
 
@@ -1643,6 +1644,12 @@ def handle_set_radar_config(data):
                 monitor.radar.set_transmit_power(new_power)
                 radar_config["transmit_power"] = new_power
                 print(f"Set transmit power: {new_power}")
+
+        # Update altitude for ballistics
+        if "altitude_m" in data:
+            new_altitude = max(0, int(data["altitude_m"]))
+            radar_config["altitude_m"] = new_altitude
+            print(f"Set altitude: {new_altitude} m")
 
         # Log config change
         session_logger = get_session_logger()
@@ -2368,7 +2375,7 @@ def on_shot_detected(shot: Shot):
     if shot.carry_spin_adjusted is None and shot.mode != "mock":
         conditions = resolve_launch(shot) if ballistics_enabled else None
         if conditions is not None:
-            trajectory = simulate(conditions)
+            trajectory = simulate(conditions, altitude_m=radar_config.get("altitude_m", 0) or None)
             shot.carry_spin_adjusted = trajectory.carry_yards
             logger.info(
                 "[SERVER] Ballistic carry: %.0f yds (spin: %.0f rpm, source: %s)",

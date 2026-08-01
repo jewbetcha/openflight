@@ -33,7 +33,7 @@ M_TO_YD = 1.09361
 # the rules rather than by a guess at the specific ball in play.
 BALL_MASS_KG = 0.04593
 BALL_RADIUS_M = 0.02135
-BALL_AREA_M2 = math.pi * BALL_RADIUS_M ** 2
+BALL_AREA_M2 = math.pi * BALL_RADIUS_M**2
 AIR_DENSITY_STD = 1.225  # kg/m³ at sea level, 15 °C ISA
 
 # Cd = CD_BASE + CD_SPIN_COEFF * Sp
@@ -64,6 +64,40 @@ MAX_FLIGHT_SECONDS = 15.0
 # runs at DT_SECONDS; this only controls how many points the caller sees,
 # keeping payload size reasonable for UI/log consumers.
 SAMPLE_INTERVAL_S = 0.05
+
+# ISA (International Standard Atmosphere) tropospheric constants for air
+# density at altitude. Valid from sea level to ~11 km (36,089 ft), which
+# covers all realistic golf venues (highest course ≈ 4,300 m / 14,000 ft).
+_ISA_SEA_LEVEL_TEMP_K = 288.15  # 15 °C
+_ISA_LAPSE_RATE = 0.0065  # K/m
+_ISA_SEA_LEVEL_PRESSURE_PA = 101325.0
+_ISA_PRESSURE_EXPONENT = 5.25588  # g / (R·L) = 9.80665 / (287.058 · 0.0065)
+_ISA_GAS_CONSTANT_DRY = 287.058  # J / (kg·K)
+
+
+def air_density_at_altitude(altitude_m: float) -> float:
+    """Return ISA dry-air density (kg/m³) at the given altitude in metres.
+
+    Uses the standard tropospheric lapse rate (valid to ~11 km / 36,000 ft),
+    which covers every realistic golf venue on Earth. The highest active
+    course is around 4,300 m (14,000 ft); at that altitude air density is
+    ~63% of sea level, adding roughly 10-12% to carry compared with a
+    sea-level calculation.
+
+    Args:
+        altitude_m: Altitude above sea level in metres. Negative values
+            (below sea level, e.g. Dead Sea) are clamped to 0.
+
+    Returns:
+        Air density in kg/m³.
+    """
+    h = max(0.0, float(altitude_m))
+    temp_k = _ISA_SEA_LEVEL_TEMP_K - _ISA_LAPSE_RATE * h
+    pressure_pa = (
+        _ISA_SEA_LEVEL_PRESSURE_PA * (temp_k / _ISA_SEA_LEVEL_TEMP_K) ** _ISA_PRESSURE_EXPONENT
+    )
+    return pressure_pa / (_ISA_GAS_CONSTANT_DRY * temp_k)
+
 
 # Club-typical spin (RPM) from TrackMan PGA Tour averages.
 # Used as fallback when measured spin is missing or low-confidence.
@@ -156,9 +190,7 @@ def resolve_launch(shot: Shot) -> Optional[LaunchConditions]:
         spin_rpm = float(shot.spin_rpm)
         source: Literal["measured", "club_typical"] = "measured"
     else:
-        spin_rpm = CLUB_TYPICAL_SPIN_RPM.get(
-            shot.club, CLUB_TYPICAL_SPIN_RPM[ClubType.UNKNOWN]
-        )
+        spin_rpm = CLUB_TYPICAL_SPIN_RPM.get(shot.club, CLUB_TYPICAL_SPIN_RPM[ClubType.UNKNOWN])
         source = "club_typical"
 
     return LaunchConditions(
@@ -244,20 +276,20 @@ def _rk4_step(
     k3 = _derivatives(s3, omega, axis, air_density)
     s4 = tuple(state[i] + dt * k3[i] for i in range(6))
     k4 = _derivatives(s4, omega, axis, air_density)
-    return tuple(
-        state[i] + (dt / 6.0) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])
-        for i in range(6)
-    )
+    return tuple(state[i] + (dt / 6.0) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) for i in range(6))
 
 
 def simulate(
     conditions: LaunchConditions,
     air_density: float = AIR_DENSITY_STD,
     dt: float = DT_SECONDS,
+    altitude_m: Optional[float] = None,
 ) -> Trajectory:
     """
     Integrate flight from launch to first ground contact (z = 0).
     """
+    if altitude_m is not None:
+        air_density = air_density_at_altitude(altitude_m)
     v0 = conditions.ball_speed_mph * MPH_TO_MPS
     la_v = math.radians(conditions.launch_angle_v)
     la_h = math.radians(conditions.launch_angle_h)
@@ -311,15 +343,17 @@ def simulate(
             final = tuple(state[i] + frac * (new_state[i] - state[i]) for i in range(6))
             fx, fy, fz, fvx, fvy, fvz = final
             v_final = math.sqrt(fvx * fvx + fvy * fvy + fvz * fvz)
-            landing_angle = math.degrees(
-                math.atan2(-fvz, math.sqrt(fvx * fvx + fvy * fvy))
+            landing_angle = math.degrees(math.atan2(-fvz, math.sqrt(fvx * fvx + fvy * fvy)))
+            points.append(
+                TrajectoryPoint(
+                    t_hit,
+                    fx * M_TO_YD,
+                    fy * M_TO_YD,
+                    max(fz, 0.0) * M_TO_YD,
+                    v_final * MPS_TO_MPH,
+                    omega * 60 / (2 * math.pi),
+                )
             )
-            points.append(TrajectoryPoint(
-                t_hit,
-                fx * M_TO_YD, fy * M_TO_YD, max(fz, 0.0) * M_TO_YD,
-                v_final * MPS_TO_MPH,
-                omega * 60 / (2 * math.pi),
-            ))
             return Trajectory(
                 points=points,
                 carry_yards=fx * M_TO_YD,
@@ -335,12 +369,16 @@ def simulate(
         if t - last_sample_t >= SAMPLE_INTERVAL_S:
             sx_, sy_, sz_, svx, svy, svz = state
             v = math.sqrt(svx * svx + svy * svy + svz * svz)
-            points.append(TrajectoryPoint(
-                t,
-                sx_ * M_TO_YD, sy_ * M_TO_YD, sz_ * M_TO_YD,
-                v * MPS_TO_MPH,
-                omega * 60 / (2 * math.pi),
-            ))
+            points.append(
+                TrajectoryPoint(
+                    t,
+                    sx_ * M_TO_YD,
+                    sy_ * M_TO_YD,
+                    sz_ * M_TO_YD,
+                    v * MPS_TO_MPH,
+                    omega * 60 / (2 * math.pi),
+                )
+            )
             last_sample_t = t
 
     # Flight did not terminate — return current state as best-effort

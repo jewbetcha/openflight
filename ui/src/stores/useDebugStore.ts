@@ -26,6 +26,7 @@ export const useDebugStore = create<DebugState>((set) => ({
     max_speed: 220,
     min_magnitude: 0,
     transmit_power: 0,
+    altitude_m: 0,
   },
   triggerDiagnostics: [],
   triggerStatus: {
