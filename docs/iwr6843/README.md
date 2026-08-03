@@ -503,7 +503,7 @@ complete capture:
 
 ```text
 [IWR6843] Trigger #1: dumping firmware-frozen L3 ring
-[IWR6843] Capture #1 complete: 549542 bytes
+[IWR6843] Capture #1 complete: 763245 bytes
 ```
 
 Firmware health should show an active sensor, increasing frame/wrap counters,

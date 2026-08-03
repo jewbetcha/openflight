@@ -442,6 +442,30 @@ as installation choices.
 
 ## Flash From The Raspberry Pi
 
+### 0. Get The Image Onto The Pi
+
+Flashing runs on the Pi, but the image is built elsewhere. `firmware/releases/`
+is tracked by git (the `.gitignore` negates it), so committing and pulling is
+the normal route:
+
+```bash
+# on the build host
+git add firmware/releases/ && git commit -m "firmware: build v3" && git push
+# on the Pi
+cd ~/openflight && git pull
+```
+
+To move it without a commit, copy just the image:
+
+```bash
+# from the build host
+rsync -av firmware/releases/l3_dump_vTX2_hwa_window53_12loops_25frames_4ms_v3.bin \
+  pi@raspberrypi.local:~/openflight/firmware/releases/
+```
+
+Either way, confirm the hash matches on the Pi before flashing -- an image
+truncated in transfer will fail verification only after erasing SFLASH.
+
 The checked-in Python flasher uses the IWR6843 ROM UART bootloader and does not
 require TI Cloud Agent. Flash over the CP2105 **Enhanced/UARTA** interface,
 normally interface `00` and `/dev/ttyUSB0`. Do not use the Standard interface,
@@ -534,7 +558,7 @@ healthy capture reports:
 
 ```text
 [IWR6843] Trigger #1: dumping firmware-frozen L3 ring
-[IWR6843] Capture #1 complete: 549542 bytes
+[IWR6843] Capture #1 complete: 763245 bytes
 ```
 
 The firmware/config geometry is checked at `sensorStart`. A mismatch in TX
