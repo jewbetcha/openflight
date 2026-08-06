@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
 
 from openflight.iwr6843.calibration import Calibration
 from openflight.iwr6843.club import ClubPathResult, estimate_club_path
@@ -37,13 +38,14 @@ class IWR6843Runtime:
     azimuth_offset_deg: float = 0.0
     tdm_sign_policy: str = "positive"
 
-    def process_shot(
+    def process_shot(  # pylint: disable=too-many-arguments
         self,
         *,
         impact_timestamp: float | None,
         ball_speed_mph: float,
         club: str | None,
         club_speed_mph: float | None = None,
+        tilt_deg: float | None = None,
     ) -> IWR6843ShotResult:
         """Match one OPS shot to TI data and run LCMF-v1."""
         capture = self.capture_monitor.capture_for_shot(
@@ -52,9 +54,12 @@ class IWR6843Runtime:
         )
         if capture is None or not capture.valid or capture.raw is None:
             return IWR6843ShotResult(capture=capture, measurement=None)
+        shot_calibration = self.calibration
+        if tilt_deg is not None:
+            shot_calibration = replace(self.calibration, tilt_rad=math.radians(tilt_deg))
         measurement = estimate_lcmf_v1(
             capture.raw,
-            self.calibration,
+            shot_calibration,
             ball_speed_mph=ball_speed_mph,
             club=club,
             net_range_m=self.net_range_m,
@@ -71,7 +76,7 @@ class IWR6843Runtime:
             policy_sign = _TDM_SIGN_BY_POLICY.get(self.tdm_sign_policy, 1)
             club_path = estimate_club_path(
                 capture.raw,
-                self.calibration,
+                shot_calibration,
                 ops_club_speed_mph=club_speed_mph,
                 aim_offset_deg=self.azimuth_offset_deg,
                 tdm_sign=policy_sign if fallback else ball_sign,

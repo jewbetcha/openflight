@@ -126,6 +126,10 @@ experimental_kld7_raw_radc_logging: bool = False
 iwr6843_runtime = None
 iwr6843_runtime_config: dict = {"enabled": False}
 
+# Optional LIS3DH enclosure orientation used to compensate TI mount tilt.
+inclinometer_service = None
+inclinometer_runtime_config: dict = {"enabled": False}
+
 # Ballistic model toggle. When True, shot carry comes from the physics
 # simulator whenever a vertical launch angle is available. When False
 # (default), all carry computations go through the legacy table estimator.
@@ -195,6 +199,8 @@ def _cleanup_hardware_for_shutdown() -> None:
         _run_shutdown_step("K-LD7 vertical stop", kld7_vertical.stop)
     if kld7_horizontal:
         _run_shutdown_step("K-LD7 horizontal stop", kld7_horizontal.stop)
+    if inclinometer_service:
+        _run_shutdown_step("inclinometer stop", inclinometer_service.stop)
     if iwr6843_runtime:
         _run_shutdown_step("IWR6843 stop", iwr6843_runtime.stop)
 
@@ -846,6 +852,7 @@ def _session_start_config() -> dict:
         "radc_tuning_params": dict(active_kld7_radc_tuning),
     }
     config["iwr6843"] = dict(iwr6843_runtime_config)
+    config["inclinometer"] = dict(inclinometer_runtime_config)
     return config
 
 
@@ -885,6 +892,7 @@ def shot_to_dict(shot: Shot) -> dict:
         "club_angle_deg": shot.club_angle_deg,
         "club_path_deg": shot.club_path_deg,
         "spin_axis_deg": shot.spin_axis_deg,
+        "inclinometer": shot.inclinometer,
         # Spin data from rolling buffer mode
         "spin_rpm": round(shot.spin_rpm) if shot.spin_rpm else None,
         "spin_rpm_measured": (round(shot.spin_rpm_measured) if shot.spin_rpm_measured else None),
@@ -1122,6 +1130,79 @@ def init_iwr6843(
         )
         iwr6843_runtime = None
         iwr6843_runtime_config = {"enabled": False, "error": str(error)}
+        return False
+
+
+def init_inclinometer(*, zero_offset_deg: float, bus_number: int = 1, address: int = 0x18) -> bool:
+    """Start the optional LIS3DH service without risking radar availability."""
+    global inclinometer_service  # pylint: disable=global-statement
+    global inclinometer_runtime_config  # pylint: disable=global-statement
+
+    service = None
+    try:
+        from .inclinometer import LIS3DH, InclinometerService
+
+        service = InclinometerService(
+            LIS3DH(bus_number=bus_number, address=address),
+            zero_offset_deg=zero_offset_deg,
+        )
+        service.start()
+        startup = service.wait_for_stable(timeout_s=2.0)
+        inclinometer_service = service
+        inclinometer_runtime_config = {
+            "enabled": True,
+            "sensor": "lis3dh",
+            "i2c_bus": bus_number,
+            "i2c_address": f"0x{address:02x}",
+            "sample_hz": service.sample_hz,
+            "zero_offset_deg": zero_offset_deg,
+            "startup": startup.to_dict(),
+        }
+        if startup.snapshot is None:
+            logger.warning(
+                "[SERVER] LIS3DH initialized but has no stable startup reading (%s)",
+                startup.status,
+            )
+            print(f"Inclinometer enabled, waiting for a stable reading ({startup.status})")
+            return True
+
+        snapshot = startup.snapshot
+        print(
+            "Inclinometer enabled "
+            f"(raw pitch {snapshot.raw_pitch_deg:+.2f}deg, "
+            f"calibrated {snapshot.calibrated_pitch_deg:+.2f}deg)"
+        )
+        if iwr6843_runtime is not None:
+            configured_tilt = math.degrees(iwr6843_runtime.calibration.tilt_rad)
+            effective_tilt = configured_tilt + snapshot.calibrated_pitch_deg
+            print(
+                f"IWR6843 tilt: configured {configured_tilt:.2f}deg, "
+                f"effective {effective_tilt:.2f}deg"
+            )
+        return True
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        if service is not None:
+            try:
+                service.stop()
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug("Failed to close LIS3DH after initialization error", exc_info=True)
+        logger.warning("[SERVER] Inclinometer initialization failed: %s", error, exc_info=True)
+        log_session_error(
+            "Inclinometer initialization failed",
+            component="inclinometer",
+            context={"i2c_bus": bus_number, "i2c_address": f"0x{address:02x}"},
+            exc=error,
+        )
+        inclinometer_service = None
+        inclinometer_runtime_config = {
+            "enabled": False,
+            "requested": True,
+            "sensor": "lis3dh",
+            "i2c_bus": bus_number,
+            "i2c_address": f"0x{address:02x}",
+            "zero_offset_deg": zero_offset_deg,
+            "error": str(error),
+        }
         return False
 
 
@@ -2056,6 +2137,40 @@ def horizontal_confidence_from(coherence: float | None) -> float:
     return round(min(ANGLE_CONFIDENCE_CEILING, max(0.0, float(coherence))), 3)
 
 
+def _snapshot_inclinometer_for_shot(shot: Shot) -> None:
+    """Attach the stable pre-impact enclosure orientation used by this shot."""
+    if inclinometer_service is None or shot.mode == "mock":
+        return
+
+    impact_timestamp = shot.impact_timestamp or time.time()
+    selection = inclinometer_service.snapshot_for_impact(impact_timestamp)
+    data = selection.to_dict()
+    data["zero_offset_deg"] = inclinometer_runtime_config.get("zero_offset_deg", 0.0)
+    snapshot = selection.snapshot
+    if snapshot is not None and iwr6843_runtime is not None:
+        configured_tilt = math.degrees(iwr6843_runtime.calibration.tilt_rad)
+        effective_tilt = configured_tilt + snapshot.calibrated_pitch_deg
+        data.update(
+            {
+                "applied": True,
+                "configured_iwr_tilt_deg": round(configured_tilt, 3),
+                "effective_iwr_tilt_deg": round(effective_tilt, 3),
+            }
+        )
+        logger.info(
+            "[SERVER] Inclinometer pitch: raw %+.2fdeg, calibrated %+.2fdeg, "
+            "IWR tilt %.2fdeg (age %.0fms)",
+            snapshot.raw_pitch_deg,
+            snapshot.calibrated_pitch_deg,
+            effective_tilt,
+            (selection.age_s or 0.0) * 1000.0,
+        )
+    else:
+        data["applied"] = False
+        logger.warning("[SERVER] Inclinometer correction not applied: %s", selection.status)
+    shot.inclinometer = data
+
+
 def _process_iwr6843_angle(shot: Shot) -> float | None:
     """Apply a correlated LCMF-v1 result without risking the OPS shot."""
     if iwr6843_runtime is None or shot.mode == "mock":
@@ -2068,6 +2183,11 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
             ball_speed_mph=shot.ball_speed_mph,
             club=shot.club.value,
             club_speed_mph=shot.club_speed_mph,
+            tilt_deg=(
+                shot.inclinometer.get("effective_iwr_tilt_deg")
+                if shot.inclinometer and shot.inclinometer.get("applied")
+                else None
+            ),
         )
         capture = shot_result.capture
         measurement = shot_result.measurement
@@ -2175,6 +2295,9 @@ def on_shot_detected(shot: Shot):
     shot.player_name = current_player_name
     logger.info("[SERVER] Shot callback: %.1f mph", shot.ball_speed_mph)
 
+    # Snapshot orientation before IWR capture can block, and select only data
+    # timestamped before impact so impact vibration cannot bias the geometry.
+    _snapshot_inclinometer_for_shot(shot)
     iwr6843_ms = _process_iwr6843_angle(shot)
     kld7_ms = None
     # Process K-LD7 angle radars (vertical = launch angle, horizontal = club path)
@@ -2601,6 +2724,7 @@ def on_shot_detected(shot: Shot):
                 spin_axis_deg=shot.spin_axis_deg,
                 impact_timestamp=shot.impact_timestamp,
                 player_name=shot.player_name,
+                inclinometer=shot.inclinometer,
                 pipeline_ms={
                     "iwr6843": (round(iwr6843_ms, 1) if iwr6843_ms is not None else None),
                     "kld7": round(kld7_ms, 1) if kld7_ms is not None else None,
@@ -2857,11 +2981,7 @@ def start_monitor(
             # anchor K-LD7 correlation to the OPS trigger_time instead of the
             # USB first-byte arrival time.
             radar = getattr(monitor, "radar", None)
-            if (
-                not swing_speed_mode
-                and radar is not None
-                and hasattr(radar, "read_clock_sync")
-            ):
+            if not swing_speed_mode and radar is not None and hasattr(radar, "read_clock_sync"):
                 try:
                     clock_sync = radar.read_clock_sync()
                     session_logger.log_clock_sync(
@@ -2880,6 +3000,14 @@ def start_monitor(
                 firmware="custom-l3-dump",
                 estimator="lcmf_v1",
                 trigger_pin_bcm=iwr6843_runtime_config.get("trigger_pin_bcm"),
+            )
+        if not mock and inclinometer_service is not None:
+            session_logger.log_connection(
+                device="lis3dh",
+                port=f"i2c-{inclinometer_runtime_config.get('i2c_bus', 1)}",
+                baud=0,
+                address=inclinometer_runtime_config.get("i2c_address", "0x18"),
+                sample_hz=inclinometer_runtime_config.get("sample_hz", 10.0),
             )
 
     if swing_speed_mode:
@@ -3522,6 +3650,17 @@ def main():
         help="Enable TI IWR6843 L3 capture and LCMF-v1 vertical launch angle",
     )
     parser.add_argument(
+        "--inclinometer",
+        action="store_true",
+        help="Enable LIS3DH enclosure pitch compensation for IWR6843 tilt",
+    )
+    parser.add_argument(
+        "--inclinometer-zero-offset",
+        type=float,
+        default=0.0,
+        help="Degrees added to raw LIS3DH pitch (default: 0)",
+    )
+    parser.add_argument(
         "--iwr6843-port", default=None, help="TI serial port (auto-detect by default)"
     )
     parser.add_argument(
@@ -3784,6 +3923,8 @@ def main():
         parser.error("--iwr6843 and vertical --kld7 cannot both own launch angle")
     if args.iwr6843 and args.kld7_horizontal:
         parser.error("--iwr6843 and horizontal --kld7 cannot both own club path")
+    if args.inclinometer and not args.iwr6843:
+        parser.error("--inclinometer requires --iwr6843")
     if args.iwr6843 and args.mock:
         parser.error("--iwr6843 cannot be used with --mock")
     if args.iwr6843 and args.trigger == "sound-gpio":
@@ -3947,6 +4088,10 @@ def main():
         else:
             print("ERROR: IWR6843 requested but failed to initialize. Exiting.")
             sys.exit(1)
+
+    if args.inclinometer:
+        if not init_inclinometer(zero_offset_deg=args.inclinometer_zero_offset):
+            print("WARNING: Inclinometer unavailable; continuing with configured IWR6843 tilt")
 
     # Initialize K-LD7 angle radars (if enabled)
     if args.kld7:

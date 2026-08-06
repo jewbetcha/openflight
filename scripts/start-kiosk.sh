@@ -38,6 +38,8 @@ IWR6843_TX_ORDER=""
 IWR6843_CAPTURE_TIMEOUT=""
 IWR6843_OUTPUT_DIR=""
 IWR6843_AZIMUTH_OFFSET=""
+INCLINOMETER=false
+INCLINOMETER_ZERO_OFFSET=""
 KLD7=false
 KLD7_PORT=""
 KLD7_ANGLE_OFFSET=""
@@ -197,6 +199,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --iwr6843-azimuth-offset-deg)
             IWR6843_AZIMUTH_OFFSET="$2"
+            shift 2
+            ;;
+        --inclinometer)
+            INCLINOMETER=true
+            shift
+            ;;
+        --inclinometer-zero-offset)
+            INCLINOMETER_ZERO_OFFSET="$2"
             shift 2
             ;;
         --kld7)
@@ -561,6 +571,11 @@ if [ "$IWR6843" = true ]; then
     [ -n "$IWR6843_CAPTURE_TIMEOUT" ] && SERVER_CMD="$SERVER_CMD --iwr6843-capture-timeout $IWR6843_CAPTURE_TIMEOUT"
     [ -n "$IWR6843_OUTPUT_DIR" ] && SERVER_CMD="$SERVER_CMD --iwr6843-output-dir $IWR6843_OUTPUT_DIR"
     [ -n "$IWR6843_AZIMUTH_OFFSET" ] && SERVER_CMD="$SERVER_CMD --iwr6843-azimuth-offset-deg $IWR6843_AZIMUTH_OFFSET"
+fi
+
+if [ "$INCLINOMETER" = true ]; then
+    SERVER_CMD="$SERVER_CMD --inclinometer"
+    [ -n "$INCLINOMETER_ZERO_OFFSET" ] && SERVER_CMD="$SERVER_CMD --inclinometer-zero-offset $INCLINOMETER_ZERO_OFFSET"
 fi
 
 if [ "$EXPERIMENTAL_KLD7_RAW_RADC_LOGGING" = true ]; then

@@ -364,6 +364,7 @@ class SessionLogger:
         pipeline_ms: Optional[Dict] = None,
         impact_timestamp: Optional[float] = None,
         player_name: Optional[str] = None,
+        inclinometer: Optional[Dict] = None,
     ):
         """
         Log a detected shot with all metrics.
@@ -398,6 +399,7 @@ class SessionLogger:
             carry_spin_adjusted: Carry distance adjusted for spin (rolling buffer mode only)
             mode: Radar mode ("rolling-buffer" or "mock")
             impact_timestamp: Host epoch timestamp aligned to impact/OPS trigger time
+            inclinometer: Enclosure orientation and effective IWR tilt used for the shot
         """
         if not self.enabled:
             return
@@ -458,6 +460,8 @@ class SessionLogger:
             data["spin_axis_deg"] = spin_axis_deg
         if pipeline_ms is not None:
             data["pipeline_ms"] = pipeline_ms
+        if inclinometer is not None:
+            data["inclinometer"] = inclinometer
 
         self._write_entry("shot_detected", data)
 
