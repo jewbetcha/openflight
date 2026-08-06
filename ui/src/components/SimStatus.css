@@ -69,10 +69,10 @@
 .sim-status__pill--off {
   background: rgba(148, 163, 184, 0.08);
   border: 1px solid rgba(148, 163, 184, 0.25);
-  color: var(--color-text-muted, #94a3b8);
+  color: var(--text-muted, #94a3b8);
 }
 .sim-status__pill--off .sim-status__dot {
-  background: var(--color-text-muted, #94a3b8);
+  background: var(--text-muted, #94a3b8);
 }
 
 @media (max-height: 500px) {

@@ -5,7 +5,9 @@
   box-sizing: border-box;
 }
 
-:root {
+/* Dark theme (default) */
+:root,
+[data-theme='dark'] {
   /* Typography */
   --font-display: 'DM Serif Display', Georgia, serif;
   --font-body: 'Outfit', system-ui, -apple-system, sans-serif;
@@ -15,6 +17,8 @@
   --color-bg-card: #12121a;
   --color-bg-elevated: #1a1a24;
   --color-bg-hover: #222230;
+  --color-bg-camera: #050508;
+  --color-on-gold: #0a0a0f;
 
   /* Gold accent (primary) */
   --color-gold: #d4af37;
@@ -22,7 +26,7 @@
   --color-gold-dim: #a68b2a;
   --color-gold-glow: rgba(212, 175, 55, 0.4);
 
-  /* Cream/ivory (secondary) */
+  /* Cream/ivory (secondary brand) */
   --color-cream: #f5f0e6;
   --color-cream-dim: rgba(245, 240, 230, 0.7);
   --color-cream-muted: rgba(245, 240, 230, 0.5);
@@ -37,6 +41,41 @@
   --text-primary: var(--color-cream);
   --text-secondary: var(--color-cream-dim);
   --text-muted: var(--color-cream-muted);
+
+  /* Semantic surfaces & borders */
+  --border-faint: rgba(245, 240, 230, 0.06);
+  --border-subtle: rgba(245, 240, 230, 0.08);
+  --border-default: rgba(245, 240, 230, 0.12);
+  --border-strong: rgba(245, 240, 230, 0.15);
+  --border-stronger: rgba(245, 240, 230, 0.25);
+  --surface-faint: rgba(245, 240, 230, 0.02);
+  --surface-muted: rgba(245, 240, 230, 0.03);
+  --surface-soft: rgba(245, 240, 230, 0.04);
+  --surface-hover: rgba(245, 240, 230, 0.05);
+  --surface-overlay: rgba(255, 255, 255, 0.04);
+  --surface-overlay-strong: rgba(255, 255, 255, 0.08);
+  --surface-status: rgba(10, 10, 15, 0.78);
+  --accent-soft: rgba(212, 175, 55, 0.08);
+  --accent-soft-mid: rgba(212, 175, 55, 0.1);
+  --accent-soft-strong: rgba(212, 175, 55, 0.15);
+  --accent-soft-active: rgba(212, 175, 55, 0.16);
+  --accent-border: rgba(212, 175, 55, 0.2);
+  --accent-border-mid: rgba(212, 175, 55, 0.25);
+  --accent-border-strong: rgba(212, 175, 55, 0.35);
+  --accent-border-active: rgba(212, 175, 55, 0.4);
+  --accent-border-focus: rgba(212, 175, 55, 0.45);
+  --accent-shadow: rgba(212, 175, 55, 0.3);
+  --accent-shadow-soft: rgba(212, 175, 55, 0.2);
+  --accent-ring: rgba(212, 175, 55, 0.12);
+  --accent-wash: rgba(212, 175, 55, 0.03);
+  --gauge-track: rgba(245, 240, 230, 0.1);
+  --scrollbar-track: rgba(255, 255, 255, 0.02);
+  --scrollbar-thumb: rgba(212, 175, 55, 0.3);
+  --scrollbar-thumb-hover: rgba(212, 175, 55, 0.5);
+  --overlay-scrim: rgba(0, 0, 0, 0.7);
+  --header-accent-border: rgba(212, 175, 55, 0.15);
+  --body-wash: rgba(212, 175, 55, 0.03);
+  --noise-opacity: 0.03;
 
   /* Spacing - compact for 7" */
   --space-xs: 0.25rem;
@@ -72,15 +111,83 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Light theme */
+[data-theme='light'] {
+  --color-bg-deep: #f7f4ee;
+  --color-bg-card: #fffcf7;
+  --color-bg-elevated: #f0ebe3;
+  --color-bg-hover: #e5dfd4;
+  --color-bg-camera: #0a0a0f;
+  --color-on-gold: #0a0a0f;
+
+  --color-gold: #b8922a;
+  --color-gold-bright: #c9a227;
+  --color-gold-dim: #8f7120;
+  --color-gold-glow: rgba(184, 146, 42, 0.3);
+
+  --color-cream: #f5f0e6;
+  --color-cream-dim: rgba(26, 24, 20, 0.72);
+  --color-cream-muted: rgba(26, 24, 20, 0.5);
+
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  --text-primary: #1a1814;
+  --text-secondary: rgba(26, 24, 20, 0.72);
+  --text-muted: rgba(26, 24, 20, 0.5);
+
+  --border-faint: rgba(26, 24, 20, 0.06);
+  --border-subtle: rgba(26, 24, 20, 0.08);
+  --border-default: rgba(26, 24, 20, 0.12);
+  --border-strong: rgba(26, 24, 20, 0.16);
+  --border-stronger: rgba(26, 24, 20, 0.24);
+  --surface-faint: rgba(26, 24, 20, 0.02);
+  --surface-muted: rgba(26, 24, 20, 0.03);
+  --surface-soft: rgba(26, 24, 20, 0.04);
+  --surface-hover: rgba(26, 24, 20, 0.05);
+  --surface-overlay: rgba(26, 24, 20, 0.04);
+  --surface-overlay-strong: rgba(26, 24, 20, 0.08);
+  --surface-status: rgba(255, 252, 247, 0.88);
+  --accent-soft: rgba(184, 146, 42, 0.1);
+  --accent-soft-mid: rgba(184, 146, 42, 0.12);
+  --accent-soft-strong: rgba(184, 146, 42, 0.16);
+  --accent-soft-active: rgba(184, 146, 42, 0.18);
+  --accent-border: rgba(184, 146, 42, 0.28);
+  --accent-border-mid: rgba(184, 146, 42, 0.32);
+  --accent-border-strong: rgba(184, 146, 42, 0.42);
+  --accent-border-active: rgba(184, 146, 42, 0.48);
+  --accent-border-focus: rgba(184, 146, 42, 0.55);
+  --accent-shadow: rgba(184, 146, 42, 0.28);
+  --accent-shadow-soft: rgba(184, 146, 42, 0.18);
+  --accent-ring: rgba(184, 146, 42, 0.16);
+  --accent-wash: rgba(184, 146, 42, 0.06);
+  --gauge-track: rgba(26, 24, 20, 0.1);
+  --scrollbar-track: rgba(26, 24, 20, 0.04);
+  --scrollbar-thumb: rgba(184, 146, 42, 0.4);
+  --scrollbar-thumb-hover: rgba(184, 146, 42, 0.6);
+  --overlay-scrim: rgba(26, 24, 20, 0.45);
+  --header-accent-border: rgba(184, 146, 42, 0.22);
+  --body-wash: rgba(184, 146, 42, 0.07);
+  --noise-opacity: 0.025;
+
+  --shadow-glow: 0 0 18px var(--color-gold-glow);
+  --shadow-card: 0 4px 18px rgba(26, 24, 20, 0.08);
+
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--color-bg-deep);
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-body);
   background: var(--color-bg-deep);
-  /* Subtle texture overlay */
   background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, var(--body-wash) 0%, transparent 50%),
     url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
@@ -98,16 +205,16 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.3);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.5);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Utility classes */
@@ -115,7 +222,7 @@ button {
   color: var(--color-gold);
 }
 .text-cream {
-  color: var(--color-cream);
+  color: var(--text-primary);
 }
 .text-muted {
   color: var(--text-muted);

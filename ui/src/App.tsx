@@ -29,6 +29,8 @@ import {
   LaunchDaddySecretIndicator,
 } from './components/LaunchDaddy';
 import { useUnitPreference } from './state/useUnitPreference';
+import { useThemeStore } from './stores/useThemeStore';
+import { ThemeToggle } from './components/ThemeToggle';
 
 import Logo from './logo/Logo';
 
@@ -119,6 +121,7 @@ function AppContent() {
   const [showShutdown, setShowShutdown] = useState(false);
   const { isLaunchDaddyMode, isExploding, triggerExplosion, handleSecretTap } = useLaunchDaddy();
   const { unitSystem, setUnitSystem } = useUnitPreference();
+  const theme = useThemeStore((state) => state.theme);
   const isDisplayRoute = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/display';
   const isSwingSpeedMode = triggerStatus.mode === 'swing-speed';
 
@@ -190,9 +193,14 @@ function AppContent() {
             userSelect: 'none',
           }}
         >
-          {isLaunchDaddyMode ? <LaunchDaddyBrand /> : <Logo size="small" variant="light" />}
+          {isLaunchDaddyMode ? (
+            <LaunchDaddyBrand />
+          ) : (
+            <Logo size="small" variant={theme === 'light' ? 'color' : 'light'} />
+          )}
         </div>
         <div className="header__controls">
+          <ThemeToggle />
           <div className="unit-toggle" role="group" aria-label="Display units">
             <button
               type="button"

@@ -29,12 +29,12 @@
   max-height: 100%;
   overflow-y: auto;
   background: var(--color-bg-elevated);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
   box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(212, 175, 55, 0.1);
+    0 0 0 1px var(--accent-soft-mid);
 }
 
 .club-select__close {
@@ -62,7 +62,7 @@
 
 .club-select__close:hover {
   background: var(--color-bg-hover);
-  color: var(--color-cream);
+  color: var(--text-primary);
 }
 
 .club-select__close:active {
@@ -114,9 +114,9 @@
 .club-select__option {
   padding: var(--space-xs);
   background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--color-cream);
+  color: var(--text-primary);
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 400;
@@ -127,7 +127,7 @@
 
 .club-select__option:hover {
   background: var(--color-bg-hover);
-  border-color: rgba(245, 240, 230, 0.15);
+  border-color: var(--border-strong);
 }
 
 .club-select__option:active {
@@ -135,8 +135,8 @@
 }
 
 .club-select__option--selected {
-  background: rgba(212, 175, 55, 0.15);
+  background: var(--accent-soft-strong);
   border-color: var(--color-gold);
   color: var(--color-gold);
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 12px var(--accent-border);
 }

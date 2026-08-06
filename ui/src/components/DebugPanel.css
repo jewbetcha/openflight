@@ -4,10 +4,10 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.06);
+  border: 1px solid var(--border-faint);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
-  color: var(--color-cream);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
@@ -37,7 +37,7 @@
 .debug-tabs__tab {
   padding: var(--space-xs) var(--space-md);
   background: transparent;
-  border: 1px solid rgba(245, 240, 230, 0.1);
+  border: 1px solid var(--gauge-track);
   border-radius: 999px;
   color: var(--text-muted);
   font-size: 0.75rem;
@@ -54,8 +54,8 @@
 }
 
 .debug-tabs__tab--active {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.4);
+  background: var(--accent-soft-mid);
+  border-color: var(--accent-border-active);
   color: var(--color-gold);
 }
 
@@ -70,8 +70,8 @@
 
 /* Sections */
 .debug-panel__section {
-  background: rgba(245, 240, 230, 0.02);
-  border: 1px solid rgba(245, 240, 230, 0.04);
+  background: var(--surface-faint);
+  border: 1px solid var(--surface-soft);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
@@ -237,7 +237,7 @@
   color: var(--text-secondary);
   margin-bottom: var(--space-sm);
   padding-bottom: var(--space-xs);
-  border-bottom: 1px solid rgba(245, 240, 230, 0.06);
+  border-bottom: 1px solid var(--border-faint);
 }
 
 .last-trigger__data {
@@ -283,7 +283,7 @@
 .last-trigger__meta-item {
   font-size: 0.6875rem;
   color: var(--text-muted);
-  background: rgba(245, 240, 230, 0.04);
+  background: var(--surface-soft);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
@@ -293,7 +293,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-xs);
   padding-top: var(--space-xs);
-  border-top: 1px solid rgba(245, 240, 230, 0.06);
+  border-top: 1px solid var(--border-faint);
 }
 
 .last-trigger__shot-item {
@@ -328,7 +328,7 @@
 .trigger-row {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
-  background: rgba(245, 240, 230, 0.02);
+  background: var(--surface-faint);
   flex-shrink: 0;
 }
 
@@ -438,7 +438,7 @@
   appearance: none;
   width: 100%;
   height: 6px;
-  background: rgba(245, 240, 230, 0.1);
+  background: var(--gauge-track);
   border-radius: 3px;
   outline: none;
   cursor: pointer;

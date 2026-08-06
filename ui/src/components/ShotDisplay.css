@@ -1,7 +1,7 @@
 /* Shot Display Container */
 .shot-display {
   background: linear-gradient(145deg, var(--color-bg-card) 0%, var(--color-bg-elevated) 100%);
-  border: 1px solid rgba(212, 175, 55, 0.1);
+  border: 1px solid var(--accent-soft-mid);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   color: var(--text-primary);
@@ -20,7 +20,7 @@
   right: 0;
   width: 100px;
   height: 100px;
-  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at top right, var(--accent-soft) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -32,18 +32,18 @@
 @keyframes shot-glow {
   0% {
     box-shadow:
-      0 0 0 0 rgba(212, 175, 55, 0.6),
-      inset 0 0 30px rgba(212, 175, 55, 0.2);
+      0 0 0 0 var(--color-gold-glow),
+      inset 0 0 30px var(--accent-border);
   }
   70% {
     box-shadow:
-      0 0 0 15px rgba(212, 175, 55, 0),
-      inset 0 0 0 rgba(212, 175, 55, 0);
+      0 0 0 15px transparent,
+      inset 0 0 0 transparent;
   }
   100% {
     box-shadow:
-      0 0 0 0 rgba(212, 175, 55, 0),
-      inset 0 0 0 rgba(212, 175, 55, 0);
+      0 0 0 0 transparent,
+      inset 0 0 0 transparent;
   }
 }
 
@@ -70,7 +70,7 @@
 }
 
 .shot-display--swing-speed {
-  border-color: rgba(212, 175, 55, 0.22);
+  border-color: var(--accent-border);
 }
 
 .shot-display--swing-speed .shot-display__primary {
@@ -176,8 +176,8 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-sm) var(--space-md);
-  background: rgba(245, 240, 230, 0.03);
-  border: 1px solid rgba(245, 240, 230, 0.08);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   flex: 1;
   text-align: center;
@@ -185,8 +185,8 @@
 }
 
 .metric-card--primary {
-  background: rgba(212, 175, 55, 0.08);
-  border-color: rgba(212, 175, 55, 0.2);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
 }
 
 .metric-card--secondary {
@@ -216,7 +216,7 @@
   font-size: 5rem;
   font-weight: 400;
   line-height: 1;
-  color: var(--color-cream);
+  color: var(--text-primary);
 }
 
 /* Animated: metric value pops in */
@@ -367,14 +367,14 @@
     box-shadow:
       inset -8px -8px 20px rgba(0, 0, 0, 0.15),
       0 4px 20px rgba(0, 0, 0, 0.3),
-      0 0 0 0 rgba(212, 175, 55, 0);
+      0 0 0 0 transparent;
   }
   50% {
     transform: scale(1.02);
     box-shadow:
       inset -8px -8px 20px rgba(0, 0, 0, 0.15),
       0 4px 20px rgba(0, 0, 0, 0.3),
-      0 0 20px 5px rgba(212, 175, 55, 0.2);
+      0 0 20px 5px var(--accent-border);
   }
 }
 

@@ -56,8 +56,12 @@ The app is entirely client-side. Everything flows through one socket connection.
 - **Shutdown** posts to `/api/shutdown` to stop the connected backend.
 
 **Display mode** lives at `/display`: a compact, fullscreen-friendly dashboard
-for mounted screens and TVs. The [root README](../README.md#tv-display-mode)
-covers casting it.
+for mounted screens and TVs. It always uses the dark theme for TV readability.
+The [root README](../README.md#tv-display-mode) covers casting it.
+
+**Theme** defaults to dark. Toggle light/dark from the sun/moon button in the
+header; the choice is stored in `localStorage` under `openflight.theme`. Tokens
+live in `src/index.css` (`:root` / `[data-theme]`).
 
 **Launch Daddy** is a hidden mode toggled by a tap area in the header. When on,
 new shots can fire an animated overlay.

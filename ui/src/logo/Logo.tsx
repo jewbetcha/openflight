@@ -11,7 +11,7 @@ function getColor(variant: LogoVariant) {
     case 'light':
       return '#d4af37'; // var(--color-gold)
     case 'dark':
-      return '##1A3617';
+      return '#1A3617';
     case 'color':
       return null;
     default:

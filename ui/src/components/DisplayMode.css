@@ -2,7 +2,7 @@
   min-height: 100vh;
   width: 100%;
   padding: clamp(1rem, 2vw, 2rem);
-  background: radial-gradient(ellipse at top left, rgba(212, 175, 55, 0.1), transparent 38rem), var(--color-bg-deep);
+  background: radial-gradient(ellipse at top left, var(--accent-soft-mid), transparent 38rem), var(--color-bg-deep);
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -24,9 +24,9 @@
   display: flex;
   flex-direction: column;
   min-height: 24rem;
-  border: 1px solid rgba(245, 240, 230, 0.12);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  background: #050508;
+  background: var(--color-bg-camera);
   overflow: hidden;
   box-shadow: var(--shadow-card);
 }
@@ -37,7 +37,7 @@
   min-height: 0;
   flex: 1;
   object-fit: cover;
-  background: #050508;
+  background: var(--color-bg-camera);
 }
 
 .display-mode__camera-placeholder {
@@ -68,9 +68,9 @@
   align-items: center;
   min-height: 2rem;
   padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(245, 240, 230, 0.14);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
-  background: rgba(10, 10, 15, 0.78);
+  background: var(--surface-status);
   color: var(--text-secondary);
   font-size: clamp(0.8rem, 1.1vw, 1rem);
   font-weight: 700;
@@ -105,7 +105,7 @@
 
 .display-mode__title {
   margin: 0;
-  color: var(--color-cream);
+  color: var(--text-primary);
   font-family: var(--font-display);
   font-size: clamp(3rem, 5vw, 6rem);
   font-weight: 400;
@@ -134,7 +134,7 @@
   justify-content: center;
   min-height: 8.5rem;
   padding: clamp(0.8rem, 1.4vw, 1.25rem);
-  border: 1px solid rgba(245, 240, 230, 0.1);
+  border: 1px solid var(--gauge-track);
   border-radius: var(--radius-md);
   background: rgba(18, 18, 26, 0.86);
   box-shadow: var(--shadow-card);
@@ -142,8 +142,8 @@
 
 .display-metric--featured {
   min-height: clamp(10rem, 18vh, 15rem);
-  border-color: rgba(212, 175, 55, 0.35);
-  background: linear-gradient(145deg, rgba(212, 175, 55, 0.18), rgba(18, 18, 26, 0.92));
+  border-color: var(--accent-border-strong);
+  background: linear-gradient(145deg, var(--accent-soft-strong), var(--color-bg-card));
 }
 
 .display-metric__label,
@@ -163,7 +163,7 @@
 }
 
 .display-metric__value {
-  color: var(--color-cream);
+  color: var(--text-primary);
   font-size: clamp(2.35rem, 4vw, 4.75rem);
   font-weight: 800;
   line-height: 1;
@@ -197,7 +197,7 @@
 .display-mode__empty-strip,
 .display-shot-chip {
   min-height: 4.9rem;
-  border: 1px solid rgba(245, 240, 230, 0.1);
+  border: 1px solid var(--gauge-track);
   border-radius: var(--radius-md);
   background: rgba(18, 18, 26, 0.78);
 }

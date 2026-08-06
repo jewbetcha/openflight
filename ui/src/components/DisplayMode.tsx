@@ -147,7 +147,7 @@ export function DisplayMode({ connected, cameraStatus, latestShot, shots }: Disp
   const cameraError = failedCameraKey === cameraKey;
 
   return (
-    <main className="display-mode">
+    <main className="display-mode" data-theme="dark">
       <section className="display-mode__hero" aria-label="TV display mode">
         <div className="display-mode__camera">
           {cameraError ? (

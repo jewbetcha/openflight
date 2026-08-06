@@ -24,7 +24,7 @@
 .club-tabs__tab {
   padding: var(--space-sm) var(--space-md);
   background: transparent;
-  border: 1px solid rgba(245, 240, 230, 0.1);
+  border: 1px solid var(--gauge-track);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 0.8125rem;
@@ -41,8 +41,8 @@
 }
 
 .club-tabs__tab--active {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.4);
+  background: var(--accent-soft-mid);
+  border-color: var(--accent-border-active);
   color: var(--color-gold);
 }
 
@@ -65,22 +65,22 @@
   justify-content: center;
   padding: var(--space-md);
   background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.06);
+  border: 1px solid var(--border-faint);
   border-radius: var(--radius-md);
   text-align: center;
   transition: all var(--transition-smooth);
 }
 
 .stat-card--primary {
-  background: linear-gradient(145deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
-  border-color: rgba(212, 175, 55, 0.2);
+  background: linear-gradient(145deg, var(--accent-soft-mid) 0%, var(--accent-wash) 100%);
+  border-color: var(--accent-border);
 }
 
 .stat-card__value {
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 400;
-  color: var(--color-cream);
+  color: var(--text-primary);
   line-height: 1;
 }
 

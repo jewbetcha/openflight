@@ -57,7 +57,7 @@ function SpeedGauge({
   return (
     <div className="speed-gauge">
       <svg viewBox="0 0 200 140" className="speed-gauge__svg">
-        <path d={backgroundArc} fill="none" stroke="rgba(245, 240, 230, 0.1)" strokeWidth="12" strokeLinecap="round" />
+        <path d={backgroundArc} fill="none" stroke="var(--gauge-track)" strokeWidth="12" strokeLinecap="round" />
         <path
           d={valueArc}
           fill="none"
@@ -68,8 +68,8 @@ function SpeedGauge({
         />
         <defs>
           <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#A68B2A" />
-            <stop offset="100%" stopColor="#F4CF47" />
+            <stop offset="0%" stopColor="var(--color-gold-dim)" />
+            <stop offset="100%" stopColor="var(--color-gold-bright)" />
           </linearGradient>
         </defs>
       </svg>

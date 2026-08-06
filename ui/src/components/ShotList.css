@@ -20,8 +20,8 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(245, 240, 230, 0.03);
-  border: 1px solid rgba(245, 240, 230, 0.08);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
@@ -32,7 +32,7 @@
 }
 
 .shot-list__title {
-  color: var(--color-cream);
+  color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -47,8 +47,8 @@
 
 .shot-list__export {
   padding: var(--space-sm) var(--space-md);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: var(--accent-soft-mid);
+  border: 1px solid var(--accent-border-mid);
   border-radius: var(--radius-sm);
   color: var(--color-gold);
   font-size: 0.75rem;
@@ -84,7 +84,7 @@
   min-height: 0;
   padding-right: var(--space-xs);
   scrollbar-width: thin;
-  scrollbar-color: rgba(212, 175, 55, 0.45) transparent;
+  scrollbar-color: var(--accent-border-focus) transparent;
 }
 
 .shot-list__rows::-webkit-scrollbar {
@@ -96,7 +96,7 @@
 }
 
 .shot-list__rows::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.35);
+  background: var(--accent-border-strong);
   border-radius: var(--radius-sm);
 }
 
@@ -107,7 +107,7 @@
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
   background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.06);
+  border: 1px solid var(--border-faint);
   border-radius: var(--radius-md);
   min-height: 60px;
   transition: all var(--transition-smooth);
@@ -115,12 +115,12 @@
 
 .shot-row:hover {
   background: var(--color-bg-elevated);
-  border-color: rgba(212, 175, 55, 0.15);
+  border-color: var(--accent-soft-strong);
 }
 
 .shot-row--swing-speed {
-  border-color: rgba(212, 175, 55, 0.16);
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.08), var(--color-bg-card));
+  border-color: var(--accent-soft-active);
+  background: linear-gradient(90deg, var(--accent-soft), var(--color-bg-card));
 }
 
 .shot-row--validation {
@@ -150,7 +150,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-gold);
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--accent-ring);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   text-transform: uppercase;
@@ -165,7 +165,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-cream);
+  color: var(--text-primary);
   background: rgba(96, 165, 250, 0.12);
   border: 1px solid rgba(96, 165, 250, 0.22);
   border-radius: var(--radius-sm);
@@ -189,7 +189,7 @@
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: 400;
-  color: var(--color-cream);
+  color: var(--text-primary);
   line-height: 1;
 }
 
@@ -216,7 +216,7 @@
   flex-shrink: 0;
   padding: var(--space-xs) var(--space-sm);
   background: transparent;
-  border: 1px solid rgba(245, 240, 230, 0.12);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 0.6875rem;
@@ -232,13 +232,13 @@
 
 .shot-row__delete:hover {
   color: var(--color-gold);
-  border-color: rgba(212, 175, 55, 0.35);
-  background: rgba(212, 175, 55, 0.08);
+  border-color: var(--accent-border-strong);
+  background: var(--accent-soft);
 }
 
 .shot-row__delete:active {
   transform: scale(0.95);
-  background: rgba(212, 175, 55, 0.1);
+  background: var(--accent-soft-mid);
 }
 
 .shot-row__validation {
@@ -247,7 +247,7 @@
   gap: var(--space-sm);
   align-items: end;
   padding-top: var(--space-xs);
-  border-top: 1px solid rgba(245, 240, 230, 0.06);
+  border-top: 1px solid var(--border-faint);
 }
 
 .validation-field {
@@ -273,16 +273,16 @@
   min-height: 34px;
   padding: 0 var(--space-sm);
   background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(245, 240, 230, 0.1);
+  border: 1px solid var(--gauge-track);
   border-radius: var(--radius-sm);
-  color: var(--color-cream);
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
 .validation-field input:focus,
 .validation-field select:focus {
   outline: none;
-  border-color: rgba(212, 175, 55, 0.45);
+  border-color: var(--accent-border-focus);
 }
 
 .validation-diff {

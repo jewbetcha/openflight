@@ -35,8 +35,8 @@
 }
 
 .ball-indicator--disabled {
-  background: rgba(245, 240, 230, 0.05);
-  border-color: rgba(245, 240, 230, 0.1);
+  background: var(--surface-hover);
+  border-color: var(--gauge-track);
   color: var(--text-muted);
 }
 

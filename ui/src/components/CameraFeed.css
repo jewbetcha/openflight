@@ -4,7 +4,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-bg-card);
-  border: 1px solid rgba(245, 240, 230, 0.06);
+  border: 1px solid var(--border-faint);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -20,14 +20,14 @@
   align-items: center;
   padding: var(--space-md);
   background: var(--color-bg-elevated);
-  border-bottom: 1px solid rgba(245, 240, 230, 0.06);
+  border-bottom: 1px solid var(--border-faint);
 }
 
 .camera-feed__title {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-cream);
+  color: var(--text-primary);
   letter-spacing: 0.02em;
 }
 
@@ -38,7 +38,7 @@
 
 .camera-feed__button {
   padding: var(--space-xs) var(--space-md);
-  border: 1px solid rgba(245, 240, 230, 0.15);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
@@ -50,8 +50,8 @@
 }
 
 .camera-feed__button:hover {
-  background: rgba(245, 240, 230, 0.05);
-  border-color: rgba(245, 240, 230, 0.25);
+  background: var(--surface-hover);
+  border-color: var(--border-stronger);
 }
 
 .camera-feed__button:active {
@@ -98,7 +98,7 @@
   margin: 0 0 var(--space-xs) 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-cream);
+  color: var(--text-primary);
 }
 
 .camera-feed__message p {
