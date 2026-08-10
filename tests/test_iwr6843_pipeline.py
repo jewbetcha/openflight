@@ -854,6 +854,27 @@ def test_lcmf_v1_reports_rejected_track_quality(cal):
     assert result.status == "rejected_track_quality"
 
 
+def test_lcmf_v1_warns_on_accepted_low_quality_track(cal, monkeypatch):
+    """An accepted low-quality track must retain its warning status."""
+    original_process_dump = lcmf.process_dump
+
+    def process_low_quality_dump(*args, **kwargs):
+        shot = original_process_dump(*args, **kwargs)
+        assert shot.track is not None
+        shot.quality = "low"
+        return shot
+
+    monkeypatch.setattr(lcmf, "process_dump", process_low_quality_dump)
+
+    result = estimate_lcmf_v1(
+        _range_snapshot_shot(), cal, ball_speed_mph=45.0 * 2.23694, club="9i"
+    )
+
+    assert result.accepted
+    assert result.tracker_quality == "low"
+    assert result.status == "accepted_track_quality_warning"
+
+
 def test_lcmf_v1_uses_tx2_effective_timing_on_three_tx_capture(cal):
     rng = np.random.default_rng(12)
     cube = (

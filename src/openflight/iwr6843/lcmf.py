@@ -761,7 +761,7 @@ def estimate_lcmf_v1(
         )
     measured = measured_channels(channel_components, channel_evidence)
     result = _result_from_track(
-        "accepted_track_quality_warning" if shot.quality == "reject" else "accepted",
+        "accepted_track_quality_warning" if shot.quality == "low" else "accepted",
         shot,
     )
     result.angle_deg = raw_angle_deg + ANGLE_CORRECTION_DEG

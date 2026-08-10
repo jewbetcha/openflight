@@ -86,6 +86,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--kld7-bypass-vertical-gate` renamed to `--kld7-vertical-raw`.
 
 ### Fixed
+- IWR6843 LCMF results now report `accepted_track_quality_warning` for
+  accepted low-quality tracks. The warning branch previously checked for
+  `reject`, which had already returned earlier and was therefore unreachable.
 - Session logging: serialize all access to the session JSONL file with a
   lock. The `log_*` methods are called concurrently from the OPS243
   capture thread, the K-LD7 stream thread, and Flask-SocketIO handlers;
