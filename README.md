@@ -60,7 +60,7 @@ See the **[Parts List](docs/PARTS.md)** for everything you need with purchase li
 
 ### 2. Wire it up
 
-Follow the **[Sound Trigger Wiring Guide](docs/sound-trigger-wiring.md)** to connect the SEN-14262 to the OPS243-A. The (deprecated) K-LD7 modules connect via USB — no wiring needed.
+Follow the **[Sound Trigger Wiring Guide](docs/sound-trigger-wiring.md)** to connect the SEN-14262 to the OPS243-A. The (deprecated) K-LD7 modules connect via USB — no wiring needed. The OPS243 also has an opt-in internal speed-trigger path; see the **[Internal Hardware Trigger Guide](docs/hardware-trigger.md)**.
 
 **Adding the IWR6843 angle radar?** The Pi cannot power both radars over USB, so
 the OPS243 moves to the Pi's GPIO UART header while the TI board takes the USB
@@ -95,6 +95,9 @@ details and troubleshooting.
 ```bash
 # Default: rolling buffer mode with sound trigger
 scripts/start-kiosk.sh
+
+# Opt-in OPS243 internal hardware trigger (30 ksps, S#6)
+scripts/start-kiosk.sh --trigger hardware
 
 # With the IWR6843 angle radar (OPS243 on the Pi GPIO UART).
 # Geometry values are examples — measure your own; see the operator guide.
@@ -302,6 +305,7 @@ uv run pytest tests/ -v
 
 - **[Parts List](docs/PARTS.md)** — What to buy
 - **[Sound Trigger Wiring](docs/sound-trigger-wiring.md)** — How to wire the sound trigger
+- **[Internal Hardware Trigger](docs/hardware-trigger.md)** — OPS243 internal trigger methodology and Pi retest checklist
 - **[Raspberry Pi Setup](docs/raspberry-pi-setup.md)** — Full setup guide
 - **[IWR6843 Operator Guide](docs/iwr6843/README.md)** — Wire, flash, mount, aim, and calibrate the angle radar
 - **[LIS3DH Inclinometer Setup](docs/inclinometer/README.md)**: Add enclosure-level compensation to IWR6843 tilt

@@ -213,11 +213,9 @@ class RollingBufferMonitor:
     Provides higher temporal resolution (~937 Hz vs ~56 Hz) and optional spin
     detection.
 
-    Recommended configuration uses "speed" trigger (default):
-    - Fast speed detection mode (~150-200Hz) watches for club swing
-    - Automatically switches to rolling buffer when speed detected
-    - Captures ball impact with high temporal resolution
-    - Per OmniPreSense manufacturer recommendation
+    Recommended configuration uses the existing "speed" trigger. The opt-in
+    "hardware" trigger delegates the threshold edge to the OPS243 internal
+    trigger while preserving the same rolling-buffer processor.
 
     Interface matches LaunchMonitor for compatibility with existing code.
 
@@ -252,6 +250,7 @@ class RollingBufferMonitor:
                 is nominal.
             trigger_type: Trigger strategy:
                 - "speed" (default, recommended): Fast speed trigger per manufacturer
+                - "hardware": OPS243 internal speed trigger
                 - "polling": Continuous capture polling (slower, simpler)
                 - "threshold": Speed threshold trigger
                 - "manual": External trigger for testing
@@ -287,9 +286,22 @@ class RollingBufferMonitor:
         """
         self.radar.connect()
 
+        if self.trigger_type == "hardware":
+            self.radar.configure_for_internal_speed_trigger(
+                trigger_threshold_mph=self.trigger.trigger_threshold_mph,
+                pre_trigger_segments=self.trigger.pre_trigger_segments,
+                trigger_magnitude=self.trigger.trigger_magnitude,
+                sample_rate_ksps=self.sample_rate_ksps,
+            )
+            logger.info(
+                "[MONITOR] Internal hardware trigger configured (threshold %.1f, S#%d, SM%d)",
+                self.trigger.trigger_threshold_mph,
+                self.trigger.pre_trigger_segments,
+                self.trigger.trigger_magnitude,
+            )
         # Speed trigger handles its own configuration (starts in speed mode)
         # Other triggers need rolling buffer mode configured upfront
-        if self.trigger_type != "speed":
+        elif self.trigger_type != "speed":
             # Get pre_trigger_segments from the trigger if available
             pre_trigger_segments = getattr(self.trigger, "pre_trigger_segments", 12)
             if self.trigger_type == "sound":

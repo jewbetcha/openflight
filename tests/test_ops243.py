@@ -5,6 +5,7 @@ import threading
 import time
 
 import pytest
+import serial
 
 from openflight.ops243 import Direction, OPS243Radar, SpeedReading
 
@@ -638,3 +639,149 @@ class TestWaitForHardwareTrigger:
 
         assert response == b"".join(self._DUMP).decode("ascii")
         assert events == ["first-byte"]
+
+
+class _InternalTriggerSerial:
+    """Minimal serial stand-in for internal-trigger command tests."""
+
+    is_open = True
+
+    def __init__(self, fail_write=False):
+        self.writes = []
+        self.fail_write = fail_write
+
+    @property
+    def in_waiting(self):
+        return 0
+
+    def reset_input_buffer(self):
+        pass
+
+    def write(self, data):
+        if self.fail_write:
+            raise serial.SerialTimeoutException("radar busy")
+        self.writes.append(data)
+        return len(data)
+
+    def flush(self):
+        pass
+
+
+class TestInternalSpeedTrigger:
+    """Focused tests for the OPS243 board-managed speed trigger."""
+
+    @staticmethod
+    def _radar(serial_obj):
+        radar = OPS243Radar.__new__(OPS243Radar)
+        radar.serial = serial_obj
+        return radar
+
+    def test_configuration_uses_gc_trigger_order_and_six_pre_segments(self, monkeypatch):
+        """Internal trigger setup must restore GC-reset settings in order."""
+        radar = self._radar(_InternalTriggerSerial())
+        commands = []
+        monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+        monkeypatch.setattr(
+            radar,
+            "_send_command",
+            lambda command: commands.append(command) or "",
+        )
+
+        radar.configure_for_internal_speed_trigger(
+            trigger_threshold_mph=25,
+            pre_trigger_segments=6,
+            trigger_magnitude=40,
+            sample_rate_ksps=30,
+        )
+
+        assert commands == [
+            "PI",
+            "GC",
+            "S=30",
+            "US",
+            "P0",
+            "S(",
+            "X=2",
+            "R-",
+            "R>25",
+            "OJ",
+            "OM",
+            "W0",
+            "S#6",
+        ]
+        assert radar.serial.writes == [b"ST-25\r", b"ST-25\r", b"SM40\r"]
+        assert not {"GS", "PA", "S#0"} & set(commands)
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"trigger_threshold_mph": -1}, "non-negative"),
+            ({"trigger_magnitude": 0}, "between 1 and 2000"),
+            ({"trigger_magnitude": 2001}, "between 1 and 2000"),
+            ({"sample_rate_ksps": 25}, "30 ksps"),
+        ],
+    )
+    def test_configuration_validates_hardware_requirements(self, kwargs, message):
+        """Unsafe threshold, magnitude, and sample-rate values fail early."""
+        radar = self._radar(_InternalTriggerSerial())
+
+        with pytest.raises(ValueError, match=message):
+            radar.configure_for_internal_speed_trigger(**kwargs)
+
+    def test_rearm_uses_gc_and_restores_cached_settings(self, monkeypatch):
+        """A completed dump is re-armed with GC without PA or S#0."""
+        radar = self._radar(_InternalTriggerSerial())
+        radar._internal_speed_trigger_config = (25.0, 6, 40, 30)
+        commands = []
+        monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+        monkeypatch.setattr(radar, "_drain_rearm_serial", lambda: None)
+        monkeypatch.setattr(
+            radar,
+            "_send_command",
+            lambda command: commands.append(command) or "",
+        )
+
+        assert radar.rearm_internal_speed_trigger() is True
+        assert radar.serial.writes == [b"GC", b"ST-25\r", b"SM40\r"]
+        assert commands == [
+            "S=30",
+            "US",
+            "P0",
+            "S(",
+            "X=2",
+            "R-",
+            "R>25",
+            "OJ",
+            "OM",
+            "W0",
+            "S#6",
+        ]
+        assert not {"PI", "GS", "PA", "S#0"} & set(commands)
+
+    def test_rearm_recovers_from_serial_timeout_without_discarding_capture(self, monkeypatch):
+        """A busy radar reports a retryable re-arm failure instead of raising."""
+        radar = self._radar(_InternalTriggerSerial(fail_write=True))
+        radar._internal_speed_trigger_config = (25.0, 6, 40, 30)
+        monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+        monkeypatch.setattr(radar, "_drain_rearm_serial", lambda: None)
+
+        assert radar.rearm_internal_speed_trigger() is False
+        assert radar._hardware_trigger_recovery_required is True
+
+    def test_failed_rearm_discards_stale_output_before_next_dump(self):
+        """Recovery must ignore trailing UART records before the next I/Q dump."""
+        stale = b'{"speed":-12.0}\r\n'
+        radar = self._radar(
+            _ScheduledSerial(
+                [
+                    (0.0, stale),
+                    (0.05, b"".join(TestWaitForHardwareTrigger._DUMP)),
+                ]
+            )
+        )
+        radar._hardware_trigger_recovery_required = True
+
+        response = radar.wait_for_hardware_trigger(timeout=1.0)
+
+        assert response == b"".join(TestWaitForHardwareTrigger._DUMP).decode("ascii")
+        assert radar._hardware_trigger_recovery_required is False

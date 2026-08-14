@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Opt-in OPS243 internal hardware trigger.** `--trigger hardware` configures
+  the radar's internal speed trigger with 25 mph, magnitude 40, and the tested
+  `S#6` split at 30 ksps. Captures are parsed and the radar is re-armed with
+  `GC` after each dump. The existing sound-trigger default and
+  `--sound-pre-trigger` behavior are unchanged. See
+  [OPS243 Internal Hardware Trigger](hardware-trigger.md).
 - **System Prerequisites:** Documented missing binary dependencies (`swig`, `liblgpio-dev`, `python3-dev`) required prior to executing `./scripts/setup/setup.sh`.
 - **Environment Reload Guidance:** Added instructions for reloading terminal environment variables (`source ~/.bashrc`) when installed dependencies or scripts (`setup.sh`, `start-kiosk.sh`) are not recognized in the current terminal session.
 - **OPS243 over the Raspberry Pi GPIO UART.** The radar can now run on the J3

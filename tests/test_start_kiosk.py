@@ -63,6 +63,49 @@ def test_iwr6843_enables_ti_launch_pipeline_with_production_defaults():
     assert "--kld7" not in command
 
 
+def test_hardware_trigger_is_opt_in_and_uses_six_pre_trigger_segments():
+    """The existing sound startup remains the default; hardware flags are explicit."""
+    default_command = _dry_run().stdout.strip()
+    hardware_command = _dry_run("--trigger", "hardware").stdout.strip()
+
+    assert "--trigger sound" in default_command
+    assert "--trigger hardware" in hardware_command
+    assert "--trigger-threshold 25" in hardware_command
+    assert "--trigger-magnitude 40" in hardware_command
+    assert "--pre-trigger-segments 6" in hardware_command
+    assert "--sound-pre-trigger" not in hardware_command
+
+
+def test_hardware_trigger_overrides_are_forwarded_without_changing_sound_alias():
+    """Hardware-only names forward their values while sound keeps its legacy flag."""
+    hardware = _dry_run(
+        "--trigger",
+        "hardware",
+        "--trigger-threshold",
+        "31",
+        "--trigger-magnitude",
+        "52",
+        "--pre-trigger-segments",
+        "20",
+    ).stdout
+    sound = _dry_run("--sound-pre-trigger", "18").stdout
+
+    assert "--trigger-threshold 31" in hardware
+    assert "--trigger-magnitude 52" in hardware
+    assert "--pre-trigger-segments 20" in hardware
+    assert "--sound-pre-trigger" not in hardware
+    assert "--trigger sound" in sound
+    assert "--sound-pre-trigger 18" in sound
+
+
+def test_speed_trigger_keeps_its_existing_threshold_without_an_override():
+    """The hardware default threshold must not alter the existing speed path."""
+    command = _dry_run("--trigger", "speed").stdout
+
+    assert "--trigger speed" in command
+    assert "--trigger-threshold" not in command
+
+
 def test_iwr6843_overrides_are_forwarded():
     result = _dry_run(
         "--iwr6843",

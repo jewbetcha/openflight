@@ -23,6 +23,10 @@ DRY_RUN=false
 # Rolling buffer mode is the only mode (streaming mode removed)
 TRIGGER="sound"  # Default: hardware sound trigger (SEN-14262 → HOST_INT)
 SOUND_PRE_TRIGGER=""
+TRIGGER_THRESHOLD=25
+TRIGGER_THRESHOLD_SET=false
+TRIGGER_MAGNITUDE=40
+PRE_TRIGGER_SEGMENTS=6
 BUFFER_SPLIT=""
 IWR6843=false
 IWR6843_PORT=""
@@ -131,6 +135,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --trigger)
             TRIGGER="$2"
+            shift 2
+            ;;
+        --trigger-threshold|--speed-trigger-threshold)
+            TRIGGER_THRESHOLD="$2"
+            TRIGGER_THRESHOLD_SET=true
+            shift 2
+            ;;
+        --trigger-magnitude)
+            TRIGGER_MAGNITUDE="$2"
+            shift 2
+            ;;
+        --pre-trigger-segments)
+            PRE_TRIGGER_SEGMENTS="$2"
             shift 2
             ;;
         --sound-pre-trigger)
@@ -587,7 +604,13 @@ if [ -n "$TRIGGER" ] && [ "$SWING_SPEED" != true ]; then
     SERVER_CMD="$SERVER_CMD --trigger $TRIGGER"
 fi
 
-if [ -n "$SOUND_PRE_TRIGGER" ] && [ "$SWING_SPEED" != true ]; then
+if [ "$TRIGGER" = "hardware" ] && [ "$SWING_SPEED" != true ]; then
+    SERVER_CMD="$SERVER_CMD --trigger-threshold $TRIGGER_THRESHOLD"
+    SERVER_CMD="$SERVER_CMD --trigger-magnitude $TRIGGER_MAGNITUDE"
+    SERVER_CMD="$SERVER_CMD --pre-trigger-segments $PRE_TRIGGER_SEGMENTS"
+elif [ "$TRIGGER" = "speed" ] && [ "$TRIGGER_THRESHOLD_SET" = true ] && [ "$SWING_SPEED" != true ]; then
+    SERVER_CMD="$SERVER_CMD --trigger-threshold $TRIGGER_THRESHOLD"
+elif [ -n "$SOUND_PRE_TRIGGER" ] && [ "$SWING_SPEED" != true ]; then
     SERVER_CMD="$SERVER_CMD --sound-pre-trigger $SOUND_PRE_TRIGGER"
 fi
 

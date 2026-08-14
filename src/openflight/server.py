@@ -2907,11 +2907,14 @@ def start_monitor(
     Args:
         port: Serial port for radar
         mock: Run in mock mode without radar
-        trigger_type: Trigger strategy (sound, speed, polling)
+        trigger_type: Trigger strategy (hardware, sound, speed, polling)
         debug: Enable verbose debug output
         ops_baud: Target UART baud when the OPS243 is on the GPIO header
     """
     global monitor, mock_mode, mock_swing_speed_mode, radar_config  # pylint: disable=global-statement
+
+    if trigger_type == "hardware" and sample_rate_ksps != 30:
+        raise ValueError("Hardware trigger mode requires a 30 ksps sample rate")
 
     # Stop any existing monitor first
     if monitor is not None:
@@ -3593,9 +3596,23 @@ def main():
     _add_ballistics_arguments(parser)
     parser.add_argument(
         "--trigger",
-        choices=["polling", "threshold", "speed", "sound"],
+        choices=["hardware", "polling", "threshold", "speed", "sound"],
         default="polling",
         help="Trigger strategy (default: polling)",
+    )
+    parser.add_argument(
+        "--trigger-threshold",
+        "--speed-trigger-threshold",
+        dest="trigger_threshold",
+        type=float,
+        default=None,
+        help="Internal or host speed-trigger threshold in mph (hardware default: 25)",
+    )
+    parser.add_argument(
+        "--trigger-magnitude",
+        type=int,
+        default=40,
+        help="OPS243 internal trigger magnitude SMn, 1-2000 (default: 40)",
     )
     parser.add_argument(
         "--swing-speed",
@@ -3657,6 +3674,15 @@ def main():
         help=(
             "Pre-trigger segments S#n, 0-32 "
             "(default: 16 = 50/50 split, each segment ~4.27ms at 30ksps)"
+        ),
+    )
+    parser.add_argument(
+        "--pre-trigger-segments",
+        type=int,
+        default=6,
+        help=(
+            "Internal hardware-trigger pre-trigger segments S#n, 0-32 "
+            "(default: 6; each segment is ~4.27ms at 30ksps)"
         ),
     )
     parser.add_argument(
@@ -3932,6 +3958,15 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.trigger_threshold is not None and args.trigger_threshold < 0:
+        parser.error("--trigger-threshold must be non-negative")
+    if args.trigger == "hardware" and not 1 <= args.trigger_magnitude <= 2000:
+        parser.error("--trigger-magnitude must be between 1 and 2000")
+    if args.trigger == "hardware" and args.sample_rate != 30:
+        parser.error("--trigger hardware requires --sample-rate 30")
+    if args.trigger == "hardware" and not 0 <= args.pre_trigger_segments <= 32:
+        parser.error("--pre-trigger-segments must be between 0 and 32")
+
     # Mount tilt cannot be defaulted safely (a wrong value silently biases the
     # launch angle), so require it whenever the K-LD7 radars are enabled.
     if args.kld7 and args.kld7_mount_tilt is None:
@@ -4030,9 +4065,19 @@ def main():
         set_show_raw_readings(True)
         print("Raw radar readings display ENABLED - signed speed values will be shown")
 
-    # Start the monitor
-    # Build trigger-specific kwargs (pre_trigger_segments always passed)
+    # Start the monitor. Keep the sound-trigger option on its legacy flag so
+    # selecting hardware mode cannot silently change the established path.
     trigger_kwargs = {"pre_trigger_segments": args.sound_pre_trigger}
+    if args.trigger == "hardware":
+        trigger_kwargs = {
+            "trigger_threshold_mph": (
+                args.trigger_threshold if args.trigger_threshold is not None else 25.0
+            ),
+            "trigger_magnitude": args.trigger_magnitude,
+            "pre_trigger_segments": args.pre_trigger_segments,
+        }
+    elif args.trigger == "speed" and args.trigger_threshold is not None:
+        trigger_kwargs = {"min_trigger_speed_mph": args.trigger_threshold}
     swing_speed_kwargs = {
         "trigger_threshold_mph": args.swing_speed_threshold,
         "max_speed_mph": None if args.swing_speed_max <= 0 else args.swing_speed_max,
