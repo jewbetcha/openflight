@@ -39,7 +39,12 @@ export function CurrentShotView({ shot }: { shot: Shot | null }) {
   const gaugePct = Math.min(Math.max(shot.ball_speed_mph / BALL_SPEED_GAUGE_MAX, 0), 1);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <View style={styles.hero}>
         <Text style={styles.heroLabel}>{shot.club}</Text>
         <View style={styles.heroValueRow}>

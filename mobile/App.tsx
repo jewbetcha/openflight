@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -87,40 +89,50 @@ export default function App() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>OpenFlight</Text>
-        <View style={styles.statusPill}>
-          <View style={[styles.statusDot, { backgroundColor: STATUS_COLOR[connectionState] }]} />
-          <Text style={styles.statusText}>{STATUS_LABEL[connectionState]}</Text>
-        </View>
-      </View>
+      {/* Tapping any non-interactive area dismisses the keyboard -- RN does not
+          do this by default, so the URL field's keyboard would otherwise stay
+          open until the return key is pressed. */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.inner}>
+          <View style={styles.header}>
+            <Text style={styles.title}>OpenFlight</Text>
+            <View style={styles.statusPill}>
+              <View style={[styles.statusDot, { backgroundColor: STATUS_COLOR[connectionState] }]} />
+              <Text style={styles.statusText}>{STATUS_LABEL[connectionState]}</Text>
+            </View>
+          </View>
 
-      {isConnected ? (
-        <View style={styles.connectedBar}>
-          <TouchableOpacity style={styles.simulateButton} onPress={simulateShot}>
-            <Text style={styles.simulateButtonText}>Simulate Shot</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
-            <Text style={styles.disconnectButtonText}>Disconnect</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.connectRow}>
-          <TextInput
-            style={styles.input}
-            value={serverUrl}
-            onChangeText={setServerUrl}
-            placeholder="http://<pi-ip>:8080"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity style={styles.connectButton} onPress={connect}>
-            <Text style={styles.connectButtonText}>Connect</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {isConnected ? (
+            <View style={styles.connectedBar}>
+              <TouchableOpacity style={styles.simulateButton} onPress={simulateShot}>
+                <Text style={styles.simulateButtonText}>Simulate Shot</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
+                <Text style={styles.disconnectButtonText}>Disconnect</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.connectRow}>
+              <TextInput
+                style={styles.input}
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                placeholder="http://<pi-ip>:8080"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+              <TouchableOpacity style={styles.connectButton} onPress={connect}>
+                <Text style={styles.connectButtonText}>Connect</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-      <CurrentShotView shot={latestShot} />
+          <CurrentShotView shot={latestShot} />
+        </View>
+      </TouchableWithoutFeedback>
 
       <StatusBar style="auto" />
     </KeyboardAvoidingView>
@@ -128,6 +140,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  inner: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
