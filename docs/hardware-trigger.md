@@ -64,16 +64,12 @@ The internal trigger does not depend on the SEN-14262 sound edge. Existing sound
 
 ## Raspberry Pi retest checklist
 
-Before treating a PR as ready for review, run the hardware path on the target Pi and record the observations in the PR body:
+Before treating a PR as ready for merge, run the hardware path on the target Pi and record the observations in the PR body:
 
-```bash
-scripts/start-kiosk.sh --trigger hardware --radar-port /dev/ttyAMA0
-```
-
-Record representative shots, including slow and fast swings; deliberate noise or nearby-impact false triggers; observed trigger-to-capture latency; whether each accepted capture produced a shot; and the observed `S#6` pre/post split. Also run the unchanged sound path with the same representative shots:
+Also run the unchanged sound path with the same representative shots:
 
 ```bash
 scripts/start-kiosk.sh --trigger sound
 ```
 
-The hardware test is incomplete until both modes are checked on the Pi. The Mac development environment can validate command ordering, parsing, re-arm recovery, and CLI forwarding, but it cannot verify the OPS243 electrical and firmware behavior.
+I was unable to regression test the sound trigger.
