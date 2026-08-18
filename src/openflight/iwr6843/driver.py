@@ -135,24 +135,35 @@ class IWR6843Radar:
             )
 
     def send_config(self, cfg_path: str) -> None:
-        """sensorStop, then stream the cfg (ends in sensorStart); raise on Error.
+        """Stop and flush old state, then stream the cfg; raise on Error.
 
         The firmware's geometry guard rejects a cfg whose loops/samples don't
         match the flashed build — that surfaces here as RuntimeError.
         """
         self.drain_stale_output()
         self._require_done("sensorStop", self.cmd("sensorStop", 3.0))
+        self._require_done("flushCfg", self.cmd("flushCfg", 1.5))
         with open(cfg_path, encoding="utf-8") as cfg:
             for rawline in cfg:
                 line = rawline.strip()
                 if not line or line.startswith("%"):
                     continue
+                # The driver owns the lifecycle commands so every config gets
+                # the required stop/flush ordering without sending duplicates.
+                if line in {"sensorStop", "flushCfg"}:
+                    continue
                 window = 6.0 if line.startswith("sensorStart") else 1.5
                 resp = self.cmd(line, window)
                 self._require_done(line, resp)
-        health = self.stats()
-        self._require_done("stats", health)
-        if "active=1" not in health:
+        deadline = time.monotonic() + 6.0
+        health = ""
+        while time.monotonic() < deadline:
+            health = self.stats()
+            self._require_done("stats", health)
+            if "active=1" in health:
+                break
+            time.sleep(0.1)
+        else:
             raise RuntimeError(f"IWR6843 did not enter active capture mode: {health.strip()}")
 
     def read_dump(self, timeout_s: float = 40.0, stall_tolerance_s: float = 4.0) -> bytes:
@@ -181,12 +192,42 @@ class IWR6843Radar:
                     buf = buf[idx:]
                     try:
                         metadata = parse_header(buf)
-                        expected = metadata["header_nbytes"] + payload_nbytes(metadata)
+                        expected = metadata["header_nbytes"] + payload_nbytes(metadata, buf)
                     except ValueError:
                         expected = None
             elif len(buf) >= expected:
                 break
-        return buf if expected is None else buf[:expected]
+        if expected is None:
+            return buf
+
+        payload = buf[:expected]
+        if len(payload) == expected:
+            # The binary payload can finish just before the CLI handler returns.
+            # Wait for its trailing Done before another command can be consumed
+            # by the firmware while it is still completing dump/restart work.
+            elapsed = time.time() - start
+            trailer = self._wait_for_dump_cli_ready(
+                buf[expected:], timeout_s=min(1.0, max(0.0, timeout_s - elapsed))
+            )
+            if b"Error" in trailer:
+                raise RuntimeError(
+                    f"IWR6843 dump completed but firmware restart failed: "
+                    f"{trailer.decode(errors='replace').strip()}"
+                )
+        return payload
+
+    def _wait_for_dump_cli_ready(self, initial: bytes, *, timeout_s: float) -> bytes:
+        """Consume the dump handler's trailing response before reusing the CLI."""
+        response = bytearray(initial)
+        deadline = time.monotonic() + timeout_s
+        while b"Done" not in response and b"Error" not in response:
+            if time.monotonic() >= deadline:
+                break
+            waiting = self.ser.in_waiting
+            chunk = self.ser.read(waiting if waiting else 1)
+            if chunk:
+                response.extend(chunk)
+        return bytes(response)
 
     def stats(self) -> str:
         """Firmware health line (frames/wraps/active/calib/rf_faults)."""

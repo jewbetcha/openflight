@@ -670,7 +670,12 @@ class TestSoundTriggerTimestampPropagation:
             is_open = True
 
             def __init__(self):
-                self._response = b'{"Q": [1]}'
+                self._response = (
+                    b'{"sample_time": 1.0}\r\n'
+                    b'{"trigger_time": 1.1}\r\n'
+                    b'{"I": [1]}\r\n'
+                    b'{"Q": [1]}'
+                )
 
             @property
             def in_waiting(self):
@@ -689,7 +694,7 @@ class TestSoundTriggerTimestampPropagation:
 
         response = radar.wait_for_hardware_trigger(timeout=1.0)
 
-        assert response == '{"Q": [1]}'
+        assert response.endswith('{"Q": [1]}')
         assert radar.last_hardware_trigger_first_byte_timestamp is not None
 
     def test_sound_trigger_uses_buffer_offset_for_trigger_timestamp(self):

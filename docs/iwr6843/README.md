@@ -22,38 +22,55 @@ For firmware development, architecture, and build instructions, see
 For a plain-language explanation and the July 2026 TrackMan baseline, see the
 [IWR6843 launch-angle field report](../iwr6843_field_report_2026-07.html).
 
-## Current Validated Configuration
+## Current Configuration
 
-Use these files together. Mixing a firmware binary and config from different
-variants will fail startup or produce the wrong capture geometry.
+Flash one configurable firmware image, then select one of two runtime profiles:
 
 | Component | Current file or value |
 |---|---|
-| Firmware | `firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin` |
-| Radar config | `config/iwr6843_l3dump_vTX2_window53_12l18f.cfg` |
+| Firmware | `firmware/releases/l3_dump_configurable_capture_20260816.bin` |
+| Wide/default config | `config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` |
+| Dense/advanced config | `config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` |
 | Reference array calibration | `config/iwr6843_calibration_reference.json` |
+| Firmware size | 345,860 bytes |
+| Firmware SHA-256 | `bd68db511b12f5a3236c0a88c70448dc2ff42a0525455329f33138e4a2aa88d5` |
 | Transmitters / receivers | 3 TX / 4 RX |
-| Capture | 12 loops, 18 frames, 4 ms frame spacing |
-| Trigger split | 6 pre-trigger frames, 12 post-trigger frames |
-| Saved range data | 53 complex range bins per frame with moving early/middle/late windows |
-| Complete dump size | 549,566 bytes, including header, temperature report, and per-frame window metadata |
+| Loops | 12 per frame |
+| Movie duration | 72 ms |
 
-The validated firmware SHA-256 is:
+### Choose A Profile
 
-```text
-8a87593954fd5ae2b7adf709c78626f81a87b8988b8dc28f2b2be7b5c99eac12
-```
+| Profile | Wide/default | Dense/advanced |
+|---|---:|---:|
+| Frames and spacing | 24 at 3 ms | 36 at 2 ms |
+| Saved window | 53 bins | 53 bins |
+| Storage | IQ16 | Block-scaled IQ8 |
+| Complete dump | 732,812 bytes | 549,764 bytes |
+| Choose it for | Ball flight and setup tolerance | Dense impact sampling |
+
+Start with **wide/default**. Its wider range window is more tolerant of tee
+placement, ball speed, and setup geometry, while IQ16 retains full signal
+fidelity. Its live inclinometer-adjusted LCMF output measured 0.86 degree MAE
+across all 59 matched 9-iron and 7-iron shots in an August 9 TrackMan session,
+with 0.70 degree P50 and 1.75 degree P90 absolute error. Select
+**dense/advanced** when temporal density around impact is the priority. It now
+preserves the same 53-bin range span while using IQ8 to fit 36 frames in L3.
+The 2 ms IQ8 transport has passed hardware cadence testing, but the 53-bin
+dense profile still needs source-of-truth TrackMan MAE validation; its
+horizontal and club metrics remain experimental.
+
+Changing profiles does not require reflashing. It changes only the config
+passed to `--iwr6843-config`. Both profiles use the same host-side mount-tilt
+path, including live inclinometer correction when `--inclinometer` is enabled.
+They also use the measured positive TDM sign for normal TX order. Automatic
+sign selection is reserved for offline diagnostics because multipath can select
+the mirrored sign and collapse the vertical two8 channel.
 
 On the Pi, verify the checked-in image with:
 
 ```bash
-sha256sum firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin
+sha256sum firmware/releases/l3_dump_configurable_capture_20260816.bin
 ```
-
-Release filenames track build identity, while the dump header carries the wire
-format version. The older `_v2.bin` image remains checked in for rollback
-(`3045bb2f087b40c228bf1dd5190cf3fac6dbde50682c7927e86714314b0e7fcb`); the dated
-`temperature_report_20260731` image is the current release.
 
 ## Before You Start
 
@@ -351,11 +368,11 @@ IWR6843 ROM bootloader handshake: PASS
 If you are flashing immediately, leave the board in flash mode. The flash
 command will ask for another RESET after it opens the UART.
 
-### 4. Flash The Validated Image
+### 4. Flash The Configurable Image
 
 ```bash
 uv run python firmware/flash_iwr6843.py \
-  firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin \
+  firmware/releases/l3_dump_configurable_capture_20260816.bin \
   --port /dev/ttyUSB0
 ```
 
@@ -463,7 +480,7 @@ scripts/start-kiosk.sh --debug \
   --radar-port /dev/ttyAMA0 \
   --iwr6843 \
   --iwr6843-port /dev/ttyUSB0 \
-  --iwr6843-config config/iwr6843_l3dump_vTX2_window53_12l18f.cfg \
+  --iwr6843-config config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg \
   --iwr6843-tee-m 1.575 \
   --iwr6843-net-m 4.6 \
   --iwr6843-tilt-deg 10.4 \
@@ -475,9 +492,15 @@ scripts/start-kiosk.sh --debug \
 For Option B, replace `/dev/ttyAMA0` after `--radar-port` with the OPS USB serial
 device, preferably its stable `/dev/serial/by-id/...` path.
 
-The production config and reference calibration above are the server defaults.
-Passing `--iwr6843-config` explicitly is still useful when diagnosing a setup
-because the selected file is visible in the launch command and session log.
+The example uses the recommended wide profile. To test dense impact sampling,
+change only the config argument to:
+
+```text
+--iwr6843-config config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg
+```
+
+Passing `--iwr6843-config` explicitly keeps the selected profile visible in the
+launch command and session log.
 
 The OPS port can also be supplied as `--ops-port /dev/ttyAMA0`. `--port` means
 the web-server port, so do not use it for the OPS serial device.
@@ -488,7 +511,7 @@ probes available USB serial ports for the expected CLI. Supplying
 multiple USB serial devices are connected.
 
 Once the setup is stable, remove `--debug` for normal operation. The server
-still processes TI captures in memory, but it does not write a 549 KB dump for
+still processes TI captures in memory, but it does not write a dump for
 every shot. Session JSONL entries only contain a dump path when debug capture
 is enabled.
 
@@ -508,7 +531,7 @@ complete capture:
 
 ```text
 [IWR6843] Trigger #1: dumping firmware-frozen L3 ring
-[IWR6843] Capture #1 complete: 549566 bytes
+[IWR6843] Capture #1 complete: 732812 bytes
 ```
 
 Firmware health should show an active sensor, increasing frame/wrap counters,
@@ -525,6 +548,43 @@ ball track does not meet the acceptance gates.
 In debug mode, verify that the session contains an `iwr6843_capture` entry, a
 `temperature_report` object, and a `capture_path` pointing to the saved
 `.l3dump` file.
+
+## Horizontal Ball Launch
+
+TX2 measures horizontal ball launch from phase relative to the TX1/TX3 phase
+center. The IWR6843LEVM TX2 baseline is one-half wavelength; OpenFlight applies
+that board geometry and uses the OPS ball speed when removing TDM motion phase.
+This keeps multipath in the TI range slope from rotating the horizontal result.
+
+Each physical board and enclosure can retain a static target-line phase. Pass
+the phase measured by horizontal aim calibration when starting OpenFlight:
+
+```bash
+scripts/start-kiosk.sh --iwr6843 \
+  --iwr6843-horizontal-phase-reference-rad -0.33434
+```
+
+`-0.33434 rad` is the measured reference for the OpenFlight prototype setup,
+not a universal default. It was calibrated from 18 wide-IQ16 shots against
+TrackMan using the eight-frame horizontal estimator, then frozen before a
+separate 41-shot holdout. The holdout produced 0.948 degrees MAE at full
+coverage and 0.797 degrees MAE on the 37 shots that passed the 0.90 phase-
+coherence gate.
+
+Recalibrate this value after changing the radar board, enclosure, antenna
+orientation, or target-line alignment. To evaluate a TrackMan-aligned session
+and calculate a setup-specific phase reference, run:
+
+```bash
+uv run python scripts/analysis/evaluate_iwr_horizontal_models.py \
+  path/to/trackman_openflight_aligned.csv
+```
+
+The value is subtracted in phase space before conversion to degrees. Omitting
+it reports horizontal launch relative to the board's uncalibrated RF phase
+zero, which can create a consistent left/right bias even when the enclosure is
+aimed correctly. This is separate from `--iwr6843-azimuth-offset-deg`, which is
+the geometric target-line correction used by the experimental club-path fit.
 
 ## Club Path
 
@@ -647,7 +707,7 @@ uv run \
   --club 7i \
   --ops-port /dev/ttyAMA0 \
   --iwr6843-port /dev/ttyUSB0 \
-  --cfg config/iwr6843_l3dump_vTX2_window53_12l18f.cfg \
+  --cfg config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg \
   --tee-m 1.575 \
   --net-m 4.6 \
   --tilt-deg 10.4 \
@@ -723,7 +783,7 @@ Replay a debug session JSONL:
 ```bash
 uv run python scripts/iwr6843/replay.py \
   --input ~/openflight_sessions/session_YYYYMMDD_HHMMSS_home.jsonl \
-  --cfg config/iwr6843_l3dump_vTX2_window53_12l18f.cfg \
+  --cfg config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg \
   --tee-m 1.575 \
   --net-m 4.6 \
   --tilt-deg 10.4 \
@@ -739,7 +799,7 @@ Replay one dump:
 uv run python scripts/iwr6843/replay.py \
   --input ~/openflight_sessions/iwr6843/shot.l3dump \
   --ball-speed-mph 105.9 \
-  --cfg config/iwr6843_l3dump_vTX2_window53_12l18f.cfg \
+  --cfg config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg \
   --club 9i \
   --tee-m 1.575 \
   --net-m 4.6 \
@@ -761,11 +821,12 @@ until power, ports, firmware, config, and geometry are verified.
 |---|---|---|
 | `no IWR6843 CLI found` | Wrong USB interface, board still in flash mode, missing functional RESET, stale serial owner, or unstable power | Set functional switches, press RESET, verify interface `00`, stop serial processes, then retry with explicit `--iwr6843-port` |
 | `GPIO busy` | Another kiosk, calibration, or shot-test process owns BCM17 | Stop the old process; use `pgrep -af` and `sudo fuser -v /dev/gpiochip*` to locate it |
-| Config rejected at startup | Flashed firmware and `.cfg` geometry do not match | Flash the current release image and use `iwr6843_l3dump_vTX2_window53_12l18f.cfg` together |
+| `captureFormat` or `phaseCaptureCfg` rejected | Older firmware is flashed | Flash the configurable release, reset in functional mode, and retry either supported profile |
 | Bootloader probe returns no response | Wrong CP2105 port or RESET occurred before the script opened UART | Use Enhanced/UARTA, rerun the probe, type `READY`, then RESET only when prompted |
 | Flash fails after `Erasing existing SFLASH` | Transfer was interrupted after the old image was erased | Leave the board in flash mode and rerun the complete flash; the ROM bootloader is still available |
 | Server starts only after unplugging TI | Board was not reset cleanly, a prior dump was still streaming, or USB/power wedged | Stop the old process, press RESET in functional mode, wait for the port, then reconnect USB only if needed |
-| `short IWR6843 dump` | Interrupted UART transfer, process shutdown during dump, or wrong firmware format | Let the active dump finish, restart, and confirm the expected 549,566-byte capture |
+| `short IWR6843 dump` | Interrupted UART transfer, process shutdown during dump, or wrong firmware format | Let the active dump finish, restart, and confirm 732,812 bytes for wide or 549,764 bytes for dense |
+| Dense `stats` accumulates `hwa_missed` or `iq8_overrun` | The 2 ms processing budget is not being sustained | Stop using the capture for measurements, reset, and return to the wide profile while investigating |
 | Clap produces `rejected_by_ball_tracker` | A clap has no moving ball range track | Expected for trigger testing; confirm the dump completed, then hit a ball |
 | `rejected_track_quality` | A ball-like track was found but it was too thin, noisy, inconsistent, or net-contaminated | Verify geometry and aim; inspect the debug dump before relaxing acceptance gates |
 | `rejected_missing_tdm_sign` | The ball track was usable, but the TX timing evidence did not resolve a trustworthy correction sign | Keep the estimated UI angle, inspect the debug dump, and verify signal quality before changing gates |

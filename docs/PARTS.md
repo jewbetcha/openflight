@@ -139,7 +139,8 @@ One unit is mounted vertically (launch angle), one horizontally (club path / aim
 | Part | Description | Link | ~Price |
 |------|-------------|------|--------|
 | Tripod Mount | For positioning the unit | 1/4"-20 mount | $10 |
-| **Geekworm X1202 UPS HAT** | Rechargeable Pi 5 power using four compatible 18650 Li-ion cells. Cells are not included; follow the manufacturer's cell requirements | [Amazon](https://www.amazon.com/dp/B0CRZ4ZXQW?ref=ppx_yo2ov_dt_b_fed_asin_title) | ~$48 + ~$25 for cells |
+| **Geekworm X1202 UPS HAT** | Rechargeable Pi 5 power using four matching flat-top 18650 Li-ion cells. Cells are not included | [Geekworm](https://geekworm.com/products/x1202) | ~$48 + cells |
+| **Geekworm X1206 UPS HAT** | Larger rechargeable Pi 5 power option using four matching 21700 Li-ion cells, advertised up to 20,000mAh total. Cells are not included | [Geekworm](https://geekworm.com/products/x1206) | Varies + cells |
 | **InnoMaker OV9281 global-shutter camera** | High-speed monochrome camera for experimental vision work. Camera software is not enabled in the production kiosk path | [Amazon](https://www.amazon.com/dp/B09WTP5GZH?th=1) | ~$30 |
 
 See [Camera and YOLO Experiments](yolo-performance-tuning.md) before buying the

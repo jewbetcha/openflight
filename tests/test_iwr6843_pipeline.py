@@ -12,12 +12,15 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from openflight.iwr6843 import Calibration, estimate_lcmf_v1, lcmf, process_dump
+from openflight.iwr6843 import Calibration, estimate_lcmf_v1, lcmf, process_dump, tracking
 from openflight.iwr6843.dump import (
     HEADER,
     MAGIC,
     MAX_SUPPORTED_DUMP_VERSION,
+    SAMPLE_RANGE_FFT_IQ8_VARIABLE_TIMED,
     SAMPLE_RANGE_FFT_IQ16,
+    SAMPLE_RANGE_FFT_IQ16_VARIABLE,
+    SAMPLE_RANGE_FFT_IQ16_VARIABLE_TIMED,
     SAMPLE_RANGE_FFT_IQ16_WINDOWED,
     TEMP_REPORT_KEYS,
     pack_dump,
@@ -28,9 +31,12 @@ from openflight.iwr6843.dump import (
 )
 from openflight.iwr6843.lcmf import (
     ANGLE_CORRECTION_DEG,
+    HORIZONTAL_COHERENCE_MIN,
     TX2_LOOP_PERIOD_S,
     TX2_VERTICAL_TDM_TAU_S,
+    _frame_balanced_horizontal_mean,
     _tx2_horizontal_proxy,
+    prepare_lcmf_capture,
 )
 from openflight.iwr6843.music import LAM, steer
 from openflight.iwr6843.shot import ShotMeasurement, geometry_from_header
@@ -176,7 +182,7 @@ def test_header_carries_period_and_trigger():
 
 def test_parse_header_rejects_future_dump_version():
     raw = synth_shot()
-    future = bytearray(raw[:HEADER.size])
+    future = bytearray(raw[: HEADER.size])
     future[4:6] = int(MAX_SUPPORTED_DUMP_VERSION + 1).to_bytes(2, "little")
 
     with pytest.raises(ValueError, match="unsupported dump version"):
@@ -185,7 +191,7 @@ def test_parse_header_rejects_future_dump_version():
 
 def test_parse_header_rejects_short_temperature_extension():
     raw = synth_shot()
-    v5_header_only = bytearray(raw[:HEADER.size])
+    v5_header_only = bytearray(raw[: HEADER.size])
     v5_header_only[4:6] = int(MAX_SUPPORTED_DUMP_VERSION).to_bytes(2, "little")
 
     with pytest.raises(ValueError, match="short temperature report extension"):
@@ -289,6 +295,83 @@ def test_windowed_snapshot_round_trip_and_size():
     assert len(snapshot) == HEADER.size + payload_nbytes(header)
     assert cube.shape == (12, 20, 4, 53)
     assert tuple(meta["range_bin_starts"][(3 + index) % 12] for index in range(12)) == starts
+
+
+def test_variable_width_snapshot_round_trip_and_size():
+    rng = np.random.default_rng(24)
+    counts = (4, 4, 7, 7)
+    starts = (20, 20, 32, 47)
+    cube = rng.standard_normal((4, 6, 4, 7)) + 1j * rng.standard_normal((4, 6, 4, 7))
+
+    raw = pack_dump(
+        cube,
+        n_tx=3,
+        version=5,
+        frame_period_us=3000,
+        sample_fmt=SAMPLE_RANGE_FFT_IQ16_VARIABLE,
+        range_bin_starts=starts,
+        range_bin_counts=counts,
+    )
+    header = parse_header(raw)
+    meta, parsed = parse_dump(raw)
+
+    assert len(raw) == HEADER.size + payload_nbytes(header, raw)
+    assert meta["range_bin_starts"] == starts
+    assert meta["range_bin_counts"] == counts
+    np.testing.assert_allclose(parsed[:2, ..., :4], np.round(cube[:2, ..., :4]), atol=1)
+    np.testing.assert_array_equal(parsed[:2, ..., 4:], 0)
+
+
+def test_timed_variable_snapshot_uses_recorded_frame_offsets():
+    starts = (20, 20, 32, 47)
+    counts = (4, 4, 7, 7)
+    offsets_us = (0, 2000, 4000, 8000)
+    cube = np.ones((4, 36, 4, 7), dtype=complex)
+    raw = pack_dump(
+        cube,
+        n_tx=3,
+        version=6,
+        frame_period_us=2000,
+        sample_fmt=SAMPLE_RANGE_FFT_IQ16_VARIABLE_TIMED,
+        range_bin_starts=starts,
+        range_bin_counts=counts,
+        frame_time_offsets_us=offsets_us,
+    )
+
+    meta, _parsed = parse_dump(raw)
+    geometry = geometry_from_header(meta)
+
+    assert meta["frame_time_offsets_us"] == offsets_us
+    assert geometry.loop_time(3, 0) == pytest.approx(0.008)
+    assert geometry.capture_duration_s == pytest.approx(0.010)
+
+
+def test_iq8_timed_snapshot_halves_payload_and_restores_scale():
+    rng = np.random.default_rng(84)
+    starts = (20, 20, 32, 47)
+    counts = (4, 4, 7, 7)
+    offsets_us = (0, 2000, 4000, 6000)
+    cube = 900 * (rng.standard_normal((4, 36, 4, 7)) + 1j * rng.standard_normal((4, 36, 4, 7)))
+    common = dict(
+        n_tx=3,
+        version=6,
+        frame_period_us=2000,
+        range_bin_starts=starts,
+        range_bin_counts=counts,
+        frame_time_offsets_us=offsets_us,
+    )
+    raw_iq16 = pack_dump(cube, sample_fmt=SAMPLE_RANGE_FFT_IQ16_VARIABLE_TIMED, **common)
+    raw_iq8 = pack_dump(cube, sample_fmt=SAMPLE_RANGE_FFT_IQ8_VARIABLE_TIMED, **common)
+    meta, parsed = parse_dump(raw_iq8)
+
+    assert len(raw_iq8) < len(raw_iq16) * 0.55
+    assert len(meta["iq8_scales"]) == len(starts)
+    for frame, count in enumerate(counts):
+        np.testing.assert_allclose(
+            parsed[frame, ..., :count],
+            cube[frame, ..., :count],
+            atol=meta["iq8_scales"][frame] + 1,
+        )
 
 
 def test_windowed_snapshot_temperature_report_round_trip_and_projection():
@@ -435,7 +518,7 @@ def test_tx_orders_canonicalize_to_same_physical_array():
 def test_production_config_uses_normal_three_tx_order():
     from openflight.iwr6843.monitor import tx_order_from_config
 
-    assert tx_order_from_config("config/iwr6843_l3dump_vTX2_window53_12l18f.cfg") == "normal"
+    assert tx_order_from_config("config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg") == "normal"
 
 
 def test_invalid_tx_order_is_rejected_before_processing(cal):
@@ -769,9 +852,7 @@ def test_lcmf_v1_rejects_when_every_channel_is_off_the_grid(cal, monkeypatch):
     """
     monkeypatch.setattr(lcmf, "grid_curvature", lambda objective: None)
 
-    result = estimate_lcmf_v1(
-        _range_snapshot_shot(), cal, ball_speed_mph=45.0 * 2.23694, club="9i"
-    )
+    result = estimate_lcmf_v1(_range_snapshot_shot(), cal, ball_speed_mph=45.0 * 2.23694, club="9i")
 
     assert result.status == "rejected_no_conditioned_channel"
     assert result.angle_deg is None
@@ -779,9 +860,7 @@ def test_lcmf_v1_rejects_when_every_channel_is_off_the_grid(cal, monkeypatch):
     assert result.track_speed_mph is not None, "a rejection must keep its track evidence"
 
 
-def test_lcmf_v1_rejects_disagreeing_channels_with_no_curvature_to_choose_on(
-    cal, monkeypatch
-):
+def test_lcmf_v1_rejects_disagreeing_channels_with_no_curvature_to_choose_on(cal, monkeypatch):
     """A tie on evidence is not a licence to return whichever channel is first.
 
     ``max()`` yields the first key on a tie, and insertion order puts
@@ -792,9 +871,7 @@ def test_lcmf_v1_rejects_disagreeing_channels_with_no_curvature_to_choose_on(
     monkeypatch.setattr(lcmf, "grid_curvature", lambda objective: 0.0)
     monkeypatch.setattr(lcmf, "CHANNEL_SPREAD_MAX_DEG", 0.0)
 
-    result = estimate_lcmf_v1(
-        _range_snapshot_shot(), cal, ball_speed_mph=45.0 * 2.23694, club="9i"
-    )
+    result = estimate_lcmf_v1(_range_snapshot_shot(), cal, ball_speed_mph=45.0 * 2.23694, club="9i")
 
     assert result.status == "rejected_no_conditioned_channel"
     assert result.angle_deg is None
@@ -868,6 +945,112 @@ def test_lcmf_v1_uses_tx2_effective_timing_on_three_tx_capture(cal):
     assert result.effective_loop_period_s == pytest.approx(TX2_LOOP_PERIOD_S)
 
 
+def test_lcmf_v1_uses_ops_speed_for_tdm_phase_compensation(cal, monkeypatch):
+    raw = synth_shot(
+        speed_ms=45.0,
+        launch_deg=18.0,
+        n_loops=12,
+        n_tx=3,
+        frame_period_us=4000,
+        trigger_frame=0,
+    )
+    ops_speed_ms = 37.0
+    observed = {}
+    original_cache = lcmf._snapshot_cache  # pylint: disable=protected-access
+    original_horizontal = lcmf._tx2_horizontal_proxy  # pylint: disable=protected-access
+
+    def cache_spy(*args, phase_velocity_ms=None, **kwargs):
+        observed["vertical"] = phase_velocity_ms
+        return original_cache(*args, phase_velocity_ms=phase_velocity_ms, **kwargs)
+
+    def horizontal_spy(*args, phase_velocity_ms=None, **kwargs):
+        observed["horizontal"] = phase_velocity_ms
+        return original_horizontal(*args, phase_velocity_ms=phase_velocity_ms, **kwargs)
+
+    monkeypatch.setattr(lcmf, "_snapshot_cache", cache_spy)
+    monkeypatch.setattr(lcmf, "_tx2_horizontal_proxy", horizontal_spy)
+
+    estimate_lcmf_v1(
+        raw,
+        cal,
+        ball_speed_mph=ops_speed_ms * 2.23694,
+        club="9i",
+    )
+
+    assert observed == {
+        "vertical": pytest.approx(ops_speed_ms),
+        "horizontal": pytest.approx(ops_speed_ms),
+    }
+
+
+def test_lcmf_prepared_capture_is_numerically_equivalent(cal):
+    """Sharing invariant signal products must not change an estimator result."""
+    raw = synth_shot(
+        speed_ms=45.0,
+        launch_deg=18.0,
+        n_loops=12,
+        n_tx=3,
+        frame_period_us=4000,
+        trigger_frame=0,
+    )
+    kwargs = {"ball_speed_mph": 45.0 * 2.23694, "club": "9i"}
+
+    uncached = estimate_lcmf_v1(raw, cal, **kwargs)
+    prepared = prepare_lcmf_capture(raw)
+    cached = estimate_lcmf_v1(raw, cal, prepared=prepared, **kwargs)
+
+    assert cached.to_dict() == uncached.to_dict()
+
+
+def test_lcmf_prepared_capture_computes_each_mti_scope_once(cal, monkeypatch):
+    """Repeated candidate tracks reuse static-removal arrays by scope."""
+    raw = synth_shot(
+        speed_ms=45.0,
+        launch_deg=18.0,
+        n_loops=12,
+        n_tx=3,
+        frame_period_us=4000,
+        trigger_frame=0,
+    )
+    calls: list[str] = []
+    original_mti = tracking.mti_filter
+
+    def mti_spy(*args, scope="burst", **kwargs):
+        calls.append(scope)
+        return original_mti(*args, scope=scope, **kwargs)
+
+    monkeypatch.setattr(tracking, "mti_filter", mti_spy)
+    prepared = prepare_lcmf_capture(raw)
+    prepared.vertical.mti("burst")
+    prepared.vertical.mti("window")
+    prepared.vertical.mti("burst")
+    prepared.vertical.mti("window")
+
+    assert calls == ["burst", "window"]
+
+
+def test_lcmf_v1_mti_uses_per_frame_capture_geometry(cal, monkeypatch):
+    """Moving range windows must align before window-scope static removal."""
+    observed_geometry = []
+    original_mti = tracking.mti_filter
+
+    def mti_spy(*args, geometry=None, **kwargs):
+        observed_geometry.append(geometry)
+        return original_mti(*args, geometry=geometry, **kwargs)
+
+    monkeypatch.setattr(tracking, "mti_filter", mti_spy)
+
+    estimate_lcmf_v1(
+        _range_snapshot_shot(),
+        cal,
+        ball_speed_mph=45.0 * 2.23694,
+        club="9i",
+    )
+
+    assert observed_geometry
+    assert all(geometry is not None for geometry in observed_geometry)
+
+
 def test_tx2_horizontal_uses_tail_of_ball_track_not_fixed_ring_tail():
     """Boundary-frozen blocks place impact anywhere, so physical slots 9-11 are not special."""
     n_frames, n_loops, n_tx, n_rx, n_bins = 12, 10, 3, 4, 80
@@ -909,4 +1092,56 @@ def test_tx2_horizontal_uses_tail_of_ball_track_not_fixed_ring_tail():
 
     assert angle_deg is not None
     assert coherence is not None and coherence > 0.25
-    assert status == "hlcmf_v0_accepted"
+    assert status == "hlcmf_v1_accepted"
+
+
+def test_horizontal_fusion_gives_each_frame_equal_influence():
+    """A bright frame must not drown out the rest of the outgoing movie."""
+    snapshots = [(0.0, 0.0, 1000.0)] * 12
+    for frame in range(1, 8):
+        snapshots.extend([(float(frame), 0.2, 1.0)] * 3)
+
+    angle_deg, coherence = _frame_balanced_horizontal_mean(
+        snapshots,
+        phase_reference_rad=0.0,
+    )
+
+    expected_phase = 7.0 * 0.2 / 8.0
+    expected_deg = -np.degrees(np.arcsin(expected_phase / np.pi))
+    assert angle_deg == pytest.approx(expected_deg, abs=0.02)
+    assert coherence > HORIZONTAL_COHERENCE_MIN
+
+
+def test_horizontal_proxy_withholds_incoherent_frames(monkeypatch):
+    n_frames, n_loops, n_tx, n_rx, n_bins = 12, 10, 3, 4, 80
+    cube = np.zeros((n_frames, n_loops * n_tx, n_rx, n_bins), dtype=complex)
+    raw = pack_dump(
+        cube,
+        n_tx=3,
+        version=3,
+        frame_period_us=6000,
+        sample_fmt=SAMPLE_RANGE_FFT_IQ16,
+        range_bin_start=20,
+    )
+    track = BallTrack(
+        speed_ms=45.0,
+        slope_bins=0.0,
+        intercept_bins=31.0,
+        rms_bins=0.2,
+        n_inliers=80,
+        t_first=0.0,
+        t_last=0.067,
+        low_confidence=False,
+    )
+    shot = ShotMeasurement(geometry=None, ball_found=True, track=track)
+
+    def alternating_frame_phase(_mti, frame, *_args, **_kwargs):
+        return (0.0 if frame % 2 == 0 else np.pi), 1.0
+
+    monkeypatch.setattr(lcmf.doa, "tx2_phase_at", alternating_frame_phase)
+
+    angle_deg, coherence, status = _tx2_horizontal_proxy(raw, shot, tdm_sign=1)
+
+    assert angle_deg is None
+    assert coherence is not None and coherence < HORIZONTAL_COHERENCE_MIN
+    assert status == "hlcmf_v1_low_coherence"

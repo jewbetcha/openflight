@@ -1521,14 +1521,15 @@ class OPS243Radar:
         self.serial.reset_input_buffer()
 
         response_lines = []
+        idle_bytes = bytearray()
+        capture_markers = (b'{"sample_time"', b'{"trigger_time"')
         start_time = time.time()
         deadline = start_time + timeout
         last_data_time = None
         bytes_received = 0
         self.last_hardware_trigger_first_byte_timestamp = None
         recovery_required = bool(getattr(self, "_hardware_trigger_recovery_required", False))
-        capture_started = not recovery_required
-        recovery_buffer = ""
+        capture_started = False
         if recovery_required:
             logger.info(
                 "[OPS] Re-arm recovery: discarding trailing output until a fresh capture starts"
@@ -1538,28 +1539,30 @@ class OPS243Radar:
             waiting = self.serial.in_waiting
             if waiting:
                 chunk = self.serial.read(waiting)
-                decoded_chunk = chunk.decode("ascii", errors="ignore")
-
-                if recovery_required and not capture_started:
-                    candidate = recovery_buffer + decoded_chunk
-                    capture_start = self._capture_start_index(candidate)
-                    if capture_start is None:
-                        recovery_buffer = candidate[-1024:]
+                first_byte_timestamp = None
+                if not capture_started:
+                    idle_bytes.extend(chunk)
+                    marker_offsets = [idle_bytes.find(marker) for marker in capture_markers]
+                    marker_offsets = [offset for offset in marker_offsets if offset >= 0]
+                    if not marker_offsets:
+                        # Preserve enough trailing bytes to recognize a marker split
+                        # across reads, while discarding unsolicited CLI/clock noise.
+                        max_marker = max(len(marker) for marker in capture_markers)
+                        if len(idle_bytes) > max_marker:
+                            del idle_bytes[:-max_marker]
                         time.sleep(0.01)
                         continue
-                    decoded_chunk = candidate[capture_start:]
-                    recovery_buffer = ""
+                    capture_start = min(marker_offsets)
+                    chunk = bytes(idle_bytes[capture_start:])
+                    idle_bytes.clear()
                     capture_started = True
-                    self._hardware_trigger_recovery_required = False
-                    logger.info("[OPS] Re-arm recovery: fresh capture boundary found")
+                    if recovery_required:
+                        self._hardware_trigger_recovery_required = False
+                        logger.info("[OPS] Re-arm recovery: fresh capture boundary found")
                     first_byte_timestamp = time.time()
-                else:
-                    first_byte_timestamp = time.time() if last_data_time is None else None
 
-                if not decoded_chunk:
-                    continue
-                response_lines.append(decoded_chunk)
-                bytes_received += len(decoded_chunk)
+                response_lines.append(chunk.decode("ascii", errors="ignore"))
+                bytes_received += len(chunk)
                 if first_byte_timestamp is not None:
                     last_data_time = first_byte_timestamp
                     self.last_hardware_trigger_first_byte_timestamp = last_data_time
@@ -1736,16 +1739,6 @@ class OPS243Radar:
     def _format_internal_trigger_threshold(threshold_mph: float) -> str:
         """Format the outbound (negative radar velocity) ``ST`` threshold."""
         return f"-{abs(float(threshold_mph)):g}"
-
-    @staticmethod
-    def _capture_start_index(response: str) -> Optional[int]:
-        """Find the start of a fresh rolling-buffer dump in UART text."""
-        sample_time_index = response.find('"sample_time"')
-        if sample_time_index < 0:
-            return None
-        line_start = response.rfind("\n", 0, sample_time_index) + 1
-        object_start = response.find("{", line_start, sample_time_index + 1)
-        return object_start if object_start >= 0 else None
 
     def configure_for_internal_speed_trigger(
         self,

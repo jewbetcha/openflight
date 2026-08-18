@@ -36,6 +36,64 @@
   gap: var(--space-sm);
 }
 
+.iwr-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: 0.75rem var(--space-lg);
+  border-bottom: 1px solid rgba(251, 113, 133, 0.45);
+  background: linear-gradient(90deg, rgba(127, 29, 29, 0.96), rgba(69, 10, 10, 0.96));
+  color: #fff1f2;
+  flex-shrink: 0;
+}
+
+.iwr-alert div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.iwr-alert strong {
+  white-space: nowrap;
+}
+
+.iwr-alert span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fecdd3;
+}
+
+.iwr-alert button {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.7rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .iwr-alert {
+    align-items: flex-start;
+    padding-inline: var(--space-md);
+  }
+
+  .iwr-alert div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .iwr-alert span {
+    white-space: normal;
+  }
+}
+
 .unit-toggle {
   display: inline-flex;
   align-items: center;

@@ -41,6 +41,18 @@ def test_no_ballistics_opt_out_is_forwarded():
     assert "--no-ballistics" in command_arguments
 
 
+def test_battery_provider_is_forwarded():
+    command_arguments = _dry_run("--battery", "geekworm").stdout.strip().split()
+
+    assert command_arguments[command_arguments.index("--battery") + 1] == "geekworm"
+
+
+def test_removed_geekworm_power_flag_is_not_forwarded():
+    command_arguments = _dry_run("--geekworm-power").stdout.strip().split()
+
+    assert "--geekworm-power" not in command_arguments
+
+
 def test_existing_ballistics_flag_remains_accepted():
     command_arguments = _dry_run("--ballistics").stdout.strip().split()
 
@@ -360,3 +372,18 @@ def test_iwr6843_azimuth_offset_is_forwarded():
 def test_iwr6843_azimuth_offset_omitted_by_default():
     command = _dry_run("--iwr6843").stdout.strip()
     assert "--iwr6843-azimuth-offset-deg" not in command
+
+
+def test_iwr6843_horizontal_phase_reference_is_forwarded():
+    command = _dry_run(
+        "--iwr6843",
+        "--iwr6843-horizontal-phase-reference-rad",
+        "-0.5",
+    ).stdout.strip()
+
+    assert "--iwr6843-horizontal-phase-reference-rad -0.5" in command
+
+
+def test_iwr6843_horizontal_phase_reference_is_omitted_by_default():
+    command = _dry_run("--iwr6843").stdout.strip()
+    assert "--iwr6843-horizontal-phase-reference-rad" not in command

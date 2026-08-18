@@ -194,6 +194,49 @@ class ShotMeasurement:
         return "  ".join(parts)
 
 
+@dataclass
+class PreparedShotDump:
+    """Decoded two-TX capture with lazily cached MTI products."""
+
+    metadata: dict
+    cube: np.ndarray
+    geometry: Geometry
+    range_domain: bool
+    _mti_by_scope: dict[str, np.ndarray] = field(default_factory=dict)
+    _noise_by_scope: dict[str, float] = field(default_factory=dict)
+
+    def mti(self, scope: str = "burst") -> np.ndarray:
+        """Return one static-removal view, computing each scope once."""
+        if scope not in ("burst", "window"):
+            raise ValueError("MTI scope must be burst or window")
+        if scope not in self._mti_by_scope:
+            self._mti_by_scope[scope] = tracking.mti_filter(
+                self.cube,
+                scope=scope,
+                range_domain=self.range_domain,
+                geometry=self.geometry,
+            )
+        return self._mti_by_scope[scope]
+
+    def noise_power(self, scope: str = "burst") -> float:
+        """Return the invariant median noise power for one MTI scope."""
+        if scope not in self._noise_by_scope:
+            mti = self.mti(scope)
+            if self.geometry.range_bin_counts is None:
+                noise = np.median(np.abs(mti) ** 2)
+            else:
+                valid_power = np.concatenate(
+                    [
+                        np.abs(mti[frame, ..., : self.geometry.frame_bin_count(frame)]).reshape(-1)
+                        ** 2
+                        for frame in range(self.geometry.n_frames)
+                    ]
+                )
+                noise = np.median(valid_power)
+            self._noise_by_scope[scope] = float(noise)
+        return self._noise_by_scope[scope]
+
+
 def geometry_from_header(meta: dict, *, loop_period_s: float = tracking.LOOP_PRI_S) -> Geometry:
     """Dump-header dict -> Geometry (period falls back for pre-v3 dumps)."""
     period_us = meta.get("frame_period_us", 0)
@@ -210,6 +253,33 @@ def geometry_from_header(meta: dict, *, loop_period_s: float = tracking.LOOP_PRI
         range_bin_start=meta.get("range_bin_start", 0),
         range_fft_size=128 if range_domain else None,
         range_bin_starts=meta.get("range_bin_starts"),
+        range_bin_counts=meta.get("range_bin_counts"),
+        frame_time_offsets_s=(
+            tuple(offset / 1e6 for offset in meta["frame_time_offsets_us"])
+            if meta.get("frame_time_offsets_us") is not None
+            else None
+        ),
+    )
+
+
+def prepare_shot_dump(
+    raw: bytes,
+    *,
+    loop_period_s: float = tracking.LOOP_PRI_S,
+) -> PreparedShotDump:
+    """Decode one already-projected two-TX dump for repeated track fits."""
+    metadata, cube = parse_dump(raw)
+    geometry = geometry_from_header(metadata, loop_period_s=loop_period_s)
+    frame_values = geometry.chirps_per_frame * geometry.n_rx * geometry.n_samples
+    got_frames = cube.reshape(-1).size // frame_values
+    if got_frames < geometry.n_frames:
+        geometry.n_frames = got_frames
+        cube = cube[:got_frames]
+    return PreparedShotDump(
+        metadata=metadata,
+        cube=cube,
+        geometry=geometry,
+        range_domain=is_range_snapshot(metadata),
     )
 
 
@@ -225,6 +295,7 @@ def process_dump(
     tdm_sign_policy: str = "auto",
     loop_period_s: float = tracking.LOOP_PRI_S,
     tdm_tau_s: float = doa.TDM_TAU_S,
+    prepared: PreparedShotDump | None = None,
 ) -> ShotMeasurement:
     """Full pipeline on one dump's bytes.
 
@@ -235,23 +306,17 @@ def process_dump(
     """
     tx_order = doa.validate_tx_order(tx_order)
     tdm_sign_policy = doa.validate_tdm_sign_policy(tdm_sign_policy)
-    meta0, _cube0 = parse_dump(raw)
-    if meta0["n_tx"] == 3:
-        raw = project_tx_pair(raw, (0, 2))
-        if loop_period_s == tracking.LOOP_PRI_S:
-            loop_period_s = TX2_LOOP_PERIOD_S
-        if tdm_tau_s == doa.TDM_TAU_S:
-            tdm_tau_s = TX2_VERTICAL_TDM_TAU_S
-    meta, cube = parse_dump(raw)
-    # header n_frames may exceed what actually arrived on a stalled transfer
-    geo = geometry_from_header(meta, loop_period_s=loop_period_s)
-    frame_values = geo.chirps_per_frame * geo.n_rx * geo.n_samples
-    got_frames = cube.reshape(-1).size // frame_values
-    if got_frames < geo.n_frames:
-        geo.n_frames = got_frames
-        cube = cube[:got_frames]
-    range_domain = is_range_snapshot(meta)
-    mti = tracking.mti_filter(cube, range_domain=range_domain, geometry=geo)
+    if prepared is None:
+        meta0, _cube0 = parse_dump(raw)
+        if meta0["n_tx"] == 3:
+            raw = project_tx_pair(raw, (0, 2))
+            if loop_period_s == tracking.LOOP_PRI_S:
+                loop_period_s = TX2_LOOP_PERIOD_S
+            if tdm_tau_s == doa.TDM_TAU_S:
+                tdm_tau_s = TX2_VERTICAL_TDM_TAU_S
+        prepared = prepare_shot_dump(raw, loop_period_s=loop_period_s)
+    geo = prepared.geometry
+    mti = prepared.mti()
     # keep everything 25 cm short of the net: a ball riding up the net is
     # an upward mover that tilts every angle fit high (user setup: net
     # ~3 m past the tee)
@@ -265,7 +330,7 @@ def process_dump(
         # burst-MTI notches balls near n x 26.93 m/s and shatters their
         # range walk; the window-scope filter keeps them (statics still
         # cancel over the full window)
-        mti_w = tracking.mti_filter(cube, scope="window", range_domain=range_domain, geometry=geo)
+        mti_w = prepared.mti("window")
         track_w = tracking.find_ball(mti_w, geo, max_range_m=max_r, min_ball_ms=min_ms)
         if not track_broken(track_w) and (
             track_broken(track)

@@ -6,9 +6,9 @@ from pathlib import Path
 
 FIRMWARE = Path(__file__).parents[1] / "firmware" / "iwr6843" / "l3_dump.c"
 FIRMWARE_MAKEFILE = Path(__file__).parents[1] / "firmware" / "Makefile"
-WINDOW53_12L18F_CONFIG = (
-    Path(__file__).parents[1] / "config" / "iwr6843_l3dump_vTX2_window53_12l18f.cfg"
-)
+CONFIG_DIR = Path(__file__).parents[1] / "config"
+WIDE_CONFIG = CONFIG_DIR / "iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg"
+DENSE_CONFIG = CONFIG_DIR / "iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg"
 
 
 def _function_source(source: str, name: str, next_name: str) -> str:
@@ -36,8 +36,8 @@ def test_hwa_chain_processes_and_rearms_one_frame_at_a_time():
         "static int32_t l3_configHwaSignatureEdma",
     )
 
-    assert "commonCfg.numLoops = CHIRPS_PER_FRAME / 2U" in common
-    assert "param->cCount = (uint16_t)(CHIRPS_PER_FRAME / 2U)" in output
+    assert "gCapturePlan.chirpsPerFrame / 2U" in common
+    assert "gCapturePlan.chirpsPerFrame / 2U" in output
 
 
 def test_completed_frame_advances_circular_ring_slot():
@@ -69,11 +69,16 @@ def test_freeze_request_keeps_rearming_until_post_trigger_target():
     assert "gHwaFreezeTargetFrame = gRingFrame + HWA_POST_TRIGGER_FRAMES" in freeze
 
 
-def test_sensor_stop_uses_completed_frame_boundary_before_teardown():
+def test_sensor_stop_cancels_post_capture_at_next_completed_frame():
     source = FIRMWARE.read_text(encoding="utf-8")
-    stop_helper = _function_source(
+    shutdown_freeze = _function_source(
         source,
-        "static int32_t l3_stopCaptureAtBoundary",
+        "static int32_t l3_freezeHwaForShutdown",
+        "static int32_t l3_finishCaptureStop",
+    )
+    shutdown_stop = _function_source(
+        source,
+        "static int32_t l3_stopCaptureForShutdown",
         "static int32_t l3_armHwaChain",
     )
     sensor_stop = _function_source(
@@ -82,15 +87,31 @@ def test_sensor_stop_uses_completed_frame_boundary_before_teardown():
         "static void l3_initTask",
     )
 
-    freeze = stop_helper.index("l3_freezeHwaAfterPostFrames")
-    rf_stop = stop_helper.index("MMWave_stop")
-    hwa_disable = stop_helper.index("HWA_enable(gHwaHandle, 0U)")
-    inactive = stop_helper.index("gCaptureActive = 0U")
-
-    assert freeze < rf_stop < hwa_disable < inactive
-    assert "if (MMWave_stop(gMMWaveHandle, &errCode) < 0)" in stop_helper
+    assert "gHwaShutdownRequested = 1U" in shutdown_freeze
+    assert "gHwaFreezeRequested = 0U" in shutdown_freeze
+    assert "gPostFramesCaptured = 0U" not in shutdown_freeze
+    assert "gCapturePlan.postFrames" not in shutdown_freeze
+    assert "l3_hwaMaybeQueueRearm()" in shutdown_freeze
+    assert "l3_freezeHwaForShutdown" in shutdown_stop
+    assert "l3_finishCaptureStop" in shutdown_stop
     assert "if (!gCaptureActive)" in sensor_stop
-    assert "return l3_stopCaptureAtBoundary()" in sensor_stop
+    assert "return l3_stopCaptureForShutdown()" in sensor_stop
+
+
+def test_shutdown_waits_for_iq8_pack_without_rearming():
+    source = FIRMWARE.read_text(encoding="utf-8")
+    rearm = _function_source(
+        source,
+        "static void l3_hwaRearmTask",
+        "/* Fill the 20-byte fixed dump header",
+    )
+
+    shutdown = rearm.index("gHwaShutdownRequested")
+    pack = rearm.index("l3_packIq8CompletedFrame", shutdown)
+    completion = rearm.index("Semaphore_post(gHwaFreezeSemaphore)", shutdown)
+    restart = rearm.index("l3_restartCompletedHwaFrame", shutdown)
+
+    assert shutdown < pack < completion < restart
 
 
 def test_dump_header_rotates_from_oldest_completed_frame():
@@ -100,39 +121,68 @@ def test_dump_header_rotates_from_oldest_completed_frame():
     assert "gRingFrame % RING_FRAMES" in dump
 
 
-def test_production_build_uses_balanced_geometry_and_single_release():
+def test_production_build_uses_configurable_compression_and_single_release():
     source = FIRMWARE_MAKEFILE.read_text(encoding="utf-8")
     target = _function_source(source, "build-native:", "clean:")
 
     assert "--define=N_TX=3" in target
-    assert "--define=LOOPS=12" in target
-    assert "--define=RING_FRAMES=18" in target
-    assert "--define=HWA_POST_TRIGGER_FRAMES=12" in target
-    assert "--define=SNAPSHOT_DYNAMIC_WINDOWS=1" in target
-    assert "--define=SNAPSHOT_BIN_START=20" in target
-    assert "--define=SNAPSHOT_MIDDLE_BIN_START=32" in target
-    assert "--define=SNAPSHOT_LATE_BIN_START=47" in target
-    assert "--define=SNAPSHOT_BINS=53" in target
-    assert (
-        "RELEASE_NAME ?= "
-        "l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin"
-        in source
-    )
+    assert "--define=CONFIGURABLE_CAPTURE=1" in target
+    assert "--define=HYBRID_CADENCE_CAPTURE=1" in target
+    assert "--define=L3_RING_IQ8=1" in target
+    assert "--define=L3_IQ8_SPARSE_SCALE=1" in target
+    assert "--define=LOOPS=" not in target
+    assert "--define=RING_FRAMES=" not in target
+    assert "RELEASE_NAME ?= l3_dump_configurable_capture_20260816.bin" in source
     assert '"$(RELEASE_DIR)/$(RELEASE_NAME)"' in target
     assert source.count("\nbuild-native:") == 1
 
 
-def test_window53_12_loop_18_frame_config_matches_firmware_geometry():
-    lines = {
+def _config_lines(path: Path) -> set[str]:
+    return {
         line.strip()
-        for line in WINDOW53_12L18F_CONFIG.read_text(encoding="utf-8").splitlines()
+        for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("%")
     }
 
-    assert "frameCfg 0 2 12 0 4 1 0" in lines
-    assert "chirpCfg 0 0 0 0 0 0 0 1" in lines
-    assert "chirpCfg 1 1 0 0 0 0 0 2" in lines
-    assert "chirpCfg 2 2 0 0 0 0 0 4" in lines
+
+def test_wide_profile_uses_24_frames_at_3ms_with_53_bin_iq16_windows():
+    lines = _config_lines(WIDE_CONFIG)
+
+    assert "frameCfg 0 2 12 0 3 1 0" in lines
+    assert "captureFormat iq16" in lines
+    assert "phaseCaptureCfg 20 53 9 32 53 7 47 53 47 8 1" in lines
+
+
+def test_dense_profile_uses_36_frames_at_2ms_with_53_bin_iq8_windows():
+    lines = _config_lines(DENSE_CONFIG)
+
+    assert "frameCfg 0 2 12 0 2 1 0" in lines
+    assert "captureFormat iq8" in lines
+    assert "phaseCaptureCfg 20 53 14 32 53 10 47 53 64 12 1" in lines
+
+
+def test_supported_profiles_keep_the_same_72ms_movie():
+    for path, expected_frames, expected_period_ms in (
+        (WIDE_CONFIG, 24, 3.0),
+        (DENSE_CONFIG, 36, 2.0),
+    ):
+        commands = {line.split()[0]: line.split() for line in _config_lines(path)}
+        frame = commands["frameCfg"]
+        phase = commands["phaseCaptureCfg"]
+        assert sum(int(value) for value in (phase[3], phase[6], phase[10])) == expected_frames
+        assert float(frame[5]) == expected_period_ms
+        assert expected_frames * expected_period_ms == 72.0
+
+
+def test_supported_profiles_fit_the_l3_capture_budget():
+    tx, loops, rx = 3, 12, 4
+    wide_bytes = tx * loops * rx * 24 * 53 * 4
+    dense_bytes = tx * loops * rx * 36 * 53 * 2
+
+    assert wide_bytes == 732_672
+    assert dense_bytes == 549_504
+    assert wide_bytes < 786_432
+    assert dense_bytes < 688_128
 
 
 def test_dynamic_window_start_is_recorded_per_ring_slot():

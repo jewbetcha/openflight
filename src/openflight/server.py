@@ -30,6 +30,7 @@ from .ops243 import (
     SpeedReading,
     set_show_raw_readings,
 )
+from .power import SUPPORTED_BATTERY_PROVIDERS, PowerMonitor, PowerStatus
 from .rolling_buffer.monitor import estimate_carry_with_spin, get_optimal_spin_for_ball_speed
 from .session_logger import get_session_logger, init_session_logger, log_session_error
 from .sim import (
@@ -79,6 +80,8 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Global state
 monitor = None
+power_monitor: Optional[PowerMonitor] = None
+battery_provider: str | None = None
 mock_mode: bool = False
 debug_mode: bool = False
 mock_swing_speed_mode: bool = False
@@ -206,6 +209,8 @@ def _cleanup_hardware_for_shutdown() -> bool:
         _run_shutdown_step("inclinometer stop", inclinometer_service.stop)
     if iwr6843_runtime:
         _run_shutdown_step("IWR6843 stop", iwr6843_runtime.stop)
+    if power_monitor:
+        _run_shutdown_step("battery monitor stop", power_monitor.stop)
 
     _run_shutdown_step("camera thread stop", stop_camera_thread)
     if camera:
@@ -859,6 +864,10 @@ def _session_start_config() -> dict:
     }
     config["iwr6843"] = dict(iwr6843_runtime_config)
     config["inclinometer"] = dict(inclinometer_runtime_config)
+    config["power"] = {
+        "enabled": battery_provider is not None,
+        "provider": battery_provider,
+    }
     return config
 
 
@@ -1057,6 +1066,7 @@ def init_iwr6843(
     radar_height_m: float | None = None,
     ball_height_m: float = 0.04,
     azimuth_offset_deg: float = 0.0,
+    horizontal_phase_reference_rad: float | None = None,
     save_dumps: bool = False,
 ) -> bool:
     """Initialize GPIO-triggered TI capture and the frozen LCMF-v1 estimator."""
@@ -1099,6 +1109,11 @@ def init_iwr6843(
             tx_order=resolved_order,
             capture_timeout_s=capture_timeout_s,
             azimuth_offset_deg=azimuth_offset_deg,
+            horizontal_phase_reference_rad=horizontal_phase_reference_rad,
+            # The supported normal-TX profiles have a measured positive TDM
+            # registration. Auto sign selection can choose the mirror solution
+            # in multipath and collapse the eight-element vertical channel.
+            tdm_sign_policy="positive",
         )
         iwr6843_runtime_config = {
             "enabled": True,
@@ -1110,10 +1125,12 @@ def init_iwr6843(
             "tee_slant_range_m": tee_range_m,
             "net_range_m": net_range_m,
             "tx_order": resolved_order,
+            "tdm_sign_policy": iwr6843_runtime.tdm_sign_policy,
             "tilt_deg": math.degrees(calibration.tilt_rad),
             "radar_height_m": calibration.radar_height_m,
             "ball_height_m": calibration.tee_ball_height_m,
             "azimuth_offset_deg": azimuth_offset_deg,
+            "horizontal_phase_reference_rad": horizontal_phase_reference_rad,
             "capture_timeout_s": capture_timeout_s,
             "freeze_delay_ms": 0.0,
             "raw_dump_saved": save_dumps,
@@ -1650,11 +1667,37 @@ def _emit_sim_snapshot() -> None:
         )
 
 
+def _on_power_status(status: PowerStatus) -> None:
+    """Publish one battery reading to connected UI clients."""
+    socketio.emit("power_status", status.to_dict())
+
+
+def _log_power_status(status: PowerStatus) -> None:
+    """Write throttled battery telemetry into the active session log."""
+    session_log = get_session_logger()
+    if session_log:
+        session_log.log_power_status(status.to_dict())
+
+
+def start_power_monitor(provider: str) -> None:
+    """Start optional battery monitoring without blocking server startup."""
+    global power_monitor  # pylint: disable=global-statement
+    power_monitor = PowerMonitor(
+        provider=provider,
+        on_status=_on_power_status,
+        on_log=_log_power_status,
+    )
+    power_monitor.start()
+    logger.info("[POWER] Battery monitoring enabled with provider=%s", provider)
+
+
 @socketio.on("connect")
 def handle_connect():
     """Handle client connection."""
     print("Client connected")
     _emit_sim_snapshot()
+    if power_monitor and power_monitor.status:
+        socketio.emit("power_status", power_monitor.status.to_dict())
     if monitor:
         stats = monitor.get_session_stats()
         socketio.emit(
@@ -2227,14 +2270,29 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
 
         if capture is None:
             logger.warning("[SERVER] IWR6843 capture timed out; preserving OPS shot")
+            _emit_iwr6843_trigger_status(
+                shot,
+                state="error",
+                reason="no capture matched the OPS impact timestamp",
+            )
         elif not capture.valid:
             logger.warning(
                 "[SERVER] IWR6843 capture #%d failed: %s; preserving OPS shot",
                 capture.sequence,
                 capture.error,
             )
+            _emit_iwr6843_trigger_status(
+                shot,
+                state="error",
+                reason=capture.error or "invalid IWR6843 capture",
+            )
         elif measurement is None:
             logger.warning("[SERVER] IWR6843 capture had no LCMF measurement")
+            _emit_iwr6843_trigger_status(
+                shot,
+                state="rejected",
+                reason="no LCMF measurement",
+            )
         elif measurement.accepted:
             shot.launch_angle_vertical = measurement.angle_deg
             # Device-level provenance is retained in iwr6843_capture. The
@@ -2266,10 +2324,21 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
                 measurement.n_frames,
                 measurement.component_std_deg,
             )
+            _emit_iwr6843_trigger_status(
+                shot,
+                state="accepted",
+                reason="accepted",
+                angle_deg=measurement.angle_deg,
+            )
         else:
             logger.warning(
                 "[SERVER] IWR6843 LCMF-v1 withheld angle: %s",
                 measurement.status,
+            )
+            _emit_iwr6843_trigger_status(
+                shot,
+                state="rejected",
+                reason=measurement.status,
             )
 
         # Club path is independent of the ball measurement's acceptance --
@@ -2296,7 +2365,28 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
             },
             exc=error,
         )
+        _emit_iwr6843_trigger_status(shot, state="error", reason=str(error))
     return (time.time() - started) * 1000.0
+
+
+def _emit_iwr6843_trigger_status(
+    shot: Shot,
+    *,
+    state: str,
+    reason: str,
+    angle_deg: float | None = None,
+) -> None:
+    """Enrich the existing OPS trigger row with the correlated TI result."""
+    iwr_status = {"state": state, "reason": reason}
+    if angle_deg is not None:
+        iwr_status["angle_deg"] = round(angle_deg, 2)
+    socketio.emit(
+        "trigger_diagnostic_update",
+        {
+            "timestamp": shot.timestamp.isoformat(),
+            "iwr6843": iwr_status,
+        },
+    )
 
 
 def on_shot_detected(shot: Shot):
@@ -3496,6 +3586,16 @@ def _add_ballistics_arguments(parser):
     parser.set_defaults(ballistics=True)
 
 
+def _add_battery_arguments(parser):
+    """Add explicit battery-provider selection."""
+    parser.add_argument(
+        "--battery",
+        choices=SUPPORTED_BATTERY_PROVIDERS,
+        default=None,
+        help="Show battery and external-power status using the selected provider",
+    )
+
+
 def main():
     """Run the server."""
     import argparse  # pylint: disable=import-outside-toplevel
@@ -3587,6 +3687,7 @@ def main():
         "--log-dir", help="Directory for session logs (default: ~/openflight_sessions)"
     )
     parser.add_argument("--no-logging", action="store_true", help="Disable session logging")
+    _add_battery_arguments(parser)
     parser.add_argument(
         "--sim",
         action="store_true",
@@ -3716,7 +3817,7 @@ def main():
     )
     parser.add_argument(
         "--iwr6843-config",
-        default="config/iwr6843_l3dump_vTX2_window53_12l18f.cfg",
+        default="config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg",
         help="TI RF config matching the flashed L3 firmware",
     )
     parser.add_argument(
@@ -3785,6 +3886,15 @@ def main():
             "Azimuth of the radar boresight relative to the target line, in degrees. "
             "Positive means boresight points right of the target line. Added to the "
             "measured club path; 0 reports club path relative to boresight."
+        ),
+    )
+    parser.add_argument(
+        "--iwr6843-horizontal-phase-reference-rad",
+        type=float,
+        default=None,
+        help=(
+            "Static target-line phase measured by horizontal aim calibration. "
+            "Subtracted from the TX2 horizontal proxy before angle conversion."
         ),
     )
     parser.add_argument(
@@ -4002,6 +4112,7 @@ def main():
     global experimental_kld7_raw_radc_logging
     global active_kld7_radc_tuning
     global ballistics_enabled
+    global battery_provider
     experimental_kld7_raw_radc_logging = args.experimental_kld7_raw_radc_logging
     experimental_kld7_radc_tuning = args.experimental_kld7_radc_tuning
     global ball_speed_correction_enabled
@@ -4017,6 +4128,7 @@ def main():
     global calculated_spin_enabled
     calculated_spin_enabled = args.calculated_spin
     ballistics_enabled = args.ballistics
+    battery_provider = args.battery
     kld7_radc_tuning_kwargs = _kld7_radc_tuning_kwargs(args)
     active_kld7_radc_tuning = dict(kld7_radc_tuning_kwargs)
 
@@ -4142,6 +4254,7 @@ def main():
             radar_height_m=args.iwr6843_radar_height_m,
             ball_height_m=args.iwr6843_ball_height_m,
             azimuth_offset_deg=args.iwr6843_azimuth_offset_deg,
+            horizontal_phase_reference_rad=args.iwr6843_horizontal_phase_reference_rad,
             save_dumps=args.debug,
         ):
             calibration = iwr6843_runtime.calibration
@@ -4216,6 +4329,10 @@ def main():
         swing_speed_kwargs=swing_speed_kwargs,
         ops_baud=args.ops_baud,
     )
+
+    if battery_provider:
+        start_power_monitor(battery_provider)
+        print(f"Battery monitoring: ENABLED ({battery_provider})")
 
     # Simulator connectors (off unless --sim). Started after the monitor exists
     # so inbound club updates can call monitor.set_club().

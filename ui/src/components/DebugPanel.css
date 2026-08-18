@@ -397,6 +397,32 @@
   font-family: var(--font-display);
 }
 
+.trigger-row__iwr {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.trigger-row__iwr--accepted,
+.last-trigger__iwr--accepted {
+  color: #4ade80;
+}
+
+.trigger-row__iwr--rejected,
+.last-trigger__iwr--rejected {
+  color: #facc15;
+}
+
+.trigger-row__iwr--error,
+.last-trigger__iwr--error {
+  color: #fb7185;
+}
+
+.last-trigger__iwr {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
 /* Slider Controls */
 .debug-panel__controls {
   display: flex;

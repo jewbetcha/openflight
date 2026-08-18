@@ -16,7 +16,7 @@ Make sure you have all the hardware. See the **[Parts List](PARTS.md)** for what
 
 **Optional:**
 - TI IWR6843LEVM + data cable — measured launch angle and experimental club path; see the [IWR6843 Operator Guide](iwr6843/README.md)
-- Geekworm X1202 UPS HAT (~$48) + four compatible 18650 cells (~$25 total) — portable Pi 5 power; cells are sold separately
+- Geekworm X1202 or X1206 UPS HAT — portable Pi 5 power using four separately purchased 18650 or 21700 cells; see the [battery monitoring overview](battery/README.md) and [Geekworm operator guide](battery/geekworm.md)
 - InnoMaker OV9281 global-shutter camera (~$30) — experimental vision work; see [Camera and YOLO Experiments](yolo-performance-tuning.md)
 
 **Optional (deprecated):**
@@ -57,9 +57,11 @@ configuration with prompts:
    (you'll be asked to unplug/replug the radar once)
 3. **K-LD7 radars** (deprecated; if you have them) — identifies each radar by
    plugging them in one at a time, so OpenFlight always knows which is which
-4. **Auto-start on boot** — optional systemd service
-5. **Desktop shortcut** — optional
-6. **FlightWeb cloud sync** — optional uploader and device linking
+4. **Geekworm UPS** (optional) — enables native X1202/X1206 battery and
+   external-power telemetry, Pi power settings, and desktop battery support
+5. **Auto-start on boot** — optional systemd service
+6. **Desktop shortcut** — optional
+7. **FlightWeb cloud sync** — optional uploader and device linking
 
 Every step can be skipped and the script is **safe to re-run** any time —
 it picks up where you left off.
@@ -161,6 +163,24 @@ what you flashed.
 > commands, and OpenFlight must be able to reconfigure and rearm the OPS after
 > every capture. Use a separately powered USB hub for both radars instead
 > (operator guide, Option B).
+
+### Geekworm X1202/X1206 UPS
+
+The optional UPS setup is automated and safe to rerun:
+
+```bash
+sudo ./scripts/battery/geekworm/setup.sh
+sudo reboot
+./scripts/battery/geekworm/setup.sh --verify
+```
+
+It enables I2C, native Linux battery and charger devices, the Pi 5 EEPROM power
+settings required by Geekworm, and the Raspberry Pi taskbar compatibility
+package. It does not install automatic shutdown or charging-control services.
+
+Cell type, board-revision power limits, physical installation, every system
+change, and troubleshooting are documented in the
+**[Geekworm X1202/X1206 Operator Guide](battery/geekworm.md)**.
 
 ### K-LD7 Device Names (Deprecated Hardware)
 

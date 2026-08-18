@@ -12,115 +12,91 @@ geometry, range windows, HWA/EDMA processing, or the binary dump contract.
 For hardware wiring, mounting, geometry, calibration, and normal OpenFlight
 startup, use the [IWR6843 Operator Guide](../docs/iwr6843/README.md).
 
-## Current Validated Release
+## Current Release
 
-Use this firmware and runtime configuration together:
+One firmware image supports two runtime capture profiles. Flash the image once,
+then choose a profile by passing its `.cfg` to OpenFlight.
 
 | Component | Current value |
 |---|---|
-| Flash image | `firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin` |
-| Previous rollback image | `firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_v2.bin` |
-| Runtime config | `config/iwr6843_l3dump_vTX2_window53_12l18f.cfg` |
+| Flash image | `firmware/releases/l3_dump_configurable_capture_20260816.bin` |
+| Default config | `config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` |
+| Dense config | `config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` |
 | Reference calibration | `config/iwr6843_calibration_reference.json` |
-| Build target | `make -C firmware build-native` |
-| Flash image size | 339,780 bytes |
-| Flash SHA-256 | `8a87593954fd5ae2b7adf709c78626f81a87b8988b8dc28f2b2be7b5c99eac12` |
-| Dump format | Version 5, windowed complex range-FFT snapshots plus temperature report |
-| Complete dump size | 549,566 bytes |
+| Native build | `make -C firmware build-native` |
+| Container build | `make -C firmware docker-build` |
+| Flash image size | 345,860 bytes |
+| Flash SHA-256 | `bd68db511b12f5a3236c0a88c70448dc2ff42a0525455329f33138e4a2aa88d5` |
+| Dump format | Variable-width, timed complex range-FFT snapshots |
 
 Verify the checked-in image before flashing:
 
 ```bash
-sha256sum firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin
+sha256sum firmware/releases/l3_dump_configurable_capture_20260816.bin
 ```
 
-The current image retains the validated capture geometry while fixing repeated
-application startup and shutdown. It stops the
-RF front end only after the active HWA frame reaches a safe boundary, then
-disables HWA and EDMA.
+## Choose A Capture Profile
 
-Release filenames track build iteration separately from the dump wire-format
-version. The `_v2.bin` image remains checked in as the last validated rollback
-artifact (`3045bb2f087b40c228bf1dd5190cf3fac6dbde50682c7927e86714314b0e7fcb`);
-the dated `temperature_report_20260731` image is the current supported release
-and emits dump format v5.
+| Profile | Wide/default | Dense/advanced |
+|---|---:|---:|
+| Config | `iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` | `iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` |
+| Frames | 24 | 36 |
+| Frame spacing | 3 ms | 2 ms |
+| Movie duration | 72 ms | 72 ms |
+| Saved bins per frame | 53 | 53 |
+| Stored sample format | IQ16 | Block-scaled IQ8 |
+| Payload bytes | 732,672 | 549,504 |
+| Primary goal | Robust ball flight | Dense impact sampling |
 
-## What The Current Firmware Captures
+Use **wide/default** unless you are deliberately testing dense impact data. Its
+53-bin windows tolerate more variation in tee distance, launch speed, and setup
+geometry, while IQ16 retains the HWA output without quantization. Hardware tests
+held the requested 3 ms cadence without RF or HWA faults. In an August 9
+TrackMan session, its live inclinometer-adjusted LCMF output covered all 59
+matched 9-iron and 7-iron shots with 0.86 degree MAE, 0.70 degree P50, and 1.75
+degree P90 absolute error.
 
-### Capture Geometry
+Use **dense/advanced** to test whether 2 ms temporal sampling improves impact
+and launch measurements. It preserves the same 53-bin range span as the wide
+profile and block-scales each frame to IQ8 so all 36 frames fit in L3. The 2 ms
+IQ8 packing path sustained 99.99% HWA frame coverage in hardware testing, with
+zero packing overruns or RF faults. The 53-bin dense profile still needs
+source-of-truth TrackMan validation; horizontal launch and club metrics remain
+experimental.
 
-| Setting | Value |
-|---|---|
-| Transmitters | 3 |
-| Receivers | 4 |
-| Loops per frame | 12 |
-| Chirps per frame | 36 (`3 TX x 12 loops`) |
-| Frames in the ring | 18 |
-| Frame spacing | 4 ms |
-| Frames before trigger | 6 |
-| Frames after trigger | 12 |
-| Acquired ADC samples per chirp | 128 |
-| Stored range bins per chirp/RX | 53 complex bins |
+Both profiles use 3 TX, 4 RX, 12 TDM loops, 128 acquired ADC samples, and the
+same 72 ms capture duration. Changing profiles does not require reflashing.
 
-All three transmitters are retained. The outer transmitter pair is used by the
-vertical launch estimator, while the remaining transmitter provides the
-experimental horizontal aperture. Each transmitter is fired once per TDM loop;
-the four receivers sample every chirp simultaneously.
+The supported normal-TX profiles use a fixed positive TDM sign. This physical
+registration keeps the full eight-element vertical channel aligned with OPS
+radial speed. Automatic sign selection is useful for offline diagnostics, but
+it is not the production policy because multipath can select the mirrored sign
+and collapse that channel while leaving the range track apparently healthy.
 
-### On-Chip Data Path
+## On-Chip Data Path
 
 ```text
 RF chirp
   -> ADCBUF
   -> HWA 128-point range FFT
-  -> EDMA copies 53 selected complex bins
-  -> 18-frame circular ring in L3 RAM
-  -> Pi sends "l3dump" at the sound-trigger edge
-  -> firmware keeps 12 completed post-trigger frames
-  -> freeze at a completed-frame boundary
-  -> stream header, frame-window metadata, and IQ payload over UARTA
-  -> restart the frame ring for the next shot
+  -> EDMA copies the configured moving range window
+  -> IQ16 is stored directly, or sparse-preview block scaling packs IQ8
+  -> circular frame ring in L3 RAM
+  -> sound trigger freezes the completed pre/post-impact movie
+  -> header, timing/window metadata, scale table, and IQ payload stream to Pi
+  -> firmware rearms the ring for the next shot
 ```
 
-HWA performs the range FFT before storage, but the saved bins remain complex
-I/Q. That phase information is required for vertical and horizontal direction
-of arrival; this is not a magnitude-only detection list.
+The saved bins remain complex I/Q so the host retains phase for vertical and
+horizontal direction of arrival. Every frame carries its absolute range-window
+start, bin count, and measured time delta. IQ8 frames also carry their scale,
+allowing the host to restore the physical sample amplitude before processing.
 
-### Dynamic Range Windows
-
-The firmware stores 53 contiguous bins per frame but moves that window outward
-as the ball travels away from the radar:
-
-| Time region | Frames | Start bin | Stored bins | Purpose |
-|---|---:|---:|---:|---|
-| Rolling history plus active trigger frame | 7 | 20 | 20-72 | Keep six pre-trigger frames and the frame already active when the request arrives |
-| Middle post-trigger flight | 5 | 32 | 32-84 | Follow the ball away from the tee |
-| Late post-trigger flight | 6 | 47 | 47-99 | Retain farther flight and the net-side region |
-
-Each frame's start bin is written into the dump. The host therefore knows the
-absolute range represented by every local bin and never has to infer which
-window the firmware used.
-
-### L3 Memory Budget
-
-The IWR6843 provides 768 KiB (786,432 bytes) of L3 RAM for the capture ring. The
-current payload is:
-
-```text
-3 TX x 12 loops x 18 frames x 4 RX x 53 bins x 4 bytes
-= 549,504 bytes
-```
-
-The transfer adds a 20-byte header, a 24-byte temperature report, and 18
-one-byte frame-window entries:
-
-```text
-549,504 + 20 + 24 + 18 = 549,566 bytes
-```
-
-For comparison, retaining all 128 complex range bins with the same TX, loop,
-and frame counts would require 1,327,104 bytes. On-chip range FFT plus selected
-range windows is what makes the denser 18-frame capture fit.
+The sparse IQ8 preview examines both I/Q components from every eighth complex
+sample to select a power-of-two frame scale, then performs one complete packing
+pass. This removes most of the old scale-search work while recording clipped
+components and missed HWA starts in `stats` rather than silently hiding cadence
+failures.
 
 ## Firmware And Host Contract
 
@@ -129,13 +105,14 @@ The wire format is defined in two places that must stay synchronized:
 - Firmware: [`iwr6843/dump_format.h`](iwr6843/dump_format.h)
 - Host parser: [`../src/openflight/iwr6843/dump.py`](../src/openflight/iwr6843/dump.py)
 
-The current version 5 transfer contains:
+The configurable version 7 transfer contains:
 
 1. A packed 20-byte little-endian `l3_dump_header_t`.
 2. A packed 24-byte `l3_temperature_report_t` captured immediately before streaming.
-3. One unsigned start-bin byte for each frame.
-4. Complex int16 samples ordered by frame, chirp, RX, and local range bin.
-5. Each complex sample in TI's native imaginary-then-real order.
+3. A `(start bin, valid bins, elapsed microseconds)` descriptor per frame.
+4. A per-frame scale table when `sample_fmt` is IQ8.
+5. Complex IQ16 or IQ8 samples ordered by frame, chirp, RX, and local range bin.
+6. Each complex sample in TI's native imaginary-then-real order.
 
 The header carries:
 
@@ -147,7 +124,7 @@ The header carries:
 | `chirps_per_frame` | `n_tx x loops` |
 | `n_tx`, `n_rx` | Virtual-array geometry |
 | `n_samples` | Stored bins per chirp/RX for snapshot formats |
-| `sample_fmt` | Raw ADC, fixed range snapshot, or windowed range snapshot |
+| `sample_fmt` | IQ16 or scaled IQ8 variable-width timed range snapshots |
 | `trigger_frame` | Oldest circular-ring slot for chronological rotation |
 | `frame_period_us` | Frame spacing used by trajectory fitting |
 
@@ -166,22 +143,49 @@ matching host-parser change and regression tests in the same commit.
 | `firmware/Makefile` | Toolchain setup and production firmware build target |
 | `firmware/releases/` | The single checked-in, validated flash image |
 | `firmware/flash_iwr6843.py` | Pi-compatible IWR6843 ROM bootloader client |
-| `config/iwr6843_l3dump_vTX2_window53_12l18f.cfg` | Runtime RF configuration matching the current firmware |
+| `config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` | Default wide IQ16 capture profile |
+| `config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` | Dense IQ8 capture profile |
 | `src/openflight/iwr6843/dump.py` | Python decoder and executable format reference |
 
 ## Where To Build, Flash, And Run
 
 | Operation | Supported environment |
 |---|---|
-| Build | Native x86_64 Linux or an x86_64 Debian VM |
-| Build on Apple Silicon | UTM emulating x86_64 Debian |
+| Build | Native x86_64 Linux or the provided Docker image |
+| Build on Apple Silicon | Docker Desktop emulating the x86_64 build image; UTM is a fallback |
 | Build on Raspberry Pi 5 | Not currently reliable because TI's x86/i386 installer stubs can fail under QEMU and a 16 KiB host page size |
 | Flash | Raspberry Pi using `flash_iwr6843.py`, or TI UniFlash as a fallback |
 | Run | Raspberry Pi through OpenFlight |
 
-The recommended open-source, no-cloud path for an Apple Silicon Mac is an
-x86_64 Debian VM in UTM. The Pi can flash and run the image, but it should not
-be treated as the canonical compiler host.
+The Pi can flash and run the image, but it should not be treated as the
+canonical compiler host.
+
+## Build On Apple Silicon With Docker
+
+Install Docker Desktop, start its engine, and place the five TI installers
+listed below in `firmware/ti_installers/`. The installers are license-gated and
+are intentionally excluded from Git.
+
+Build the reusable x86_64 toolchain image once:
+
+```bash
+make -C firmware docker-image
+```
+
+Build the supported firmware after any source change:
+
+```bash
+make -C firmware docker-build
+```
+
+Docker runs the same `build-native` recipe under `linux/amd64` and writes the
+release artifact back into the host worktree at:
+
+```text
+firmware/releases/l3_dump_configurable_capture_20260816.bin
+```
+
+Use the UTM workflow below only when Docker emulation is unavailable.
 
 ## Build On Apple Silicon With UTM
 
@@ -282,7 +286,7 @@ The target performs the application build, generates the flashable TI
 meta-image, and copies the production image into `firmware/releases/`:
 
 ```text
-firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin
+firmware/releases/l3_dump_configurable_capture_20260816.bin
 ```
 
 Generated `.xer4f`, `.map`, and intermediate `.bin` files stay under
@@ -314,10 +318,11 @@ make -C firmware build-native \
 
 ## Supported Build Target
 
-`make -C firmware build-native` is the only supported target. It builds the
-validated 3 TX, 12-loop, 18-frame, 4 ms configuration with dynamic 53-bin
-windows. Use Git history for earlier experiments rather than distributing
-those images or targets as installation choices.
+`make -C firmware build-native` and `make -C firmware docker-build` produce the
+same configurable image. Capture timing, frame plan, moving windows, and IQ16
+or IQ8 storage are selected by the runtime config. Use Git history for earlier
+experiments rather than distributing those images or targets as installation
+choices.
 
 ## Flash From The Raspberry Pi
 
@@ -366,7 +371,7 @@ Leave the board in flash mode and run:
 
 ```bash
 uv run python firmware/flash_iwr6843.py \
-  firmware/releases/l3_dump_vTX2_hwa_window53_12loops_18frames_4ms_temperature_report_20260731.bin \
+  firmware/releases/l3_dump_configurable_capture_20260816.bin \
   --port /dev/ttyUSB0
 ```
 
@@ -380,7 +385,7 @@ Expected completion:
 Erasing existing SFLASH...
 Opening firmware image...
 Writing firmware...
-Writing: 100% (339,780/339,780 bytes)
+Writing: 100% (345,860/345,860 bytes)
 Closing and verifying firmware...
 
 Flash verified by the IWR6843 ROM bootloader.
@@ -413,7 +418,7 @@ healthy capture reports:
 
 ```text
 [IWR6843] Trigger #1: dumping firmware-frozen L3 ring
-[IWR6843] Capture #1 complete: 549566 bytes
+[IWR6843] Capture #1 complete: 732812 bytes
 ```
 
 The firmware/config geometry is checked at `sensorStart`. A mismatch in TX
@@ -422,35 +427,29 @@ capturing a differently shaped cube.
 
 ## Changing Capture Geometry
 
-The following values are compile-time firmware geometry and must match the RF
-config or dump parser:
+The runtime config controls the capture without rebuilding firmware:
 
-| Firmware define | Matching runtime concept |
+| Config command | Purpose |
 |---|---|
-| `N_TX` | Number of `chirpCfg` TX masks and TDM chirps per loop |
-| `LOOPS` | Loop count in `frameCfg` |
-| `RING_FRAMES` | Number of frames carried in the dump |
-| `HWA_POST_TRIGGER_FRAMES` | Post-trigger tail; must be less than `RING_FRAMES` |
-| `N_SAMPLES` | ADC samples in `profileCfg` |
-| `SNAPSHOT_BINS` | Complex range bins retained per chirp/RX |
-| `SNAPSHOT_BIN_START` | Rolling pre-trigger range-window start |
-| `SNAPSHOT_MIDDLE_BIN_START` | First post-trigger range-window start |
-| `SNAPSHOT_LATE_BIN_START` | Final post-trigger range-window start |
+| `frameCfg` | TDM loop count and RF frame period |
+| `captureFormat iq16\|iq8` | L3 sample representation |
+| `phaseCaptureCfg` | Pre/impact/ball window starts, widths, counts, and stride |
 
 Before increasing loops, frames, transmitters, or bins, calculate the ring:
 
 ```text
-ring bytes = TX x loops x frames x RX x saved bins x 4
+IQ16 bytes = TX x loops x frames x RX x saved bins x 4
+IQ8 bytes  = TX x loops x frames x RX x saved bins x 2
 ```
 
 The result must fit within 786,432 L3 bytes along with any variant-specific L3
 scratch sections. The linker places `.l3ring` and `.l3scratch` in `L3_RAM` and
 fails the build if they overflow.
 
-Do not reuse application objects after changing compile-time geometry. The
-named targets in `firmware/Makefile` remove application objects before each
-build; use those targets rather than invoking the lower-level makefile against
-stale objects.
+The firmware rejects invalid windows, frame plans, and L3 budgets at
+`sensorStart`. The dense IQ8 profile also has only about 380 microseconds
+between its 1.62 ms RF burst and the next 2 ms frame, so memory fit alone does
+not prove the HWA and packer can sustain a new profile.
 
 ## Validation Before Flashing A New Variant
 
@@ -488,8 +487,9 @@ Also check:
 | Probe receives no ROM response | Wrong CP2105 interface or RESET timing | Use Enhanced/UARTA, type `READY`, then RESET only when prompted |
 | Flash fails after erase | Image transfer was interrupted | Leave flash mode enabled and rerun the full flash command; the ROM bootloader remains available |
 | No CLI after flashing | Board remains in flash mode or was not reset | Restore functional switches and press RESET |
-| Server rejects the config | Firmware and `.cfg` geometry differ | Use the current release binary and `iwr6843_l3dump_vTX2_window53_12l18f.cfg` together |
-| Dump is not 549,566 bytes | Wrong firmware format, interrupted UART transfer, or stale process | Verify SHA-256, use Enhanced/UARTA, stop serial owners, reset, and retry |
+| Server rejects `captureFormat` or `phaseCaptureCfg` | Older firmware is flashed | Flash `l3_dump_configurable_capture_20260816.bin`, reset in functional mode, and retry |
+| Dump length differs from the selected profile | Wrong config, interrupted UART transfer, or stale process | Verify firmware SHA-256, use Enhanced/UARTA, stop serial owners, reset, and retry |
+| Dense profile reports `hwa_missed` or `iq8_overrun` | The requested cadence exceeds processing time | Return to the wide profile and inspect `stats`; do not trust descriptor cadence from a missed-frame run |
 | First run works but restart hangs | Retired v1 image or incomplete shutdown | Flash the current release image and reset in functional mode |
 
 ## Historical Context

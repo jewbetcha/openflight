@@ -188,7 +188,7 @@ class IWR6843CaptureMonitor:
         if len(raw) < HEADER.size:
             raise ValueError(f"short IWR6843 dump: {len(raw)} bytes")
         metadata = parse_header(raw)
-        expected = metadata["header_nbytes"] + payload_nbytes(metadata)
+        expected = metadata["header_nbytes"] + payload_nbytes(metadata, raw)
         if len(raw) != expected:
             raise ValueError(f"short IWR6843 dump: {len(raw)} bytes, expected {expected}")
         return metadata

@@ -706,7 +706,9 @@ class RollingBufferMonitor:
                     if self._diagnostic_callback:
                         self._diagnostic_callback(
                             {
-                                "timestamp": datetime.now().isoformat(),
+                                # Correlation key used when the slower IWR6843
+                                # result enriches this same UI history row.
+                                "timestamp": shot.timestamp.isoformat(),
                                 "accepted": True,
                                 "reason": "accepted",
                                 "trigger_type": self.trigger_type,

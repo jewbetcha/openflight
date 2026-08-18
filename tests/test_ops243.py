@@ -584,6 +584,39 @@ class TestWaitForHardwareTrigger:
         assert response == ""
         assert time.time() - start < 1.5
 
+    def test_idle_serial_noise_does_not_start_a_hardware_capture(self):
+        """Whitespace and clock replies are not HOST_INT-triggered dumps."""
+        noise = b'\n\n{"Clock":1786805707}\r\n\n'
+        radar = self._radar(_ScheduledSerial([(0.02, noise)]))
+        events = []
+
+        response = radar.wait_for_hardware_trigger(
+            timeout=0.12,
+            dump_grace=1.0,
+            on_first_byte=lambda: events.append("capture"),
+        )
+
+        assert response == ""
+        assert events == []
+        assert radar.last_hardware_trigger_first_byte_timestamp is None
+
+    def test_idle_serial_noise_is_discarded_before_a_real_dump(self):
+        """A later capture remains readable after unsolicited serial noise."""
+        noise = b'\n\n{"Clock":1786805707}\r\n\n'
+        dump = b"".join(self._DUMP)
+        radar = self._radar(_ScheduledSerial([(0.02, noise), (0.08, dump)]))
+        events = []
+
+        response = radar.wait_for_hardware_trigger(
+            timeout=0.2,
+            dump_grace=1.0,
+            on_first_byte=lambda: events.append("capture"),
+        )
+
+        assert response == dump.decode("ascii")
+        assert events == ["capture"]
+        assert radar.last_hardware_trigger_first_byte_timestamp is not None
+
     def test_complete_dump_returns_before_grace_expires(self):
         """A dump that finishes early returns immediately on completeness."""
         schedule = [(0.05, b"".join(self._DUMP))]

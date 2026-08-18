@@ -24,10 +24,13 @@ from openflight.iwr6843.music import LAM
 from openflight.iwr6843.shot import (
     TX2_LOOP_PERIOD_S,
     TX2_VERTICAL_TDM_TAU_S,
+    PreparedShotDump,
     ShotMeasurement,
     geometry_from_header,
+    prepare_shot_dump,
     process_dump,
 )
+from openflight.iwr6843.tracking import BallTrack
 
 NAME = "lcmf_v1"
 DISPLAY_NAME = "Late-Flight Complex Multipath Fusion v1"
@@ -42,6 +45,8 @@ MAX_RANGE_M = 4.7
 MAX_PER_FRAME = 4
 LATERAL_TEE_OFFSET_M = 0.064
 MPH_PER_MS = 2.23694
+HORIZONTAL_TAIL_FRAMES = 8
+HORIZONTAL_COHERENCE_MIN = 0.90
 
 # One collapsed channel must not drag the answer down. 8.0 sits in an observed
 # gap: agreeing channels spread 4.59 deg, collapsed ones 15.9-20.2 deg
@@ -74,6 +79,7 @@ class LCMFResult:
     track_span_s: float | None = None
     tdm_sign_used: int | None = None
     horizontal_deg: float | None = None
+    horizontal_raw_deg: float | None = None
     horizontal_confidence: float | None = None
     horizontal_status: str | None = None
     effective_tdm_tau_s: float = doa.TDM_TAU_S
@@ -105,11 +111,50 @@ class LCMFResult:
             "track_span_s": self.track_span_s,
             "tdm_sign_used": self.tdm_sign_used,
             "horizontal_deg": self.horizontal_deg,
+            "horizontal_raw_deg": self.horizontal_raw_deg,
             "horizontal_confidence": self.horizontal_confidence,
             "horizontal_status": self.horizontal_status,
             "effective_tdm_tau_s": self.effective_tdm_tau_s,
             "effective_loop_period_s": self.effective_loop_period_s,
         }
+
+
+@dataclass
+class PreparedLCMFCapture:
+    """Invariant signal products shared by every candidate range track."""
+
+    full_metadata: dict
+    full_cube: np.ndarray
+    vertical: PreparedShotDump
+    tdm_tau_s: float
+    loop_period_s: float
+    _horizontal_mti: np.ndarray | None = None
+
+    def horizontal_mti(self) -> np.ndarray:
+        """Return the three-TX range movie after per-frame static removal."""
+        if self._horizontal_mti is None:
+            metadata = self.full_metadata
+            n_frames, chirps_per_frame, n_rx, n_samples = self.full_cube.shape
+            loops = chirps_per_frame // metadata["n_tx"]
+            tdm = self.full_cube.reshape(n_frames, loops, metadata["n_tx"], n_rx, n_samples)
+            rfft = tdm if is_range_snapshot(metadata) else np.fft.fft(tdm, axis=-1)
+            self._horizontal_mti = rfft - rfft.mean(axis=1, keepdims=True)
+        return self._horizontal_mti
+
+
+def prepare_lcmf_capture(raw: bytes) -> PreparedLCMFCapture:
+    """Decode and project one capture before evaluating candidate tracks."""
+    full_metadata, full_cube = parse_dump(raw)
+    vertical_raw = project_tx_pair(raw, (0, 2)) if full_metadata["n_tx"] == 3 else raw
+    tdm_tau_s = TX2_VERTICAL_TDM_TAU_S if full_metadata["n_tx"] == 3 else doa.TDM_TAU_S
+    loop_period_s = TX2_LOOP_PERIOD_S if full_metadata["n_tx"] == 3 else tracking.LOOP_PRI_S
+    return PreparedLCMFCapture(
+        full_metadata=full_metadata,
+        full_cube=full_cube,
+        vertical=prepare_shot_dump(vertical_raw, loop_period_s=loop_period_s),
+        tdm_tau_s=tdm_tau_s,
+        loop_period_s=loop_period_s,
+    )
 
 
 def _result_from_track(
@@ -141,22 +186,22 @@ def _snapshot_cache(
     tdm_sign: int,
     tdm_tau_s: float,
     loop_period_s: float,
+    *,
+    phase_velocity_ms: float | None = None,
+    prepared: PreparedShotDump | None = None,
 ) -> tuple[dict[str, np.ndarray], object, np.ndarray]:
     """Build calibrated per-loop snapshots along the TI range track."""
-    meta, cube = parse_dump(raw)
-    geometry = geometry_from_header(meta, loop_period_s=loop_period_s)
-    frame_values = geometry.chirps_per_frame * geometry.n_rx * geometry.n_samples
-    got_frames = cube.reshape(-1).size // frame_values
-    if got_frames < geometry.n_frames:
-        geometry.n_frames = got_frames
-        cube = cube[:got_frames]
+    if prepared is None:
+        prepared = prepare_shot_dump(raw, loop_period_s=loop_period_s)
+    meta = prepared.metadata
+    cube = prepared.cube
+    geometry = prepared.geometry
     if meta["n_tx"] != 2:
         raise ValueError(f"LCMF-v1 requires two TX channels, got {meta['n_tx']}")
 
     scope = "window" if shot.notch_recovered else "burst"
-    range_domain = is_range_snapshot(meta)
-    mti = tracking.mti_filter(cube, scope=scope, range_domain=range_domain)
-    noise = float(np.median(np.abs(mti) ** 2))
+    mti = prepared.mti(scope)
+    noise = prepared.noise_power(scope)
     track = shot.track
     if track is None:
         raise ValueError("ball track unavailable")
@@ -179,7 +224,11 @@ def _snapshot_cache(
             local_bin = geometry.local_bin(range_bin, frame)
             if not geometry.contains_bin(range_bin, margin=1, frame=frame):
                 continue
-            velocity = track.speed_ms_at(time_s, geometry.range_res_m)
+            velocity = (
+                phase_velocity_ms
+                if phase_velocity_ms is not None
+                else track.speed_ms_at(time_s, geometry.range_res_m)
+            )
             tdm_phase = tdm_sign * 4.0 * np.pi * velocity * tdm_tau_s / LAM
             uncalibrated = doa.canonicalize_tx_blocks(
                 mti[frame, 0, loop, :, local_bin],
@@ -321,9 +370,7 @@ def measured_channels(
     agreement metric reported to the caller.
     """
     return {
-        name: float(value)
-        for name, value in components.items()
-        if evidence.get(name) is not None
+        name: float(value) for name, value in components.items() if evidence.get(name) is not None
     }
 
 
@@ -556,10 +603,9 @@ def _fast_estimates(
     return estimates
 
 
-def _phase_to_angle_deg(phase_rad: float, *, baseline_lambda: float = 1.0) -> float:
-    """Convert an uncalibrated baseline phase into a signed proxy angle."""
-    sin_angle = phase_rad / (2.0 * np.pi * baseline_lambda)
-    return float(np.degrees(np.arcsin(np.clip(sin_angle, -1.0, 1.0))))
+def _phase_to_angle_deg(phase_rad: float) -> float:
+    """Convert LEVM TX2 residual phase into a signed one-axis proxy angle."""
+    return float(np.degrees(doa.tx2_phase_to_axis_angle_rad(phase_rad)))
 
 
 def _weighted_circular_mean(phases: list[float], weights: list[float]) -> tuple[float, float]:
@@ -570,30 +616,85 @@ def _weighted_circular_mean(phases: list[float], weights: list[float]) -> tuple[
     return float(np.angle(z)), float(abs(z) / weight_sum)
 
 
+def _referenced_horizontal_mean(
+    phases: list[float],
+    weights: list[float],
+    *,
+    phase_reference_rad: float | None,
+) -> tuple[float, float]:
+    """Apply the calibrated target-line phase before angle conversion."""
+    if phase_reference_rad is not None:
+        if not math.isfinite(phase_reference_rad):
+            raise ValueError("horizontal phase reference must be finite")
+        phases = [float(np.angle(np.exp(1j * (phase - phase_reference_rad)))) for phase in phases]
+    phase_rad, coherence = _weighted_circular_mean(phases, weights)
+    return -_phase_to_angle_deg(phase_rad), coherence
+
+
+def _frame_balanced_horizontal_mean(
+    snapshots: list[tuple[float, float, float]],
+    *,
+    phase_reference_rad: float | None,
+) -> tuple[float, float]:
+    """Fuse the outgoing phase movie without letting one bright frame dominate.
+
+    Power remains useful inside each radar frame, where the loops observe
+    nearly the same ball position. Across frames, every retained instant gets
+    one vote. TrackMan holdout testing on 2026-08-09 found the final eight
+    observed frames materially more precise than pooling all loop snapshots.
+    """
+    observed_frames = sorted({frame for frame, _phase, _weight in snapshots})
+    tail_frames = observed_frames[-HORIZONTAL_TAIL_FRAMES:]
+    frame_phases: list[float] = []
+    for frame in tail_frames:
+        frame_snapshots = [snapshot for snapshot in snapshots if snapshot[0] == frame]
+        phase_rad, _within_frame_coherence = _weighted_circular_mean(
+            [phase for _frame, phase, _weight in frame_snapshots],
+            [weight for _frame, _phase, weight in frame_snapshots],
+        )
+        frame_phases.append(phase_rad)
+    return _referenced_horizontal_mean(
+        frame_phases,
+        [1.0] * len(frame_phases),
+        phase_reference_rad=phase_reference_rad,
+    )
+
+
 def _tx2_horizontal_proxy(
     raw: bytes,
     shot: ShotMeasurement,
     *,
     tdm_sign: int,
+    phase_reference_rad: float | None = None,
+    phase_velocity_ms: float | None = None,
+    prepared: PreparedLCMFCapture | None = None,
 ) -> tuple[float | None, float | None, str | None]:
-    """HLCMF-v0: experimental TX2 horizontal launch proxy.
+    """HLCMF-v1: frame-balanced TX2 horizontal launch estimator.
 
-    Horizontal Late Complex Median Fusion mirrors the vertical-launch lesson:
-    use fewer, cleaner snapshots, follow the fitted ball range track, correct
-    TDM motion, robustly median TX2 phase per RX channel, then fuse the tail
-    frame slots that separated the pushed-shot experiment. The final sign is
-    flipped into TrackMan convention: positive starts right of the target line,
-    negative starts left.
+    Follow the fitted ball range track, correct TDM motion, robustly median
+    TX2 phase per RX channel, and power-fuse loops within each frame. The final
+    eight observed frames are then fused with equal frame influence. The final
+    sign is flipped into TrackMan convention: positive starts right of the
+    target line, negative starts left.
     """
-    meta, cube = parse_dump(raw)
+    if prepared is None:
+        meta, cube = parse_dump(raw)
+        horizontal_mti = None
+    else:
+        meta = prepared.full_metadata
+        cube = prepared.full_cube
+        horizontal_mti = prepared.horizontal_mti()
     if meta["n_tx"] != 3 or shot.track is None:
         return None, None, None
     geometry = geometry_from_header(meta, loop_period_s=TX2_LOOP_PERIOD_S)
     n_frames, chirps_per_frame, n_rx, n_samples = cube.shape
     loops = chirps_per_frame // meta["n_tx"]
     tdm = cube.reshape(n_frames, loops, meta["n_tx"], n_rx, n_samples)
-    rfft = tdm if is_range_snapshot(meta) else np.fft.fft(tdm, axis=-1)
-    mti = rfft - rfft.mean(axis=1, keepdims=True)
+    if horizontal_mti is None:
+        rfft = tdm if is_range_snapshot(meta) else np.fft.fft(tdm, axis=-1)
+        mti = rfft - rfft.mean(axis=1, keepdims=True)
+    else:
+        mti = horizontal_mti
     snapshots: list[tuple[float, float, float]] = []
     for frame in range(geometry.n_frames):
         for loop in range(geometry.n_loops):
@@ -604,7 +705,11 @@ def _tx2_horizontal_proxy(
             local_bin = geometry.local_bin(range_bin, frame)
             if not geometry.contains_bin(range_bin, margin=1, frame=frame):
                 continue
-            velocity = shot.track.speed_ms_at(time_s, geometry.range_res_m)
+            velocity = (
+                phase_velocity_ms
+                if phase_velocity_ms is not None
+                else shot.track.speed_ms_at(time_s, geometry.range_res_m)
+            )
             sample = doa.tx2_phase_at(
                 mti,
                 frame,
@@ -617,19 +722,15 @@ def _tx2_horizontal_proxy(
             if sample is not None:
                 phase, weight = sample
                 snapshots.append((float(frame), phase, weight))
-    # A boundary-frozen HWA block can contain impact in any physical ring slot.
-    # Follow the observed flight instead of assuming slots 9-11 are always late.
-    observed_frames = sorted({frame for frame, _phase, _weight in snapshots})
-    tail_frames = set(observed_frames[-3:])
-    snapshots = [snapshot for snapshot in snapshots if snapshot[0] in tail_frames]
     if len(snapshots) < 6:
-        return None, None, "hlcmf_v0_insufficient_tail_snapshots"
-    phases = [phase for _frame, phase, _weight in snapshots]
-    weights = [weight for _frame, _phase, weight in snapshots]
-    phase_rad, coherence = _weighted_circular_mean(phases, weights)
-    angle_deg = -_phase_to_angle_deg(phase_rad)
-    status = "hlcmf_v0_accepted" if coherence >= 0.25 else "hlcmf_v0_low_coherence"
-    return angle_deg, coherence, status
+        return None, None, "hlcmf_v1_insufficient_tail_snapshots"
+    angle_deg, coherence = _frame_balanced_horizontal_mean(
+        snapshots,
+        phase_reference_rad=phase_reference_rad,
+    )
+    if coherence < HORIZONTAL_COHERENCE_MIN:
+        return None, coherence, "hlcmf_v1_low_coherence"
+    return angle_deg, coherence, "hlcmf_v1_accepted"
 
 
 def estimate_lcmf_v1(
@@ -642,31 +743,57 @@ def estimate_lcmf_v1(
     tx_order: str = "normal",
     tdm_sign_policy: str = "positive",
     grid_step_deg: float = 0.5,
+    horizontal_phase_reference_rad: float | None = None,
+    track_override: BallTrack | None = None,
+    track_override_scope: str = "burst",
+    prepared: PreparedLCMFCapture | None = None,
 ) -> LCMFResult:
-    """Estimate vertical launch from one TI dump and OPS ball speed."""
+    """Estimate vertical launch from one TI dump and OPS ball speed.
+
+    ``track_override`` is an offline-research hook for evaluating an
+    independently selected range walk. Normal production calls leave it
+    unset and retain the frozen LCMF-v1 behavior.
+    """
     if ball_speed_mph <= 0:
         raise ValueError("ball_speed_mph must be positive")
     if cal.tee_range_m is None:
         raise ValueError("LCMF-v1 requires the measured tee slant range")
     full_raw = raw
-    meta, _cube = parse_dump(raw)
-    tdm_tau_s = doa.TDM_TAU_S
-    loop_period_s = tracking.LOOP_PRI_S
-    if meta["n_tx"] == 3:
-        raw = project_tx_pair(raw, (0, 2))
-        tdm_tau_s = TX2_VERTICAL_TDM_TAU_S
-        loop_period_s = TX2_LOOP_PERIOD_S
-
-    shot = process_dump(
-        raw,
-        cal,
-        club=club,
-        net_range_m=net_range_m,
-        tx_order=tx_order,
-        tdm_sign_policy=tdm_sign_policy,
-        loop_period_s=loop_period_s,
-        tdm_tau_s=tdm_tau_s,
-    )
+    if prepared is None:
+        prepared = prepare_lcmf_capture(raw)
+    meta = prepared.full_metadata
+    tdm_tau_s = prepared.tdm_tau_s
+    loop_period_s = prepared.loop_period_s
+    vertical = prepared.vertical
+    recovery_override = track_override is not None
+    if recovery_override:
+        if track_override_scope not in ("burst", "window"):
+            raise ValueError("track_override_scope must be burst or window")
+        if tdm_sign_policy not in ("positive", "negative"):
+            raise ValueError("track_override requires an explicit TDM sign policy")
+        shot = ShotMeasurement(
+            geometry=vertical.geometry,
+            ball_found=True,
+            track=track_override,
+            club=club,
+            tx_order=tx_order,
+            tdm_sign_policy=tdm_sign_policy,
+            quality="low",
+            notch_recovered=track_override_scope == "window",
+            tdm_sign_used=1 if tdm_sign_policy == "positive" else -1,
+        )
+    else:
+        shot = process_dump(
+            raw,
+            cal,
+            club=club,
+            net_range_m=net_range_m,
+            tx_order=tx_order,
+            tdm_sign_policy=tdm_sign_policy,
+            loop_period_s=loop_period_s,
+            tdm_tau_s=tdm_tau_s,
+            prepared=vertical,
+        )
     if shot.track is None:
         return _result_from_track(
             "rejected_by_ball_tracker",
@@ -690,10 +817,16 @@ def estimate_lcmf_v1(
         )
 
     try:
+        # OPS measures radial speed directly. TI range slope still supplies
+        # position, but multipath-biased slope must not rotate TDM phase.
+        phase_velocity_ms = ball_speed_mph / MPH_PER_MS
         horizontal_deg, horizontal_conf, horizontal_status = _tx2_horizontal_proxy(
             full_raw,
             shot,
             tdm_sign=shot.tdm_sign_used,
+            phase_reference_rad=horizontal_phase_reference_rad,
+            phase_velocity_ms=phase_velocity_ms,
+            prepared=prepared,
         )
         cache, radar_geometry, cube = _snapshot_cache(
             raw,
@@ -703,6 +836,8 @@ def estimate_lcmf_v1(
             shot.tdm_sign_used,
             tdm_tau_s,
             loop_period_s,
+            phase_velocity_ms=phase_velocity_ms,
+            prepared=vertical,
         )
         indices = _balanced_indices(cache)
         vertical_delta_m = cal.tee_ball_height_m - cal.radar_height_m
@@ -760,10 +895,8 @@ def estimate_lcmf_v1(
             effective_loop_period_s=loop_period_s,
         )
     measured = measured_channels(channel_components, channel_evidence)
-    result = _result_from_track(
-        "accepted_track_quality_warning" if shot.quality == "reject" else "accepted",
-        shot,
-    )
+    status = "accepted_low_confidence_recovery" if recovery_override else "accepted"
+    result = _result_from_track(status, shot)
     result.angle_deg = raw_angle_deg + ANGLE_CORRECTION_DEG
     result.raw_angle_deg = raw_angle_deg
     result.components_deg = components
@@ -789,4 +922,5 @@ __all__ = [
     "LCMFResult",
     "NAME",
     "estimate_lcmf_v1",
+    "prepare_lcmf_capture",
 ]

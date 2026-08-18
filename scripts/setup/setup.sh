@@ -6,6 +6,7 @@
 # one-time hardware configuration interactively:
 #   - OPS243-A rolling buffer flash config
 #   - K-LD7 device naming + FTDI low-latency rules
+#   - Optional battery-provider telemetry
 #   - Auto-start on boot (systemd service)
 #   - Desktop shortcut
 #
@@ -191,7 +192,7 @@ log "UI built ✓"
 cd ..
 
 # Make scripts executable
-chmod +x scripts/*.sh scripts/setup/*.sh
+chmod +x scripts/*.sh scripts/setup/*.sh scripts/battery/*/*.sh
 
 # Run tests to verify installation
 log "Running tests to verify installation..."
@@ -243,6 +244,16 @@ if [ "$PLATFORM" == "pi" ] && [ "$DEPS_ONLY" == "false" ] && [ "$INTERACTIVE" ==
         "$SCRIPT_DIR/setup_kld7_devices.sh"
     else
         info "Skipped. Run later with: ./scripts/setup/setup_kld7_devices.sh"
+    fi
+
+    # --- Geekworm X1202/X1206 power telemetry ---
+    echo ""
+    if confirm "Do you have a Geekworm X1202 or X1206 UPS to set up?" "N"; then
+        "$PROJECT_DIR/scripts/battery/geekworm/setup.sh"
+        info "Reboot before verifying Geekworm telemetry with:"
+        info "    ./scripts/battery/geekworm/setup.sh --verify"
+    else
+        info "Skipped. Run later with: ./scripts/battery/geekworm/setup.sh"
     fi
 
     # --- Auto-start service ---
@@ -326,6 +337,7 @@ echo ""
 log "Start OpenFlight:"
 echo "    ./scripts/start-kiosk.sh                # Default: rolling buffer + sound trigger"
 echo "    ./scripts/start-kiosk.sh --kld7         # With K-LD7 angle radars"
+echo "    ./scripts/start-kiosk.sh --battery geekworm  # With Geekworm battery display"
 echo "    ./scripts/start-kiosk.sh --mock         # Mock mode (no hardware)"
 echo ""
 log "Then open http://localhost:8080 (or use the touchscreen)."

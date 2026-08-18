@@ -47,6 +47,8 @@ class Geometry:
     range_bin_start: int = 0
     range_fft_size: int | None = None
     range_bin_starts: tuple[int, ...] | None = None
+    range_bin_counts: tuple[int, ...] | None = None
+    frame_time_offsets_s: tuple[float, ...] | None = None
 
     @property
     def n_loops(self) -> int:
@@ -70,15 +72,35 @@ class Geometry:
         """Convert full-FFT bin coordinates into this dump's payload index."""
         return absolute_bin - self.frame_bin_start(frame)
 
+    def frame_bin_count(self, frame: int | None = None) -> int:
+        """Number of valid stored bins for one frame."""
+        if self.range_bin_counts is None:
+            return self.n_samples
+        if frame is None:
+            raise ValueError("frame is required for a variable-width range dump")
+        return self.range_bin_counts[frame]
+
     def contains_bin(self, absolute_bin: int, margin: int = 0, frame: int | None = None) -> bool:
         """True when an absolute range bin is present in this dump payload."""
         local = self.local_bin(absolute_bin, frame)
-        return margin <= local < self.n_samples - margin
+        return margin <= local < self.frame_bin_count(frame) - margin
 
     def loop_time(self, frame: int, loop: int) -> float:
         """Seconds from window start for (ring-slot frame, loop)."""
         slot_order = (frame - self.trigger_frame) % self.n_frames
-        return slot_order * self.frame_period_s + loop * self.loop_period_s
+        frame_time = (
+            self.frame_time_offsets_s[slot_order]
+            if self.frame_time_offsets_s is not None
+            else slot_order * self.frame_period_s
+        )
+        return frame_time + loop * self.loop_period_s
+
+    @property
+    def capture_duration_s(self) -> float:
+        """Elapsed capture time including one base frame after the final sample."""
+        if self.frame_time_offsets_s:
+            return self.frame_time_offsets_s[-1] + self.frame_period_s
+        return self.n_frames * self.frame_period_s
 
 
 @dataclass
@@ -145,19 +167,24 @@ def mti_filter(
     tdm = tdm.transpose(0, 2, 1, 3, 4)
     rfft = tdm if range_domain else np.fft.fft(tdm, axis=-1)
     if scope == "window" and geometry is not None and geometry.range_bin_starts is not None:
-        fft_size = geometry.range_fft_size or max(geometry.range_bin_starts) + n_samples
+        fft_size = geometry.range_fft_size or max(
+            start + geometry.frame_bin_count(frame)
+            for frame, start in enumerate(geometry.range_bin_starts)
+        )
         totals = np.zeros((tdm.shape[1], n_rx, fft_size), dtype=complex)
         counts = np.zeros(fft_size, dtype=float)
         for frame, start in enumerate(geometry.range_bin_starts):
-            stop = start + n_samples
-            totals[:, :, start:stop] += rfft[frame].sum(axis=1)
+            count = geometry.frame_bin_count(frame)
+            stop = start + count
+            totals[:, :, start:stop] += rfft[frame, ..., :count].sum(axis=1)
             counts[start:stop] += rfft.shape[2]
         counts[counts == 0] = 1.0
         means = totals / counts[None, None, :]
-        out = np.empty_like(rfft)
+        out = np.zeros_like(rfft)
         for frame, start in enumerate(geometry.range_bin_starts):
-            stop = start + n_samples
-            out[frame] = rfft[frame] - means[:, None, :, start:stop]
+            count = geometry.frame_bin_count(frame)
+            stop = start + count
+            out[frame, ..., :count] = rfft[frame, ..., :count] - means[:, None, :, start:stop]
         return out
     if scope == "window":
         return rfft - rfft.mean(axis=(0, 2), keepdims=True)
@@ -193,6 +220,7 @@ def _detections(
         for row_index, row in enumerate(power):
             frame = row_index // n_loops
             frame_start = geo.frame_bin_start(frame)
+            frame_count = geo.frame_bin_count(frame)
             for lo_m, hi_m in gates_m:
                 if max_range_m is not None:
                     hi_m = min(hi_m, max_range_m)
@@ -201,7 +229,7 @@ def _detections(
                 abs_lo = int(lo_m / res)
                 abs_hi = int(hi_m / res)
                 g_lo = max(abs_lo - frame_start, 0)
-                g_hi = min(abs_hi - frame_start, n_samples - 2)
+                g_hi = min(abs_hi - frame_start, frame_count - 2)
                 if g_hi - g_lo < 3:
                     continue
                 gate = row[g_lo:g_hi]

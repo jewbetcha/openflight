@@ -45,7 +45,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trigger-pin", type=int, default=17, help="BCM GPIO for sound trigger")
     parser.add_argument(
         "--cfg",
-        default="config/iwr6843_l3dump_vTX2_window53_12l18f.cfg",
+        default="config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg",
         help="IWR6843 L3 dump cfg file",
     )
     parser.add_argument(

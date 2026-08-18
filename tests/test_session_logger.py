@@ -748,3 +748,26 @@ class TestWriteEntryThreadSafety:
         assert events[0] == "write"
         assert "close" in events
         assert events.index("close") == len(events) - 1
+
+
+def test_power_status_writes_structured_session_entry(tmp_path):
+    logger = SessionLogger(log_dir=tmp_path, enabled=True)
+    logger.start_session(mode="rolling-buffer", trigger_type="sound")
+
+    logger.log_power_status(
+        {
+            "available": True,
+            "state": "on_battery",
+            "battery_percent": 42.5,
+            "battery_voltage_v": 3.72,
+            "external_power": False,
+            "updated_at": "2026-08-15T12:00:00+00:00",
+            "error": None,
+        }
+    )
+
+    entry = json.loads(logger.session_path.read_text().strip().split("\n")[-1])
+    assert entry["type"] == "power_status"
+    assert entry["state"] == "on_battery"
+    assert entry["battery_percent"] == 42.5
+    assert entry["external_power"] is False

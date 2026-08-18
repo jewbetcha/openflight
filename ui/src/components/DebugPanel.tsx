@@ -143,6 +143,14 @@ const TriggerRow = memo(function TriggerRow({ diag }: TriggerRowProps) {
         {diag.accepted && diag.ball_speed_mph && (
           <span className="trigger-row__ball-speed">{diag.ball_speed_mph.toFixed(0)} mph</span>
         )}
+        {diag.iwr6843 && (
+          <span className={`trigger-row__iwr trigger-row__iwr--${diag.iwr6843.state}`}>
+            TI {diag.iwr6843.state.toUpperCase()}
+            {diag.iwr6843.angle_deg !== undefined
+              ? ` ${diag.iwr6843.angle_deg.toFixed(1)}°`
+              : `: ${formatReason(diag.iwr6843.reason)}`}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -214,6 +222,15 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
         </div>
 
         <div className="last-trigger__reason">{formatReason(diag.reason)}</div>
+
+        {diag.iwr6843 && (
+          <div className={`last-trigger__iwr last-trigger__iwr--${diag.iwr6843.state}`}>
+            <strong>TI radar: {diag.iwr6843.state}</strong>
+            {diag.iwr6843.angle_deg !== undefined
+              ? ` at ${diag.iwr6843.angle_deg.toFixed(1)}°`
+              : ` — ${formatReason(diag.iwr6843.reason)}`}
+          </div>
+        )}
 
         <div className="last-trigger__data">
           <div className="last-trigger__speeds">

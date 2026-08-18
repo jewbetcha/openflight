@@ -13,6 +13,7 @@ import { ShotList } from './components/ShotList';
 import { DebugPanel } from './components/DebugPanel';
 import { CameraFeed } from './components/CameraFeed';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { PowerExperience } from './components/PowerStatus';
 import { SimStatus } from './components/SimStatus';
 import { SimShotBadges } from './components/SimShotBadges';
 import { ClubPicker } from './components/ClubPicker';
@@ -93,13 +94,23 @@ function AppContent() {
   );
   const cameraStatus = useCameraStore((state) => state.cameraStatus);
   const selectedPlayer = usePlayerStore((state) => state.selectedPlayer);
-  const { debugReadings, debugShotLogs, radarConfig, triggerDiagnostics, triggerStatus } = useDebugStore(
+  const {
+    debugReadings,
+    debugShotLogs,
+    radarConfig,
+    triggerDiagnostics,
+    triggerStatus,
+    iwr6843Alert,
+    dismissIWR6843Alert,
+  } = useDebugStore(
     useShallow((state) => ({
       debugReadings: state.debugReadings,
       debugShotLogs: state.debugShotLogs,
       radarConfig: state.radarConfig,
       triggerDiagnostics: state.triggerDiagnostics,
       triggerStatus: state.triggerStatus,
+      iwr6843Alert: state.iwr6843Alert,
+      dismissIWR6843Alert: state.dismissIWR6843Alert,
     }))
   );
 
@@ -246,6 +257,7 @@ function AppContent() {
             onToggle={() => socketService.toggleCamera()}
           />
           <SimStatus statuses={simStatuses} />
+          <PowerExperience />
           <ConnectionStatus connected={connected} />
           <button
             className="power-button"
@@ -271,6 +283,18 @@ function AppContent() {
           </button>
         </div>
       </header>
+
+      {iwr6843Alert && (
+        <div className="iwr-alert" role="alert">
+          <div>
+            <strong>TI radar capture failed</strong>
+            <span>This shot used an estimated launch angle. {iwr6843Alert.reason}</span>
+          </div>
+          <button type="button" onClick={dismissIWR6843Alert} aria-label="Dismiss TI radar alert">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {showShutdown ? (
         <ShutdownDialog state={shutdownState} onConfirm={handleShutdown} onCancel={closeShutdown} />
@@ -339,7 +363,9 @@ function AppContent() {
             )}
           </div>
         )}
-        {currentView === 'stats' && <StatsView shots={shots} onClearSession={() => socketService.clearSession()} />}
+        {currentView === 'stats' && (
+          <StatsView shots={shots} activeClub={selectedClub} onClearSession={() => socketService.clearSession()} />
+        )}
         {currentView === 'shots' && (
           <ShotList shots={shots} onDeleteShot={(timestamp) => socketService.deleteShot(timestamp)} />
         )}

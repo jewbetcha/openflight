@@ -15,8 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--sound-pre-trigger` behavior are unchanged. Hardware mode requires and
   validates OPS243-A firmware v1.3.1. See
   [OPS243 Internal Hardware Trigger](hardware-trigger.md).
+- **Battery and external-power status for Raspberry Pi UPS boards.** OpenFlight
+  can now display charging state and battery percentage, issue dismissible 20%
+  and 10% warnings while discharging, and record throttled power telemetry in
+  session logs. Enable the initial Geekworm X1202/X1206 provider with
+  `--battery geekworm`; monitoring remains disabled when no provider is
+  selected. The accompanying Pi setup installs native Linux power-supply
+  telemetry and optional taskbar capacity support without enabling automatic
+  shutdown or charging control. See [Battery Monitoring](battery/README.md).
 - **System Prerequisites:** Documented missing binary dependencies (`swig`, `liblgpio-dev`, `python3-dev`) required prior to executing `./scripts/setup/setup.sh`.
 - **Environment Reload Guidance:** Added instructions for reloading terminal environment variables (`source ~/.bashrc`) when installed dependencies or scripts (`setup.sh`, `start-kiosk.sh`) are not recognized in the current terminal session.
+- **Configurable IWR6843 capture compression.** One firmware image can now
+  switch at runtime between the recommended 24-frame, 3 ms, 53-bin IQ16
+  profile and an advanced 36-frame, 2 ms, 32-bin IQ8 profile. Both retain the
+  same 72 ms shot movie and all 3 TX x 4 RX channels. Per-frame range windows,
+  timing, and IQ8 scales are carried in the dump so offline and live processing
+  use the actual capture geometry. The dense profile uses a sparse scale
+  preview to sustain the 2 ms HWA rearm budget and exposes missed frames,
+  overruns, and clipped components through firmware `stats`.
 - **OPS243 over the Raspberry Pi GPIO UART.** The radar can now run on the J3
   header instead of USB, which frees the Pi's USB power budget for the TI angle
   radar. Baud is the real wire rate on that transport and the factory default of

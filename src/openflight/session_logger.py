@@ -660,6 +660,12 @@ class SessionLogger:
             },
         )
 
+    def log_power_status(self, status: Dict[str, Any]) -> None:
+        """Log a battery snapshot or power-state transition."""
+        if not self.enabled:
+            return
+        self._write_entry("power_status", status)
+
     def log_iq_reading(
         self,
         speed_mph: float,

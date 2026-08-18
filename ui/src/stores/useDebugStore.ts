@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
+import type { IWR6843Diagnostic, TriggerDiagnostic, TriggerDiagnosticUpdate, TriggerStatus } from '../types/shot';
 import type { DebugReading, RadarConfig, DebugShotLog } from '../types/socket';
 
 interface DebugState {
@@ -8,12 +8,16 @@ interface DebugState {
   radarConfig: RadarConfig;
   triggerDiagnostics: TriggerDiagnostic[];
   triggerStatus: TriggerStatus;
+  iwr6843Alert: IWR6843Diagnostic | null;
+  iwr6843ErrorActive: boolean;
 
   addDebugReading: (reading: DebugReading) => void;
   addDebugShotLog: (log: DebugShotLog) => void;
   clearDebugData: () => void;
   setRadarConfig: (config: RadarConfig) => void;
   addTriggerDiagnostic: (diagnostic: TriggerDiagnostic) => void;
+  updateTriggerDiagnostic: (update: TriggerDiagnosticUpdate) => void;
+  dismissIWR6843Alert: () => void;
   setTriggerStatus: (status: TriggerStatus) => void;
   updateTriggerStatusStats: (accepted: boolean) => void;
 }
@@ -37,6 +41,8 @@ export const useDebugStore = create<DebugState>((set) => ({
     triggers_accepted: 0,
     triggers_rejected: 0,
   },
+  iwr6843Alert: null,
+  iwr6843ErrorActive: false,
 
   addDebugReading: (reading) =>
     set((state) => {
@@ -59,6 +65,27 @@ export const useDebugStore = create<DebugState>((set) => ({
       const updated = [...state.triggerDiagnostics, diagnostic];
       return { triggerDiagnostics: updated.length > 50 ? updated.slice(-50) : updated };
     }),
+
+  updateTriggerDiagnostic: (update) =>
+    set((state) => {
+      const triggerDiagnostics = state.triggerDiagnostics.map((diagnostic) =>
+        diagnostic.timestamp === update.timestamp ? { ...diagnostic, iwr6843: update.iwr6843 } : diagnostic
+      );
+      if (update.iwr6843.state === 'error') {
+        return {
+          triggerDiagnostics,
+          iwr6843Alert: state.iwr6843ErrorActive ? state.iwr6843Alert : update.iwr6843,
+          iwr6843ErrorActive: true,
+        };
+      }
+      return {
+        triggerDiagnostics,
+        iwr6843Alert: null,
+        iwr6843ErrorActive: false,
+      };
+    }),
+
+  dismissIWR6843Alert: () => set({ iwr6843Alert: null }),
 
   setTriggerStatus: (status) => set({ triggerStatus: status }),
 

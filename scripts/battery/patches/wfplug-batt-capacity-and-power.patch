@@ -1,0 +1,159 @@
+diff --git a/src/batt.c b/src/batt.c
+index 7d34275..6a6254e 100644
+--- a/src/batt.c
++++ b/src/batt.c
+@@ -113,8 +113,16 @@ static int charge_level (PtBattPlugin *pt, status_t *status, int *tim)
+     int mins;
+     if (b)
+     {
++        int external_power;
+         battery_update (b);
+-        if (battery_is_charging (b))
++        external_power = power_supply_on_external_power ();
++        if (external_power == 1)
++        {
++            if (strcasecmp (b->state, "full") == 0) *status = STAT_EXT_POWER;
++            else *status = STAT_CHARGING;
++        }
++        else if (external_power == 0) *status = STAT_DISCHARGING;
++        else if (battery_is_charging (b))
+         {
+             if (strcasecmp (b->state, "full") == 0) *status = STAT_EXT_POWER;
+             else *status = STAT_CHARGING;
+diff --git a/src/batt_sys.c b/src/batt_sys.c
+index 332838c..53be305 100644
+--- a/src/batt_sys.c
++++ b/src/batt_sys.c
+@@ -50,6 +50,7 @@ battery* battery_new() {
+     b->charge_full_design = -1;
+     b->energy_now = -1;
+     b->charge_now = -1;
++    b->capacity = -1;
+     b->current_now = -1;
+     b->power_now = -1;
+     b->state = NULL;
+@@ -94,6 +95,18 @@ static gint get_gint_from_infofile(battery *b, gchar *sys_file)
+     return value;
+ }
+ 
++static gint get_raw_gint_from_infofile(battery *b, gchar *sys_file)
++{
++    gchar *file_content = parse_info_file(b, sys_file);
++    gint value = -1;
++
++    if (file_content != NULL)
++        value = atoi(file_content);
++    g_free(file_content);
++
++    return value;
++}
++
+ static gchar* get_gchar_from_infofile(battery *b, gchar *sys_file)
+ {
+     return parse_info_file(b, sys_file);
+@@ -178,6 +191,7 @@ battery* battery_update(battery *b)
+     /* read from sysfs */
+     b->charge_now = get_gint_from_infofile(b, "charge_now");
+     b->energy_now = get_gint_from_infofile(b, "energy_now");
++    b->capacity = get_raw_gint_from_infofile(b, "capacity");
+ 
+     b->current_now = get_gint_from_infofile(b, "current_now");
+     b->power_now   = get_gint_from_infofile(b, "power_now");
+@@ -206,7 +220,7 @@ battery* battery_update(battery *b)
+     if (!b->state)
+         b->state = get_gchar_from_infofile(b, "state");
+     if (!b->state) {
+-        if (b->charge_now != -1 || b->energy_now != -1
++        if (b->capacity != -1 || b->charge_now != -1 || b->energy_now != -1
+                 || b->charge_full != -1 || b->energy_full != -1)
+             b->state = g_strdup("available");
+         else
+@@ -256,15 +270,22 @@ battery* battery_update(battery *b)
+     }
+ #endif
+ 
+-    if (b->charge_now != -1 && b->charge_full != -1)
++    if (b->capacity >= 0)
++        b->percentage = b->capacity;
++    else if (b->charge_now != -1 && b->charge_full != -1)
++    {
+         promille = (b->charge_now * 1000) / b->charge_full;
++        b->percentage = (promille + 5) / 10; /* round properly */
++    }
+     else if (b->energy_full != -1 && b->energy_now != -1)
++    {
+         /* no charge data, let try energy instead */
+         promille = (b->energy_now * 1000) / b->energy_full;
++        b->percentage = (promille + 5) / 10; /* round properly */
++    }
+     else
+-        promille = 0;
++        b->percentage = 0;
+ 
+-    b->percentage = (promille + 5) / 10; /* round properly */
+     if (b->percentage > 100)
+         b->percentage = 100;
+ 
+@@ -376,6 +397,42 @@ void battery_free(battery* bat)
+     }
+ }
+ 
++gint power_supply_on_external_power(void)
++{
++    const gchar *entry;
++    gboolean found = FALSE;
++    GDir *dir = g_dir_open(ACPI_PATH_SYS_POWER_SUPPLY, 0, NULL);
++
++    if (dir == NULL)
++        return -1;
++
++    while ((entry = g_dir_read_name(dir)) != NULL)
++    {
++        battery supply = {0};
++        gchar *type;
++        gboolean is_battery;
++        supply.path = (gchar *) entry;
++        type = get_gchar_from_infofile(&supply, "type");
++        is_battery = type != NULL && g_ascii_strcasecmp(type, "Battery") == 0;
++        g_free(type);
++        if (is_battery)
++            continue;
++        gint online = get_raw_gint_from_infofile(&supply, "online");
++
++        if (online < 0)
++            continue;
++        found = TRUE;
++        if (online > 0)
++        {
++            g_dir_close(dir);
++            return 1;
++        }
++    }
++
++    g_dir_close(dir);
++    return found ? 0 : -1;
++}
++
+ gboolean battery_is_charging( battery *b )
+ {
+     if (!b->state)
+diff --git a/src/batt_sys.h b/src/batt_sys.h
+index acca27b..6d1ee56 100644
+--- a/src/batt_sys.h
++++ b/src/batt_sys.h
+@@ -41,6 +41,7 @@ typedef struct battery {
+     /* sysfs file contents */
+     int charge_now;
+     int energy_now;
++    int capacity;
+     int current_now;
+     int power_now;
+     int voltage_now;
+@@ -61,6 +62,7 @@ typedef struct battery {
+ battery *battery_get(int);
+ battery *battery_update( battery *b );
+ //void battery_print(battery *b, int show_capacity);
++gint power_supply_on_external_power(void);
+ gboolean battery_is_charging( battery *b );
+ gint battery_get_remaining( battery *b );
+ void battery_free(battery* bat);

@@ -75,6 +75,20 @@ export interface TriggerDiagnostic {
   club_speed_mph?: number | null;
   spin_rpm?: number | null;
   carry_yards?: number | null;
+  iwr6843?: IWR6843Diagnostic;
+}
+
+export type IWR6843DiagnosticState = 'accepted' | 'rejected' | 'error';
+
+export interface IWR6843Diagnostic {
+  state: IWR6843DiagnosticState;
+  reason: string;
+  angle_deg?: number;
+}
+
+export interface TriggerDiagnosticUpdate {
+  timestamp: string;
+  iwr6843: IWR6843Diagnostic;
 }
 
 export interface TriggerStatus {

@@ -14,6 +14,7 @@ from openflight.iwr6843 import Calibration
 from openflight.kld7.types import KLD7Angle
 from openflight.launch_monitor import ClubType, Shot
 from openflight.ops243 import UART_BAUD_COMMANDS
+from openflight.power import PowerState
 from openflight.server import (
     MockLaunchMonitor,
     MockSwingSpeedMonitor,
@@ -131,6 +132,36 @@ def test_shot_processing_status_is_forwarded_to_ui(monkeypatch):
     assert emitted == [("shot_processing", {"state": "capturing"})]
 
 
+def test_power_status_is_forwarded_to_ui_and_session_log(monkeypatch):
+    emitted = []
+    logged = []
+    status = server_module.PowerStatus(
+        available=True,
+        provider="geekworm",
+        state=PowerState.ON_BATTERY,
+        battery_percent=42.0,
+        battery_voltage_v=3.72,
+        external_power=False,
+        updated_at="2026-08-15T12:00:00+00:00",
+    )
+    monkeypatch.setattr(
+        server_module.socketio,
+        "emit",
+        lambda event, payload: emitted.append((event, payload)),
+    )
+    monkeypatch.setattr(
+        server_module,
+        "get_session_logger",
+        lambda: SimpleNamespace(log_power_status=logged.append),
+    )
+
+    server_module._on_power_status(status)
+    server_module._log_power_status(status)
+
+    assert emitted == [("power_status", status.to_dict())]
+    assert logged == [status.to_dict()]
+
+
 class TestIWR6843ShotIntegration:
     """TI angle processing must enrich, never suppress, an OPS shot."""
 
@@ -175,10 +206,12 @@ class TestIWR6843ShotIntegration:
 
         assert "freeze_delay_s" not in captured
         assert captured["armed"] is False
+        assert server_module.iwr6843_runtime.tdm_sign_policy == "positive"
+        assert server_module.iwr6843_runtime_config["tdm_sign_policy"] == "positive"
         server_module.iwr6843_runtime = None
 
-    def test_init_iwr6843_wires_azimuth_offset_into_runtime(self, monkeypatch, tmp_path):
-        """--iwr6843-azimuth-offset-deg must reach IWR6843Runtime, not just be parsed.
+    def test_init_iwr6843_wires_horizontal_calibration_into_runtime(self, monkeypatch, tmp_path):
+        """Horizontal calibration must reach IWR6843Runtime, not just be parsed.
 
         A flag that parses but never reaches the runtime silently reports every
         club path relative to boresight instead of the target line.
@@ -216,13 +249,17 @@ class TestIWR6843ShotIntegration:
             tx_order="auto",
             capture_timeout_s=12.0,
             azimuth_offset_deg=1.5,
+            horizontal_phase_reference_rad=-0.5,
         )
 
         assert server_module.iwr6843_runtime.azimuth_offset_deg == 1.5
+        assert server_module.iwr6843_runtime.horizontal_phase_reference_rad == -0.5
         assert server_module.iwr6843_runtime_config["azimuth_offset_deg"] == 1.5
+        assert server_module.iwr6843_runtime_config["horizontal_phase_reference_rad"] == -0.5
         server_module.iwr6843_runtime = None
 
     def test_accepted_lcmf_angle_is_applied_to_existing_shot_contract(self, monkeypatch):
+        emitted = []
         measurement = SimpleNamespace(
             accepted=True,
             angle_deg=17.42,
@@ -253,6 +290,11 @@ class TestIWR6843ShotIntegration:
         )
         monkeypatch.setattr(server_module, "iwr6843_runtime", runtime)
         monkeypatch.setattr(server_module, "get_session_logger", lambda: session)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
 
         shot = Shot(
             ball_speed_mph=100.0,
@@ -271,6 +313,19 @@ class TestIWR6843ShotIntegration:
         assert logged[0]["shot_number"] == 3
         assert logged[0]["ball_speed_mph"] == 100.0
         assert logged[0]["measurement"]["estimator"] == "lcmf_v1"
+        assert emitted == [
+            (
+                "trigger_diagnostic_update",
+                {
+                    "timestamp": shot.timestamp.isoformat(),
+                    "iwr6843": {
+                        "state": "accepted",
+                        "reason": "accepted",
+                        "angle_deg": 17.42,
+                    },
+                },
+            )
+        ]
 
     def test_iwr6843_horizontal_confidence_derived_from_coherence(self, monkeypatch):
         measurement = SimpleNamespace(
@@ -347,11 +402,17 @@ class TestIWR6843ShotIntegration:
         assert shot.launch_angle_horizontal_confidence == pytest.approx(0.35)
 
     def test_missing_ti_capture_preserves_ops_shot(self, monkeypatch):
+        emitted = []
         runtime = SimpleNamespace(
             process_shot=lambda **kwargs: SimpleNamespace(capture=None, measurement=None)
         )
         monkeypatch.setattr(server_module, "iwr6843_runtime", runtime)
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
         shot = Shot(
             ball_speed_mph=100.0,
             timestamp=datetime.now(),
@@ -362,6 +423,69 @@ class TestIWR6843ShotIntegration:
 
         assert shot.ball_speed_mph == 100.0
         assert shot.launch_angle_vertical is None
+        assert emitted == [
+            (
+                "trigger_diagnostic_update",
+                {
+                    "timestamp": shot.timestamp.isoformat(),
+                    "iwr6843": {
+                        "state": "error",
+                        "reason": "no capture matched the OPS impact timestamp",
+                    },
+                },
+            )
+        ]
+
+    def test_rejected_ti_measurement_updates_existing_trigger_row(self, monkeypatch):
+        emitted = []
+        measurement = SimpleNamespace(
+            accepted=False,
+            status="rejected_track_quality",
+            to_dict=lambda: {"status": "rejected_track_quality"},
+        )
+        capture = SimpleNamespace(
+            trigger_timestamp=100.01,
+            path=Path("/tmp/test.l3dump"),
+            raw=b"raw",
+            dump_duration_s=4.5,
+            error=None,
+            valid=True,
+            sequence=1,
+        )
+        runtime = SimpleNamespace(
+            process_shot=lambda **kwargs: SimpleNamespace(
+                capture=capture,
+                measurement=measurement,
+                club_path=None,
+            )
+        )
+        monkeypatch.setattr(server_module, "iwr6843_runtime", runtime)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
+        shot = Shot(
+            ball_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.IRON_9,
+        )
+
+        server_module._process_iwr6843_angle(shot)
+
+        assert emitted == [
+            (
+                "trigger_diagnostic_update",
+                {
+                    "timestamp": shot.timestamp.isoformat(),
+                    "iwr6843": {
+                        "state": "rejected",
+                        "reason": "rejected_track_quality",
+                    },
+                },
+            )
+        ]
 
 
 class TestSessionErrorLogging:
@@ -2671,6 +2795,29 @@ class TestBallisticsConfiguration:
 
     def test_runtime_default_enables_ballistics(self):
         assert server_module.ballistics_enabled is True
+
+
+class TestBatteryConfiguration:
+    """Battery monitoring is explicitly enabled with a supported provider."""
+
+    def test_cli_accepts_geekworm_provider(self):
+        parser = argparse.ArgumentParser()
+        server_module._add_battery_arguments(parser)
+
+        assert parser.parse_args(["--battery", "geekworm"]).battery == "geekworm"
+
+    def test_cli_is_disabled_by_default(self):
+        parser = argparse.ArgumentParser()
+        server_module._add_battery_arguments(parser)
+
+        assert parser.parse_args([]).battery is None
+
+    def test_cli_rejects_unknown_provider(self):
+        parser = argparse.ArgumentParser()
+        server_module._add_battery_arguments(parser)
+
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--battery", "unknown"])
 
 
 class TestCarryComputation:
