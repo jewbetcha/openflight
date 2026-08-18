@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -11,19 +10,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { io, type Socket } from 'socket.io-client';
-
-// Subset of src/openflight/server.py's Shot payload -- just the fields this
-// screen renders. Kept local rather than shared with ui/src/types/shot.ts
-// since there's no shared package between ui/ and mobile/ yet.
-interface Shot {
-  timestamp: string;
-  club: string;
-  ball_speed_mph: number;
-  club_speed_mph: number | null;
-  estimated_carry_yards: number;
-}
-
-type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+import type { ConnectionState, Shot } from './types';
+import { CurrentShotView } from './components/CurrentShotView';
 
 const STATUS_LABEL: Record<ConnectionState, string> = {
   disconnected: 'Disconnected',
@@ -32,11 +20,21 @@ const STATUS_LABEL: Record<ConnectionState, string> = {
   error: 'Connection failed',
 };
 
+const STATUS_COLOR: Record<ConnectionState, string> = {
+  disconnected: '#999',
+  connecting: '#b5820a',
+  connected: '#1a7f37',
+  error: '#c0392b',
+};
+
 export default function App() {
   const [serverUrl, setServerUrl] = useState('http://192.168.1.100:8080');
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [shots, setShots] = useState<Shot[]>([]);
   const socketRef = useRef<Socket | null>(null);
+
+  const latestShot = shots[0] ?? null;
+  const isConnected = connectionState === 'connected';
 
   const disconnect = useCallback(() => {
     socketRef.current?.close();
@@ -89,57 +87,40 @@ export default function App() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>OpenFlight</Text>
-
-      <View style={styles.connectRow}>
-        <TextInput
-          style={styles.input}
-          value={serverUrl}
-          onChangeText={setServerUrl}
-          placeholder="http://<pi-ip>:8080"
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={connectionState !== 'connected'}
-        />
-        <TouchableOpacity
-          style={styles.button}
-          onPress={connectionState === 'connected' ? disconnect : connect}
-        >
-          <Text style={styles.buttonText}>
-            {connectionState === 'connected' ? 'Disconnect' : 'Connect'}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.header}>
+        <Text style={styles.title}>OpenFlight</Text>
+        <View style={styles.statusPill}>
+          <View style={[styles.statusDot, { backgroundColor: STATUS_COLOR[connectionState] }]} />
+          <Text style={styles.statusText}>{STATUS_LABEL[connectionState]}</Text>
+        </View>
       </View>
 
-      <Text style={styles.status}>{STATUS_LABEL[connectionState]}</Text>
-
-      {connectionState === 'connected' && (
-        <TouchableOpacity style={styles.simulateButton} onPress={simulateShot}>
-          <Text style={styles.buttonText}>Simulate Shot</Text>
-        </TouchableOpacity>
-      )}
-
-      {shots.length > 0 && (
-        <View style={styles.headerRow}>
-          <Text style={[styles.headerCell, styles.shotClub]}>Club</Text>
-          <Text style={[styles.headerCell, styles.shotSpeed]}>Ball Speed</Text>
-          <Text style={[styles.headerCell, styles.shotCarry]}>Carry</Text>
+      {isConnected ? (
+        <View style={styles.connectedBar}>
+          <TouchableOpacity style={styles.simulateButton} onPress={simulateShot}>
+            <Text style={styles.simulateButtonText}>Simulate Shot</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.disconnectButton} onPress={disconnect}>
+            <Text style={styles.disconnectButtonText}>Disconnect</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.connectRow}>
+          <TextInput
+            style={styles.input}
+            value={serverUrl}
+            onChangeText={setServerUrl}
+            placeholder="http://<pi-ip>:8080"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity style={styles.connectButton} onPress={connect}>
+            <Text style={styles.connectButtonText}>Connect</Text>
+          </TouchableOpacity>
         </View>
       )}
 
-      <FlatList
-        style={styles.list}
-        data={shots}
-        keyExtractor={(item) => item.timestamp}
-        ListEmptyComponent={<Text style={styles.empty}>No shots yet</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.shotRow}>
-            <Text style={styles.shotClub}>{item.club}</Text>
-            <Text style={styles.shotSpeed}>{item.ball_speed_mph.toFixed(1)} mph</Text>
-            <Text style={styles.shotCarry}>{Math.round(item.estimated_carry_yards)} yds</Text>
-          </View>
-        )}
-      />
+      <CurrentShotView shot={latestShot} />
 
       <StatusBar style="auto" />
     </KeyboardAvoidingView>
@@ -153,14 +134,35 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 16,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 16,
+    color: '#1a1a1a',
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#666',
   },
   connectRow: {
     flexDirection: 'row',
     gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
   },
   input: {
     flex: 1,
@@ -170,66 +172,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  button: {
+  connectButton: {
     backgroundColor: '#1a7f37',
     borderRadius: 8,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
-  buttonText: {
+  connectButtonText: {
     color: '#fff',
     fontWeight: '600',
   },
-  status: {
-    marginTop: 8,
-    marginBottom: 16,
-    color: '#666',
+  connectedBar: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
   },
   simulateButton: {
+    flex: 1,
     backgroundColor: '#0969da',
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
-    marginBottom: 16,
   },
-  list: {
-    flex: 1,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#ccc',
-  },
-  headerCell: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#666',
-    textTransform: 'uppercase',
-  },
-  empty: {
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  shotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  shotClub: {
-    flex: 1,
+  simulateButtonText: {
+    color: '#fff',
     fontWeight: '600',
   },
-  shotSpeed: {
-    flex: 1,
-    textAlign: 'center',
+  disconnectButton: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
-  shotCarry: {
-    flex: 1,
-    textAlign: 'right',
+  disconnectButtonText: {
+    color: '#666',
+    fontWeight: '600',
   },
 });
