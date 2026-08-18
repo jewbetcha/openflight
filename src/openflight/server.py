@@ -3611,8 +3611,8 @@ def main():
     parser.add_argument(
         "--trigger-magnitude",
         type=int,
-        default=40,
-        help="OPS243 internal trigger magnitude SMn, 1-2000 (default: 40)",
+        default=25,
+        help="OPS243 internal trigger magnitude SMn, 1-2000 (default: 25)",
     )
     parser.add_argument(
         "--swing-speed",

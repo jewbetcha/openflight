@@ -1751,7 +1751,7 @@ class OPS243Radar:
         self,
         trigger_threshold_mph: float = 25.0,
         pre_trigger_segments: int = 6,
-        trigger_magnitude: int = 40,
+        trigger_magnitude: int = 25,
         sample_rate_ksps: int = 30,
     ):
         """Configure the OPS243's internal speed-triggered rolling buffer.

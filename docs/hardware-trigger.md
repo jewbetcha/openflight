@@ -24,14 +24,15 @@ The host configures the radar once and then waits for the radar’s completed ro
 6. Wait for the board-triggered dump, parse the I/Q payload, and reject it if it has no outbound ball-speed reading at or above 35 mph.
 7. Re-arm with `GC`, restore the cached settings, and wait for the buffer to fill again. A serial write timeout keeps the capture and reports a retryable re-arm failure instead of discarding the shot.
 
-The implementation intentionally excludes the optional `SZ` board-processing stream, SigMF/replay tooling, clock synchronization, and UI changes. Those are separate concerns and are not required for this focused trigger path.
+The implementation is intentionally limited to the OPS243 trigger path; the
+experimental analysis and UI work remain outside this focused change.
 
 ## Defaults and command
 
 | Setting | Hardware-mode default |
 |---|---:|
 | Trigger threshold | 25 mph |
-| Trigger magnitude | 40 (`SM40`) |
+| Trigger magnitude | 25 (`SM25`) |
 | Pre-trigger split | 6 segments (`S#6`) |
 | Sample rate | 30 ksps (required) |
 | Minimum accepted outbound ball speed | 35 mph |
@@ -42,7 +43,7 @@ Run the mode directly with:
 openflight-server \
   --trigger hardware \
   --trigger-threshold 25 \
-  --trigger-magnitude 40 \
+  --trigger-magnitude 25 \
   --pre-trigger-segments 6 \
   --sample-rate 30
 ```

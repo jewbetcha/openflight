@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Opt-in OPS243 internal hardware trigger.** `--trigger hardware` configures
-  the radar's internal speed trigger with 25 mph, magnitude 40, and the tested
+  the radar's internal speed trigger with 25 mph, magnitude 25, and the tested
   `S#6` split at 30 ksps. Captures are parsed and the radar is re-armed with
   `GC` after each dump. The existing sound-trigger default and
   `--sound-pre-trigger` behavior are unchanged. Hardware mode requires and

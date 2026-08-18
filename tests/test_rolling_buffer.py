@@ -549,7 +549,7 @@ class TestTriggerFactory:
 
         assert isinstance(trigger, HardwareTriggeredCapture)
         assert trigger.trigger_threshold_mph == 25.0
-        assert trigger.trigger_magnitude == 40
+        assert trigger.trigger_magnitude == 25
         assert trigger.pre_trigger_segments == 6
         assert trigger.sample_rate_ksps == 30
         assert isinstance(create_trigger(), SpeedTriggeredCapture)

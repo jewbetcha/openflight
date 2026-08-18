@@ -1156,7 +1156,7 @@ class HardwareTriggeredCapture(TriggerStrategy):
         trigger_threshold_mph: float = 25.0,
         min_ball_speed_mph: float = 35.0,
         pre_trigger_segments: int = 6,
-        trigger_magnitude: int = 40,
+        trigger_magnitude: int = 25,
         sample_rate_ksps: int = 30,
     ):
         super().__init__(pre_trigger_segments=pre_trigger_segments)

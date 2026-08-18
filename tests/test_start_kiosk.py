@@ -71,7 +71,7 @@ def test_hardware_trigger_is_opt_in_and_uses_six_pre_trigger_segments():
     assert "--trigger sound" in default_command
     assert "--trigger hardware" in hardware_command
     assert "--trigger-threshold 25" in hardware_command
-    assert "--trigger-magnitude 40" in hardware_command
+    assert "--trigger-magnitude 25" in hardware_command
     assert "--pre-trigger-segments 6" in hardware_command
     assert "--sound-pre-trigger" not in hardware_command
 
