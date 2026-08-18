@@ -162,6 +162,7 @@ class OPS243Radar:
     # Default serial settings per datasheet
     DEFAULT_BAUD = 57600
     DEFAULT_TIMEOUT = 1.0
+    REQUIRED_INTERNAL_TRIGGER_FIRMWARE = "1.3.1"
 
     # Target rate on the J3 UART. At 230,400 a dump moves in ~1.8s; the
     # 19,200 factory default would take 21s and miss every shot.
@@ -783,6 +784,18 @@ class OPS243Radar:
             return data.get("Version", "unknown")
         except json.JSONDecodeError:
             return response
+
+    def validate_internal_trigger_firmware(self) -> str:
+        """Require the OPS243 firmware release validated for internal triggering."""
+        version = self._probe_firmware_version()
+        required = self.REQUIRED_INTERNAL_TRIGGER_FIRMWARE
+        if version != required:
+            detected = f"v{version}" if version else "no response"
+            raise RuntimeError(
+                f"Internal hardware trigger requires OPS243 firmware v{required}; "
+                f"detected {detected}. Update the OPS243 before using --trigger hardware."
+            )
+        return version
 
     def set_units(self, unit: SpeedUnit):
         """
@@ -1761,6 +1774,8 @@ class OPS243Radar:
             raise ValueError("Trigger magnitude must be between 1 and 2000")
         if sample_rate_ksps != 30:
             raise ValueError("Internal speed trigger requires a 30 ksps sample rate")
+
+        self.validate_internal_trigger_firmware()
 
         pre_trigger_segments = max(0, min(32, pre_trigger_segments))
         signed_threshold = self._format_internal_trigger_threshold(threshold)

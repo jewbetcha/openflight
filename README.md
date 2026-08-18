@@ -60,7 +60,7 @@ See the **[Parts List](docs/PARTS.md)** for everything you need with purchase li
 
 ### 2. Wire it up
 
-Follow the **[Sound Trigger Wiring Guide](docs/sound-trigger-wiring.md)** to connect the SEN-14262 to the OPS243-A. The (deprecated) K-LD7 modules connect via USB — no wiring needed. The OPS243 also has an opt-in internal speed-trigger path; see the **[Internal Hardware Trigger Guide](docs/hardware-trigger.md)**.
+Follow the **[Sound Trigger Wiring Guide](docs/sound-trigger-wiring.md)** to connect the SEN-14262 to the OPS243-A. The (deprecated) K-LD7 modules connect via USB — no wiring needed. The OPS243 also has an opt-in internal speed-trigger path, which requires OPS243-A firmware v1.3.1; see the **[Internal Hardware Trigger Guide](docs/hardware-trigger.md)**.
 
 **Adding the IWR6843 angle radar?** The Pi cannot power both radars over USB, so
 the OPS243 moves to the Pi's GPIO UART header while the TI board takes the USB

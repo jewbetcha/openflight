@@ -681,10 +681,15 @@ class TestInternalSpeedTrigger:
         radar = self._radar(_InternalTriggerSerial())
         commands = []
         monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+
+        def send_command(command):
+            commands.append(command)
+            return '{"Version":"1.3.1"}' if command == "?V" else ""
+
         monkeypatch.setattr(
             radar,
             "_send_command",
-            lambda command: commands.append(command) or "",
+            send_command,
         )
 
         radar.configure_for_internal_speed_trigger(
@@ -695,6 +700,7 @@ class TestInternalSpeedTrigger:
         )
 
         assert commands == [
+            "?V",
             "PI",
             "GC",
             "S=30",
@@ -727,6 +733,14 @@ class TestInternalSpeedTrigger:
 
         with pytest.raises(ValueError, match=message):
             radar.configure_for_internal_speed_trigger(**kwargs)
+
+    def test_configuration_rejects_unvalidated_ops243_firmware(self, monkeypatch):
+        """Internal triggering must refuse firmware other than the tested release."""
+        radar = self._radar(_InternalTriggerSerial())
+        monkeypatch.setattr(radar, "_probe_firmware_version", lambda: "1.3.0")
+
+        with pytest.raises(RuntimeError, match="requires OPS243 firmware v1.3.1"):
+            radar.configure_for_internal_speed_trigger()
 
     def test_rearm_uses_gc_and_restores_cached_settings(self, monkeypatch):
         """A completed dump is re-armed with GC without PA or S#0."""

@@ -2,6 +2,15 @@
 
 OpenFlight’s `hardware` trigger mode lets the OPS243-A decide when a rolling-buffer capture starts. It is opt-in; the kiosk default remains the existing SEN-14262 sound trigger.
 
+## OPS243 firmware prerequisite
+
+Hardware-trigger mode requires **OPS243-A firmware v1.3.1**, the release used for
+the validation sessions. The driver queries `?V` before sending the internal
+trigger setup commands and fails fast if the reported version is different or
+unavailable. Update the physical OPS243 using the manufacturer’s firmware
+procedure before running `--trigger hardware`; this application does not flash
+the radar.
+
 ## Methodology
 
 The host configures the radar once and then waits for the radar’s completed rolling-buffer dump. The host does not poll speed reports or send `S!` for each shot:

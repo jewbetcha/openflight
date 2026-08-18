@@ -33,7 +33,8 @@ re-entering it. See [Sound Trigger Wiring](sound-trigger-wiring.md) for the
 recommended direct hardware trigger.
 
 The OPS243 internal speed trigger is available as a separate, opt-in capture
-strategy. It uses the tested 30 ksps configuration and defaults to `S#6`; see
+strategy. It requires OPS243-A firmware v1.3.1, uses the tested 30 ksps
+configuration, and defaults to `S#6`; see
 the [Internal Hardware Trigger guide](hardware-trigger.md) for its command
 ordering, re-arm behavior, and Raspberry Pi validation checklist. The sound
 path and its defaults remain unchanged.
