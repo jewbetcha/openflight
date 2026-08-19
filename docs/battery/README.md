@@ -80,7 +80,10 @@ The session-start configuration also records the selected provider.
 Raspberry Pi's `wfplug-batt` panel normally calculates percentage from charge
 or energy counters. Some standard Linux battery drivers expose an already
 calculated `capacity` value instead. OpenFlight's shared taskbar patch adds
-support for that standard property and clamps full-charge overshoot to 100%.
+support for that standard property, reads the external supply's standard
+`online` state for the charging icon, and clamps full-charge overshoot to 100%.
+Reading `online` avoids showing a charging icon when a battery driver reports
+its charge state as `Unknown` while the external supply is disconnected.
 
 ![Raspberry Pi desktop showing the taskbar battery indicator](images/raspberry-pi-taskbar.png)
 

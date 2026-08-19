@@ -9,9 +9,9 @@ BOOT_CONFIG="${OPENFLIGHT_GEEKWORM_BOOT_CONFIG:-/boot/firmware/config.txt}"
 MODULES_CONFIG="${OPENFLIGHT_GEEKWORM_MODULES_CONFIG:-/etc/modules-load.d/openflight-geekworm.conf}"
 POWER_SUPPLY_ROOT="${OPENFLIGHT_GEEKWORM_POWER_SUPPLY_ROOT:-/sys/class/power_supply}"
 PI_MODEL_PATH="${OPENFLIGHT_GEEKWORM_PI_MODEL_PATH:-/proc/device-tree/model}"
-PANEL_PACKAGE="$BATTERY_SCRIPT_DIR/packages/wfplug-batt_1.3+openflight2_arm64.deb"
-PANEL_PACKAGE_VERSION="1.3+openflight2"
-PANEL_PACKAGE_SHA256="d9bfeb459e13b328a1f77eeb82f5c387aa861d7c8a3337639a74c1288cd23e15"
+PANEL_PACKAGE="$BATTERY_SCRIPT_DIR/packages/wfplug-batt_1.3+openflight4_arm64.deb"
+PANEL_PACKAGE_VERSION="1.3+openflight4"
+PANEL_PACKAGE_SHA256="55db8a460f99758f2dac9d509b29907e0e268ee88bbff4edb6adcee312046d5c"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 I2C_LINE="dtparam=i2c_arm=on"
@@ -273,7 +273,7 @@ install_panel_package() {
         return
     fi
 
-    log "Installing Raspberry Pi taskbar capacity support."
+    log "Installing Raspberry Pi taskbar battery compatibility support."
     if ! as_root apt-get install -y "$PANEL_PACKAGE"; then
         die "The bundled panel package is incompatible with this OS; rerun with --no-panel"
     fi

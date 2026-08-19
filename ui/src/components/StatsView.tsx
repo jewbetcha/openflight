@@ -7,11 +7,21 @@ import './StatsView.css';
 
 interface StatsViewProps {
   shots: Shot[];
+  activeClub: string;
   onClearSession: () => void;
 }
 
-export function StatsView({ shots, onClearSession }: StatsViewProps) {
-  const [selectedClub, setSelectedClub] = useState<string | null>(null);
+export function StatsView({ shots, activeClub, onClearSession }: StatsViewProps) {
+  const hasShotsForActiveClub = shots.some((s) => s.club === activeClub);
+  const [selectedClub, setSelectedClub] = useState<string | null>(hasShotsForActiveClub ? activeClub : null);
+  const [prevActiveClub, setPrevActiveClub] = useState(activeClub);
+
+  // React recommended pattern: update state during render when a prop changes, rather than in useEffect
+  if (activeClub !== prevActiveClub) {
+    setPrevActiveClub(activeClub);
+    setSelectedClub(hasShotsForActiveClub ? activeClub : null);
+  }
+
   const { unitSystem } = useUnitPreference();
   const speedUnit = getSpeedUnit(unitSystem);
   const distanceUnit = getDistanceUnit(unitSystem);

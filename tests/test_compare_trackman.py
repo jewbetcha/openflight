@@ -154,7 +154,9 @@ class TestLoadTrackman:
             "5/6/2026 6:58:02 PM,7 Iron,118.5,17.2,-1.5\r\n"
             "5/6/2026 6:59:00 PM,Driver,165.0,11.0,0.5\r\n"
         )
-        path.write_text(content, encoding="utf-8")
+        # newline="" keeps the CRLF content byte-exact; the default translates
+        # "\n" to os.linesep, turning "\r\n" into "\r\r\n" on Windows.
+        path.write_text(content, encoding="utf-8", newline="")
         shots = ct.load_trackman(path)
         assert len(shots) == 2
         assert shots[0].club == "7-iron"
@@ -173,7 +175,7 @@ class TestLoadTrackman:
             ",[mph]\r\n"
             "7 Iron,120.0\r\n"
         )
-        path.write_text(content, encoding="utf-8")
+        path.write_text(content, encoding="utf-8", newline="")
         shots = ct.load_trackman(path)
         assert len(shots) == 1
         assert shots[0].ball_speed_mph == pytest.approx(120.0)

@@ -7,7 +7,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SETUP_SCRIPT = PROJECT_ROOT / "scripts" / "battery" / "geekworm" / "setup.sh"
 PANEL_PACKAGE = (
-    PROJECT_ROOT / "scripts" / "battery" / "packages" / "wfplug-batt_1.3+openflight2_arm64.deb"
+    PROJECT_ROOT / "scripts" / "battery" / "packages" / "wfplug-batt_1.3+openflight4_arm64.deb"
+)
+PANEL_PATCH = (
+    PROJECT_ROOT / "scripts" / "battery" / "patches" / "wfplug-batt-capacity-and-power.patch"
 )
 BATTERY_GUIDE = PROJECT_ROOT / "docs" / "battery" / "README.md"
 OPERATOR_GUIDE = PROJECT_ROOT / "docs" / "battery" / "geekworm.md"
@@ -102,7 +105,18 @@ def test_eeprom_configuration_replaces_and_deduplicates_power_settings(tmp_path)
 def test_bundled_panel_package_matches_setup_checksum():
     digest = hashlib.sha256(PANEL_PACKAGE.read_bytes()).hexdigest()
 
-    assert digest == "d9bfeb459e13b328a1f77eeb82f5c387aa861d7c8a3337639a74c1288cd23e15"
+    assert digest == "55db8a460f99758f2dac9d509b29907e0e268ee88bbff4edb6adcee312046d5c"
+
+
+def test_panel_patch_uses_external_power_for_charge_icon():
+    patch = PANEL_PATCH.read_text(encoding="utf-8")
+
+    assert "power_supply_on_external_power" in patch
+    assert '"online"' in patch
+    assert '"type"' in patch
+    assert 'g_ascii_strcasecmp(type, "Battery")' in patch
+    assert "external_power == 0" in patch
+    assert "STAT_DISCHARGING" in patch
 
 
 def test_operator_guide_links_models_and_distinguishes_batteries():

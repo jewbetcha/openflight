@@ -115,8 +115,10 @@ The setup script installs the ARM64 package in
 [`pplug-batt`](https://github.com/raspberrypi-ui/pplug-batt) source at commit
 `f4c18fbca9e1b752e35b6ea8a854676b4777de3b`, with the checked-in patch under
 `scripts/battery/patches/`. The patch adds support for the standard
-`/sys/class/power_supply/.../capacity` property and clamps full-charge
-overshoot to 100%.
+`/sys/class/power_supply/.../capacity` property, uses the charger's `online`
+property to distinguish plugged-in and unplugged states, and clamps full-charge
+overshoot to 100%. This avoids a false charging icon when the MAX17040 battery
+status is `Unknown` but the GPIO charger reports that external power is offline.
 
 This package affects only Raspberry Pi's desktop taskbar. OpenFlight's own
 battery display works without it. Use `--no-panel` if the Pi does not run the
