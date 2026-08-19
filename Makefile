@@ -1,4 +1,4 @@
-.PHONY: test lint format dev build-ui start
+.PHONY: test lint format dev build-ui start mobile-dev
 
 ## Run Python tests
 test:
@@ -18,6 +18,10 @@ format:
 ## Start server in mock mode (no hardware needed)
 dev:
 	scripts/start-kiosk.sh --mock
+
+## Start the Expo dev server for the mobile app (run `cd mobile && npm install` once first)
+mobile-dev:
+	cd mobile && npx expo start
 
 ## Build the React UI
 build-ui:
