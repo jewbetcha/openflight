@@ -33,3 +33,36 @@ export interface Shot {
 }
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+// --- Wire-contract payloads (mirror src/openflight/server.py SocketIO events) ---
+// These document the events later roadmap phases consume. Phase 0 wires only
+// `session_state` and `shot`; the rest are declared here so adding a feature is
+// a store/handler change, not a type-hunting exercise.
+
+// `shot` event payload. The web UI also receives `stats` alongside the shot;
+// mobile derives its own stats from the shot list, so only `shot` is modelled.
+export interface ShotEnvelope {
+  shot: Shot;
+}
+
+// `session_state` event payload (emitted after `get_session`). The server sends
+// shots oldest-first; the store inverts this to its newest-first invariant.
+export interface SessionStatePayload {
+  shots: Shot[];
+  mock_mode?: boolean;
+  debug_mode?: boolean;
+  player_name?: string;
+}
+
+// `shot_processing` event: the capture/analysis lifecycle for the live view.
+export type ShotProcessingState = 'capturing' | 'calculating' | 'failed';
+
+// `club_changed` / `player_changed`: server-pushed selection changes to reflect
+// back into the local pickers without echoing to the server.
+export interface ClubChangedPayload {
+  club: string;
+}
+
+export interface PlayerChangedPayload {
+  player_name: string;
+}
