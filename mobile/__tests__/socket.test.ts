@@ -125,6 +125,20 @@ describe('socketService', () => {
     expect(useSessionStore.getState().connectionState).toBe('error');
   });
 
+  it('allows a retry after a failed connection', () => {
+    // Regression: after a failed connect, Socket.IO leaves the socket assigned,
+    // so a second connect() was swallowed by the "already connecting" guard and
+    // the only recovery was reloading the whole app.
+    socketService.connect('http://host:8080');
+    trigger('connect_error');
+    expect(useSessionStore.getState().connectionState).toBe('error');
+
+    socketService.connect('http://host:8080');
+    expect(mockIo).toHaveBeenCalledTimes(2); // a fresh attempt, not swallowed
+    expect(mockClose).toHaveBeenCalledTimes(1); // the failed socket is torn down
+    expect(useSessionStore.getState().connectionState).toBe('connecting');
+  });
+
   it('simulateShot emits the simulate_shot event', () => {
     socketService.connect('http://host:8080');
     mockEmit.mockClear();

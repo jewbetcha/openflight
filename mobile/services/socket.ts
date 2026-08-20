@@ -15,11 +15,23 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(url: string): void {
-    // Already connected/connecting to something — ignore. Callers must
-    // disconnect first to point at a different server.
-    if (this.socket) return;
+    const store = useSessionStore.getState();
 
-    useSessionStore.getState().setConnectionState('connecting');
+    // A live or in-flight attempt already exists — ignore, so we don't thrash a
+    // healthy connection or stack duplicate attempts.
+    const state = store.connectionState;
+    if (this.socket && (state === 'connecting' || state === 'connected')) return;
+
+    // Otherwise a socket may still be assigned from a failed attempt: Socket.IO
+    // leaves it in place on connect_error. Tear it down so a retry starts fresh
+    // — without this, a second Connect tap was swallowed and the only recovery
+    // was reloading the app.
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+
+    store.setConnectionState('connecting');
 
     const socket = io(url, {
       transports: ['websocket', 'polling'],
