@@ -860,7 +860,9 @@ class TestSwingSpeedMode:
         """Selected UI player should be stamped on subsequent swing speed reps."""
         emitted = []
         monkeypatch.setattr(server_module, "current_player_name", "Player 1")
-        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args))
+        monkeypatch.setattr(
+            server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
+        )
 
         server_module.handle_set_player({"player_name": "David"})
         event = SwingSpeedEvent(
@@ -1012,7 +1014,10 @@ class TestSwingSpeedMode:
         """Mock reps should use the selected training implement metadata."""
         monitor = MockSwingSpeedMonitor()
 
-        assert server_module.TRAINING_IMPLEMENT_LABELS["rypstick-3w-cw"] == "Rypstick 3 Weights + Counterweight"
+        assert (
+            server_module.TRAINING_IMPLEMENT_LABELS["rypstick-3w-cw"]
+            == "Rypstick 3 Weights + Counterweight"
+        )
 
         monitor.set_training_implement("rypstick-3w-cw", "Rypstick 3 Weights + Counterweight")
         event = monitor.simulate_shot(peak_speed=95.0)
@@ -1083,7 +1088,6 @@ class TestSwingSpeedMode:
         assert server_module.monitor.trigger_threshold_mph == 55.0
         assert server_module.monitor.max_speed_mph == 115.0
         assert emitted[-1] == ("radar_config", {"min_speed": 55, "max_speed": 115})
-
 
     def test_set_radar_config_forwards_zero_max_speed_to_clear_the_filter(self, monkeypatch):
         """max_speed 0 must still reach the radar on the default launch path.
@@ -2599,9 +2603,7 @@ class TestOnShotDetected:
         on_shot_detected(shot)
 
     def test_spin_axis_emitted_when_horizontal_confidence_clears_gate(self, monkeypatch):
-        shot = self._spin_axis_shot(
-            horizontal_confidence=server_module.SPIN_AXIS_MIN_CONFIDENCE
-        )
+        shot = self._spin_axis_shot(horizontal_confidence=server_module.SPIN_AXIS_MIN_CONFIDENCE)
 
         self._run_with_no_radar_hardware(monkeypatch, shot)
 
@@ -2839,9 +2841,7 @@ class TestClubPathOwnershipGuard:
     existing --iwr6843/--kld7 (vertical) guard."""
 
     def test_iwr6843_and_kld7_horizontal_cannot_both_own_club_path(self, monkeypatch, capsys):
-        monkeypatch.setattr(
-            sys, "argv", ["openflight-server", "--iwr6843", "--kld7-horizontal"]
-        )
+        monkeypatch.setattr(sys, "argv", ["openflight-server", "--iwr6843", "--kld7-horizontal"])
 
         with pytest.raises(SystemExit) as exc_info:
             server_module.main()
@@ -2902,3 +2902,34 @@ class TestOpsBaudValidation:
         a stricter check would reject a legitimate fallback to 115200, which the
         flag's own help text tells operators to use."""
         assert good in UART_BAUD_COMMANDS
+
+
+class TestFireCloudPush:
+    def test_logs_debug_on_exception(self, monkeypatch, caplog):
+        import logging
+
+        from openflight.server import _fire_cloud_push
+
+        def _bad_load():
+            raise RuntimeError("disk corrupted")
+
+        monkeypatch.setattr("openflight.cloud.config.load_config", _bad_load)
+        with caplog.at_level(logging.DEBUG):
+            _fire_cloud_push(None)
+
+        assert any(
+            "Cloud push trigger failed" in record.message and record.levelno == logging.DEBUG
+            for record in caplog.records
+        )
+
+
+class TestKld7AngleLimitConstant:
+    def test_default_horizontal_angle_limit_constant(self):
+        from openflight.kld7.radc import DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
+        from openflight.server import _DEFAULT_KLD7_RADC_TUNING
+
+        assert DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG == 15.0
+        assert (
+            _DEFAULT_KLD7_RADC_TUNING["radc_horizontal_angle_limit_deg"]
+            == DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
+        )

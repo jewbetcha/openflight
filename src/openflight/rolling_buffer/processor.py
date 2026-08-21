@@ -1820,7 +1820,11 @@ class RollingBufferProcessor:
             ball_reading = None
             logger.warning("[PROCESSOR] No outbound readings in overlapping timeline")
 
-        ball_timestamp_ms = ball_reading.timestamp_ms if ball_reading else 68.0
+        ball_timestamp_ms = (
+            ball_reading.timestamp_ms
+            if ball_reading
+            else (len(capture.i_samples) / self.SAMPLE_RATE) * 500.0
+        )
 
         # Find club speed
         club_speed_mph, club_timestamp_ms = self.find_club_speed(

@@ -748,3 +748,17 @@ class TestWriteEntryThreadSafety:
         assert events[0] == "write"
         assert "close" in events
         assert events.index("close") == len(events) - 1
+
+
+class TestKld7ImportWarning:
+    def test_import_session_logger_does_not_emit_deprecation_warning(self):
+        import importlib
+        import warnings
+
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            import openflight.session_logger
+
+            importlib.reload(openflight.session_logger)
+        dep_warnings = [w for w in recorded if issubclass(w.category, DeprecationWarning)]
+        assert not dep_warnings

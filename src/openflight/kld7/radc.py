@@ -95,6 +95,9 @@ GEOM_WEAK_PAIR_MAX_RMSE_DEG = 2.0
 VERTICAL_LEGACY_NAIVE_CONFIDENCE_MAX = 0.35
 VERTICAL_EARLY_CONTEXT_CONFIDENCE_PENALTY = 0.08
 
+# Default horizontal K-LD7 RADC angle acceptance limit (degrees)
+DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG = 15.0
+
 
 def parse_radc_payload(payload: bytes) -> dict[str, np.ndarray]:
     """Parse a 3072-byte RADC payload into six uint16 channel arrays.
@@ -1249,7 +1252,10 @@ def radc_frame_diagnostics(
         warnings.append("far_from_ops_bin")
     if orientation == "vertical" and (angle_centroid < 0.0 or angle_centroid > 45.0):
         warnings.append("outside_vertical_bounds")
-    if orientation == "horizontal" and abs(angle_centroid) > 15.0:
+    if (
+        orientation == "horizontal"
+        and abs(angle_centroid) > DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
+    ):
         warnings.append("outside_horizontal_bounds")
 
     return RADCFrameDiagnostics(
@@ -1426,7 +1432,7 @@ def extract_launch_angle(
     spectrum_source: str = "f1a",
     ops_anchored_peak_min_snr: float = OPS_ANCHORED_PEAK_MIN_SNR,
     require_ops_anchored_peak: bool = False,
-    horizontal_angle_limit_deg: float = 15.0,
+    horizontal_angle_limit_deg: float = DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
     vertical_estimator: str = "naive",
     shot_timestamp: float | None = None,
     impact_timestamp: float | None = None,

@@ -3,6 +3,7 @@
 Protocol-agnostic: records bytes received and can send scripted JSON replies or
 drop the connection. Used by both GSPro and OpenGolfSim connector tests.
 """
+
 import json
 import socket
 import sys
@@ -40,6 +41,8 @@ class MockSimServer:
                     self._client_sock, _ = self._sock.accept()
                 except socket.timeout:
                     continue
+                except OSError:
+                    break
                 self._client_sock.settimeout(0.2)
                 # Send any scripted replies that were queued before connect
                 for reply in list(self.scripted_replies):
@@ -98,6 +101,10 @@ class MockSimServer:
     def stop(self) -> None:
         self._stop.set()
         self.disconnect_client()
+        try:
+            self._sock.close()
+        except OSError:
+            pass
         self._thread.join(timeout=2.0)
 
 

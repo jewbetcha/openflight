@@ -9,6 +9,7 @@ import glob
 import logging
 import threading
 import time
+import warnings
 from collections import deque
 from importlib.util import find_spec
 from pathlib import Path
@@ -16,7 +17,11 @@ from typing import Optional
 
 from ..launch_monitor import ClubType
 from ..serial_latency import log_usb_serial_latency_timer
-from .radc import RADC_PAYLOAD_BYTES, VERTICAL_FLIGHT_WINDOW_NET_DISTANCE_FT
+from .radc import (
+    DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
+    RADC_PAYLOAD_BYTES,
+    VERTICAL_FLIGHT_WINDOW_NET_DISTANCE_FT,
+)
 from .types import KLD7Angle, KLD7Frame
 
 logger = logging.getLogger(__name__)
@@ -139,7 +144,7 @@ class KLD7Tracker:
     radc_vertical_impact_energy_threshold = 3.0
     radc_horizontal_impact_energy_threshold = 1.85
     radc_horizontal_retry_impact_energy_threshold = 0.5
-    radc_horizontal_angle_limit_deg = 15.0
+    radc_horizontal_angle_limit_deg = DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
     vertical_estimator = "naive"
     mount_tilt_deg = 18.0
     ball_distance_ft = 5.5
@@ -163,12 +168,18 @@ class KLD7Tracker:
         radc_vertical_impact_energy_threshold: float = 3.0,
         radc_horizontal_impact_energy_threshold: float = 1.85,
         radc_horizontal_retry_impact_energy_threshold: float = 0.5,
-        radc_horizontal_angle_limit_deg: float = 15.0,
+        radc_horizontal_angle_limit_deg: float = DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
         vertical_estimator: str = "naive",
         mount_tilt_deg: float = 18.0,
         ball_distance_ft: float = 5.5,
         vertical_flight_window_net_distance_ft: float = VERTICAL_FLIGHT_WINDOW_NET_DISTANCE_FT,
     ):
+        warnings.warn(
+            "The K-LD7 angle radar is deprecated; OpenFlight has moved to a more "
+            "capable radar chip. K-LD7 support is kept for existing builds only.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.port = port
         self.range_m = range_m
         self.speed_kmh = speed_kmh

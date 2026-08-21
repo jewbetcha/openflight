@@ -2989,3 +2989,61 @@ class TestSpinDriverDeadZone:
         assert result.spin_rpm == 0 or result.quality == "low", (
             f"Decay ramp faked spin: {result.spin_rpm} RPM quality={result.quality}"
         )
+
+
+class TestProcessorCaptureMidpointFallback:
+    def test_fallback_derived_from_sample_rate_and_buffer_length(self, monkeypatch):
+        """When overlapping timeline lacks outbound readings, midpoint is derived
+        dynamically from sample_rate and capture length."""
+        processor_30k = RollingBufferProcessor(sample_rate=30000)
+        capture = IQCapture(
+            sample_time=0.0,
+            trigger_time=0.068,
+            i_samples=[2048] * 4096,
+            q_samples=[2048] * 4096,
+        )
+        standard_res = SpeedTimeline(
+            readings=[
+                SpeedReading(
+                    speed_mph=100.0, direction="outbound", magnitude=1000.0, timestamp_ms=0.0
+                )
+            ],
+            sample_rate_hz=56.0,
+        )
+        empty_timeline = SpeedTimeline(
+            readings=[
+                SpeedReading(speed_mph=50.0, direction="inbound", magnitude=100.0, timestamp_ms=0.0)
+            ],
+            sample_rate_hz=937.0,
+        )
+        monkeypatch.setattr(processor_30k, "process_standard", lambda c: standard_res)
+        monkeypatch.setattr(processor_30k, "_find_consistent_ball_speed", lambda r: 100.0)
+        monkeypatch.setattr(processor_30k, "process_overlapping", lambda c: empty_timeline)
+        monkeypatch.setattr(processor_30k, "find_club_speed", lambda tl, bs, bt, **kw: (None, None))
+        monkeypatch.setattr(
+            processor_30k,
+            "estimate_impact",
+            lambda *a, **kw: ImpactEstimate(timestamp_ms=0.0, source="fallback"),
+        )
+        monkeypatch.setattr(processor_30k, "detect_spin", lambda *a, **kw: SpinResult())
+
+        result_30k = processor_30k.process_capture(capture)
+        assert result_30k is not None
+        assert result_30k.ball_timestamp_ms == pytest.approx((4096 / 30000) * 500.0)
+
+        # Verify sample_rate = 20000 derives midpoint appropriately (102.4 ms)
+        processor_20k = RollingBufferProcessor(sample_rate=20000)
+        monkeypatch.setattr(processor_20k, "process_standard", lambda c: standard_res)
+        monkeypatch.setattr(processor_20k, "_find_consistent_ball_speed", lambda r: 100.0)
+        monkeypatch.setattr(processor_20k, "process_overlapping", lambda c: empty_timeline)
+        monkeypatch.setattr(processor_20k, "find_club_speed", lambda tl, bs, bt, **kw: (None, None))
+        monkeypatch.setattr(
+            processor_20k,
+            "estimate_impact",
+            lambda *a, **kw: ImpactEstimate(timestamp_ms=0.0, source="fallback"),
+        )
+        monkeypatch.setattr(processor_20k, "detect_spin", lambda *a, **kw: SpinResult())
+
+        result_20k = processor_20k.process_capture(capture)
+        assert result_20k is not None
+        assert result_20k.ball_timestamp_ms == pytest.approx((4096 / 20000) * 500.0)

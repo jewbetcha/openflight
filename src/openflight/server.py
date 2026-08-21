@@ -22,6 +22,7 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 
 from .ballistics import resolve_launch, simulate
+from .kld7.radc import DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
 from .launch_monitor import SPIN_CONFIDENCE_HIGH, ClubType, Shot
 from .ops243 import (
     UART_BAUD_COMMANDS,
@@ -157,7 +158,7 @@ _DEFAULT_KLD7_RADC_TUNING = {
     "radc_vertical_impact_energy_threshold": 3.0,
     "radc_horizontal_impact_energy_threshold": 1.85,
     "radc_horizontal_retry_impact_energy_threshold": 0.5,
-    "radc_horizontal_angle_limit_deg": 15.0,
+    "radc_horizontal_angle_limit_deg": DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
 }
 active_kld7_radc_tuning: dict = dict(_DEFAULT_KLD7_RADC_TUNING)
 
@@ -1219,7 +1220,7 @@ def init_kld7(
     radc_vertical_impact_energy_threshold=3.0,
     radc_horizontal_impact_energy_threshold=1.85,
     radc_horizontal_retry_impact_energy_threshold=0.5,
-    radc_horizontal_angle_limit_deg=15.0,
+    radc_horizontal_angle_limit_deg=DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
     vertical_estimator="naive",
     mount_tilt_deg=18.0,
     ball_distance_ft=5.5,
@@ -2441,11 +2442,11 @@ def on_shot_detected(shot: Shot):
                         float(
                             active_kld7_radc_tuning.get(
                                 "radc_horizontal_angle_limit_deg",
-                                15.0,
+                                DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
                             )
                         )
                         if experimental_kld7_radc_tuning
-                        else 15.0
+                        else DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG
                     )
                     accepted_h, horizontal_selection_details = _select_horizontal_radar_launch(
                         kld7_angle_h, horizontal_limit
@@ -3048,7 +3049,7 @@ def _fire_cloud_push(session_logger):
         if log_dir is not None:
             fire_push_async(config, log_dir=log_dir)
     except Exception:  # pylint: disable=broad-exception-caught
-        pass
+        logger.debug("[SERVER] Cloud push trigger failed", exc_info=True)
 
 
 def _run_cloud_push_for_ui():
@@ -3914,7 +3915,7 @@ def main():
     parser.add_argument(
         "--experimental-kld7-horizontal-angle-limit",
         type=float,
-        default=15.0,
+        default=DEFAULT_RADC_HORIZONTAL_ANGLE_LIMIT_DEG,
         help="Experimental horizontal K-LD7 RADC angle acceptance limit in degrees (default: 15.0)",
     )
     args = parser.parse_args()

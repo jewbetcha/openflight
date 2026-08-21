@@ -60,6 +60,7 @@ session_logs/*/
 # Test artifacts
 test_camera.jpg
 .pytest_cache/
+.pytest_temp/
 .coverage
 htmlcov/
 
