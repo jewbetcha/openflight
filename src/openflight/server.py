@@ -22,6 +22,13 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 
 from .ballistics import resolve_launch, simulate
+from .club_data import (
+    CLUB_BALL_SPEEDS,
+    CLUB_LAUNCH_DISTRIBUTIONS,
+    CLUB_LAUNCH_MODELS,
+    CLUB_SPIN_DISTRIBUTIONS,
+    OPTIMAL_SMASH_FACTORS,
+)
 from .launch_monitor import SPIN_CONFIDENCE_HIGH, ClubType, Shot
 from .ops243 import (
     UART_BAUD_COMMANDS,
@@ -234,56 +241,11 @@ def _shutdown_process_after_delay(delay_s: float = 0.5) -> None:
     os._exit(0)
 
 
-# Baseline launch angles by club (TrackMan data)
-# Format: (avg_launch_deg, avg_ball_speed_mph, deg_per_mph_deviation)
-_CLUB_LAUNCH_MODEL = {
-    ClubType.DRIVER: (11.0, 143, 0.15),
-    ClubType.WOOD_3: (12.5, 135, 0.18),
-    ClubType.WOOD_5: (14.0, 128, 0.20),
-    ClubType.WOOD_7: (15.5, 122, 0.20),
-    ClubType.HYBRID_3: (13.5, 123, 0.22),
-    ClubType.HYBRID_5: (15.0, 118, 0.22),
-    ClubType.HYBRID_7: (16.5, 112, 0.25),
-    ClubType.HYBRID_9: (18.0, 106, 0.25),
-    ClubType.IRON_2: (13.0, 120, 0.25),
-    ClubType.IRON_3: (14.5, 118, 0.25),
-    ClubType.IRON_4: (16.0, 114, 0.28),
-    ClubType.IRON_5: (17.5, 110, 0.28),
-    ClubType.IRON_6: (19.0, 105, 0.30),
-    ClubType.IRON_7: (20.5, 100, 0.30),
-    ClubType.IRON_8: (23.0, 94, 0.30),
-    ClubType.IRON_9: (25.5, 88, 0.30),
-    ClubType.PW: (28.0, 82, 0.30),
-    ClubType.GW: (30.0, 76, 0.30),
-    ClubType.SW: (32.0, 73, 0.30),
-    ClubType.LW: (35.0, 70, 0.30),
-    ClubType.UNKNOWN: (18.0, 120, 0.25),
-}
+# Baseline launch angles by club (TrackMan data, canonical source: club_data.py)
+_CLUB_LAUNCH_MODEL = CLUB_LAUNCH_MODELS
 
-# Optimal smash factor by club type (ball_speed / club_speed)
-_OPTIMAL_SMASH = {
-    ClubType.DRIVER: 1.48,
-    ClubType.WOOD_3: 1.44,
-    ClubType.WOOD_5: 1.42,
-    ClubType.WOOD_7: 1.42,
-    ClubType.HYBRID_3: 1.39,
-    ClubType.HYBRID_5: 1.38,
-    ClubType.HYBRID_7: 1.37,
-    ClubType.HYBRID_9: 1.36,
-    ClubType.IRON_2: 1.37,
-    ClubType.IRON_3: 1.36,
-    ClubType.IRON_4: 1.35,
-    ClubType.IRON_5: 1.35,
-    ClubType.IRON_6: 1.34,
-    ClubType.IRON_7: 1.34,
-    ClubType.IRON_8: 1.33,
-    ClubType.IRON_9: 1.33,
-    ClubType.PW: 1.25,
-    ClubType.GW: 1.23,
-    ClubType.SW: 1.22,
-    ClubType.LW: 1.20,
-    ClubType.UNKNOWN: 1.35,
-}
+# Optimal smash factor by club type (ball_speed / club_speed, canonical source: club_data.py)
+_OPTIMAL_SMASH = OPTIMAL_SMASH_FACTORS
 
 # Max smash factor adjustment in degrees (clamped to prevent floor-dependence)
 _MAX_SMASH_ADJ_LOW = -3.0  # max degrees to subtract for thin/toe hits
@@ -3230,79 +3192,13 @@ class MockLaunchMonitor:
     """Mock launch monitor for UI development without radar hardware."""
 
     # TrackMan averages for amateur golfers: (avg_ball_speed, std_dev, smash_factor)
-    _CLUB_BALL_SPEEDS = {
-        ClubType.DRIVER: (143, 12, 1.45),
-        ClubType.WOOD_3: (135, 10, 1.42),
-        ClubType.WOOD_5: (128, 10, 1.40),
-        ClubType.WOOD_7: (122, 9, 1.40),
-        ClubType.HYBRID_3: (123, 9, 1.39),
-        ClubType.HYBRID_5: (118, 9, 1.37),
-        ClubType.HYBRID_7: (112, 8, 1.35),
-        ClubType.HYBRID_9: (106, 8, 1.33),
-        ClubType.IRON_2: (120, 9, 1.35),
-        ClubType.IRON_3: (118, 9, 1.35),
-        ClubType.IRON_4: (114, 8, 1.33),
-        ClubType.IRON_5: (110, 8, 1.31),
-        ClubType.IRON_6: (105, 7, 1.29),
-        ClubType.IRON_7: (100, 7, 1.27),
-        ClubType.IRON_8: (94, 6, 1.25),
-        ClubType.IRON_9: (88, 6, 1.23),
-        ClubType.PW: (82, 5, 1.21),
-        ClubType.GW: (76, 5, 1.20),
-        ClubType.SW: (73, 5, 1.19),
-        ClubType.LW: (70, 5, 1.18),
-        ClubType.UNKNOWN: (120, 15, 1.35),
-    }
+    _CLUB_BALL_SPEEDS = CLUB_BALL_SPEEDS
 
     # Spin rates (avg_rpm, std_dev) — drivers: low spin, wedges: high spin
-    _CLUB_SPIN = {
-        ClubType.DRIVER: (2700, 400),
-        ClubType.WOOD_3: (3200, 400),
-        ClubType.WOOD_5: (3700, 400),
-        ClubType.WOOD_7: (4200, 500),
-        ClubType.HYBRID_3: (3800, 400),
-        ClubType.HYBRID_5: (4200, 500),
-        ClubType.HYBRID_7: (4600, 500),
-        ClubType.HYBRID_9: (5000, 500),
-        ClubType.IRON_2: (3800, 400),
-        ClubType.IRON_3: (4100, 400),
-        ClubType.IRON_4: (4500, 500),
-        ClubType.IRON_5: (5000, 500),
-        ClubType.IRON_6: (5500, 600),
-        ClubType.IRON_7: (6000, 600),
-        ClubType.IRON_8: (7000, 700),
-        ClubType.IRON_9: (7800, 800),
-        ClubType.PW: (8500, 800),
-        ClubType.GW: (9200, 900),
-        ClubType.SW: (9800, 1000),
-        ClubType.LW: (10200, 1000),
-        ClubType.UNKNOWN: (5000, 800),
-    }
+    _CLUB_SPIN = CLUB_SPIN_DISTRIBUTIONS
 
     # Launch angles in degrees (avg, std_dev) — drivers: low, wedges: high
-    _CLUB_LAUNCH = {
-        ClubType.DRIVER: (11.0, 2.0),
-        ClubType.WOOD_3: (12.5, 2.0),
-        ClubType.WOOD_5: (14.0, 2.0),
-        ClubType.WOOD_7: (15.5, 2.0),
-        ClubType.HYBRID_3: (13.5, 2.0),
-        ClubType.HYBRID_5: (15.0, 2.0),
-        ClubType.HYBRID_7: (16.5, 2.0),
-        ClubType.HYBRID_9: (18.0, 2.5),
-        ClubType.IRON_2: (13.0, 2.0),
-        ClubType.IRON_3: (14.5, 2.0),
-        ClubType.IRON_4: (16.0, 2.0),
-        ClubType.IRON_5: (17.5, 2.0),
-        ClubType.IRON_6: (19.0, 2.5),
-        ClubType.IRON_7: (20.5, 2.5),
-        ClubType.IRON_8: (23.0, 3.0),
-        ClubType.IRON_9: (25.5, 3.0),
-        ClubType.PW: (28.0, 3.0),
-        ClubType.GW: (30.0, 3.5),
-        ClubType.SW: (32.0, 4.0),
-        ClubType.LW: (35.0, 4.0),
-        ClubType.UNKNOWN: (18.0, 3.0),
-    }
+    _CLUB_LAUNCH = CLUB_LAUNCH_DISTRIBUTIONS
 
     def __init__(self):
         """Initialize mock monitor."""

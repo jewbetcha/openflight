@@ -1,19 +1,23 @@
-.PHONY: test lint format dev build-ui start
+.PHONY: test test-ui lint format dev build-ui start
 
 ## Run Python tests
 test:
 	uv run pytest tests/ -v
 
+## Run UI unit tests
+test-ui:
+	cd ui && npm run test
+
 ## Run all linters (Python + UI)
 lint:
-	uv run ruff check src/openflight/
+	uv run ruff check src/openflight/ tests/
 	uv run pylint src/openflight/ --fail-under=9
 	cd ui && npm run lint
 
 ## Auto-format Python code
 format:
-	uv run ruff format src/openflight/
-	uv run ruff check --fix src/openflight/
+	uv run ruff format src/openflight/ tests/
+	uv run ruff check --fix src/openflight/ tests/
 
 ## Start server in mock mode (no hardware needed)
 dev:

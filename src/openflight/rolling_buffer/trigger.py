@@ -942,9 +942,7 @@ class SoundTrigger(TriggerStrategy):
         ):
             selected_sync = previous_sync
             selected_source = "previous"
-            selected_reason = (
-                f"fresh_rejected:{fresh_reason};previous_age:{previous_age_s:.1f}s"
-            )
+            selected_reason = f"fresh_rejected:{fresh_reason};previous_age:{previous_age_s:.1f}s"
         elif previous_valid and previous_age_s is not None:
             selected_reason = (
                 f"fresh_rejected:{fresh_reason};previous_too_old:{previous_age_s:.1f}s"

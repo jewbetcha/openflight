@@ -1,20 +1,36 @@
 """Tests for src/openflight/gspro/messages.py."""
+
 import json
 
 import pytest
 
 from openflight.gspro.messages import (
-    BallData, ClubData, GSProResponse, ShotDataOptions, ShotPayload,
-    parse_response, serialize_payload, build_heartbeat,
+    BallData,
+    ClubData,
+    ShotDataOptions,
+    ShotPayload,
+    build_heartbeat,
+    parse_response,
+    serialize_payload,
 )
 
 
 def test_serialize_minimum_shot():
     payload = ShotPayload(
-        DeviceID="OpenFlight", Units="Yards", ShotNumber=1, APIversion="1",
-        BallData=BallData(Speed=147.5, HLA=2.3, VLA=14.3, TotalSpin=2500.0,
-                          SpinAxis=-3.0, BackSpin=2496.6, SideSpin=-130.8,
-                          CarryDistance=240.0),
+        DeviceID="OpenFlight",
+        Units="Yards",
+        ShotNumber=1,
+        APIversion="1",
+        BallData=BallData(
+            Speed=147.5,
+            HLA=2.3,
+            VLA=14.3,
+            TotalSpin=2500.0,
+            SpinAxis=-3.0,
+            BackSpin=2496.6,
+            SideSpin=-130.8,
+            CarryDistance=240.0,
+        ),
         ClubData=ClubData(Speed=110.0, Path=1.0),
         ShotDataOptions=ShotDataOptions(),
     )
@@ -29,20 +45,48 @@ def test_serialize_minimum_shot():
 
 def test_serialize_includes_all_required_keys():
     payload = ShotPayload(
-        DeviceID="X", Units="Yards", ShotNumber=1, APIversion="1",
-        BallData=BallData(), ClubData=ClubData(),
+        DeviceID="X",
+        Units="Yards",
+        ShotNumber=1,
+        APIversion="1",
+        BallData=BallData(),
+        ClubData=ClubData(),
         ShotDataOptions=ShotDataOptions(),
     )
     obj = json.loads(serialize_payload(payload))
-    for key in ("DeviceID", "Units", "ShotNumber", "APIversion",
-                "BallData", "ClubData", "ShotDataOptions"):
+    for key in (
+        "DeviceID",
+        "Units",
+        "ShotNumber",
+        "APIversion",
+        "BallData",
+        "ClubData",
+        "ShotDataOptions",
+    ):
         assert key in obj
-    for key in ("Speed", "SpinAxis", "TotalSpin", "BackSpin", "SideSpin",
-                "HLA", "VLA", "CarryDistance"):
+    for key in (
+        "Speed",
+        "SpinAxis",
+        "TotalSpin",
+        "BackSpin",
+        "SideSpin",
+        "HLA",
+        "VLA",
+        "CarryDistance",
+    ):
         assert key in obj["BallData"]
-    for key in ("Speed", "AngleOfAttack", "FaceToTarget", "Lie", "Loft",
-                "Path", "SpeedAtImpact", "VerticalFaceImpact",
-                "HorizontalFaceImpact", "ClosureRate"):
+    for key in (
+        "Speed",
+        "AngleOfAttack",
+        "FaceToTarget",
+        "Lie",
+        "Loft",
+        "Path",
+        "SpeedAtImpact",
+        "VerticalFaceImpact",
+        "HorizontalFaceImpact",
+        "ClosureRate",
+    ):
         assert key in obj["ClubData"]
 
 

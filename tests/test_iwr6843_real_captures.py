@@ -54,8 +54,12 @@ def _estimate(capture):
         ball_height_m=0.040,
     )
     return estimate_lcmf_v1(
-        raw, cal, ball_speed_mph=capture["ball_speed_mph"], club="7i",
-        net_range_m=4.064, tx_order="normal",
+        raw,
+        cal,
+        ball_speed_mph=capture["ball_speed_mph"],
+        club="7i",
+        net_range_m=4.064,
+        tx_order="normal",
     )
 
 

@@ -1,4 +1,4 @@
-name: Pylint
+name: Lint
 
 on:
   push:
@@ -7,22 +7,24 @@ on:
   pull_request:
 
 jobs:
-  pylint:
+  lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pylint pyserial flask flask-socketio flask-cors numpy opencv-python supervision
-          pip install trackers@git+https://github.com/roboflow/trackers.git
+        run: uv sync --group dev --python ${{ matrix.python-version }}
+      - name: Ruff Check
+        run: uv run --python ${{ matrix.python-version }} ruff check src/openflight/ tests/
+      - name: Ruff Format Check
+        run: uv run --python ${{ matrix.python-version }} ruff format --check src/openflight/ tests/
       - name: Analysing the code with pylint
-        run: |
-          pylint src/openflight/ --fail-under=9
+        run: uv run --python ${{ matrix.python-version }} pylint src/openflight/ --fail-under=9

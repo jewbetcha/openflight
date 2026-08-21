@@ -283,9 +283,7 @@ class TcpSimClient:
             # connection that was once established and then lost, so we never
             # imply a connection that never happened.
             backoff_state = (
-                ConnectionState.RECONNECT_BACKOFF
-                if ever_connected
-                else ConnectionState.CONNECTING
+                ConnectionState.RECONNECT_BACKOFF if ever_connected else ConnectionState.CONNECTING
             )
             self._set_state(
                 backoff_state,

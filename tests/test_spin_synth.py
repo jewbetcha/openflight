@@ -5,8 +5,8 @@ from spin_synth import synth_capture
 
 
 def _dominant_freq_hz(i_samples, q_samples, start, sample_rate=30000):
-    i = np.array(i_samples[start:start + 1024]) - np.mean(i_samples[start:start + 1024])
-    q = np.array(q_samples[start:start + 1024]) - np.mean(q_samples[start:start + 1024])
+    i = np.array(i_samples[start : start + 1024]) - np.mean(i_samples[start : start + 1024])
+    q = np.array(q_samples[start : start + 1024]) - np.mean(q_samples[start : start + 1024])
     spectrum = np.abs(np.fft.fft(i + 1j * q, 8192))
     peak_bin = int(np.argmax(spectrum[1:4096])) + 1
     return peak_bin * sample_rate / 8192

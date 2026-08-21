@@ -9,6 +9,7 @@ import glob
 import logging
 import threading
 import time
+import warnings
 from collections import deque
 from importlib.util import find_spec
 from pathlib import Path
@@ -169,6 +170,12 @@ class KLD7Tracker:
         ball_distance_ft: float = 5.5,
         vertical_flight_window_net_distance_ft: float = VERTICAL_FLIGHT_WINDOW_NET_DISTANCE_FT,
     ):
+        warnings.warn(
+            "The K-LD7 angle radar is deprecated; OpenFlight has moved to a more "
+            "capable radar chip. K-LD7 support is kept for existing builds only.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.port = port
         self.range_m = range_m
         self.speed_kmh = speed_kmh

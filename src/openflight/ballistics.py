@@ -22,6 +22,7 @@ import math
 from dataclasses import dataclass
 from typing import Literal, Optional
 
+from .club_data import CLUB_TYPICAL_SPIN_RPM
 from .launch_monitor import SPIN_CONFIDENCE_HIGH, ClubType, Shot
 
 MPH_TO_MPS = 0.44704
@@ -33,7 +34,7 @@ M_TO_YD = 1.09361
 # the rules rather than by a guess at the specific ball in play.
 BALL_MASS_KG = 0.04593
 BALL_RADIUS_M = 0.02135
-BALL_AREA_M2 = math.pi * BALL_RADIUS_M ** 2
+BALL_AREA_M2 = math.pi * BALL_RADIUS_M**2
 AIR_DENSITY_STD = 1.225  # kg/m³ at sea level, 15 °C ISA
 
 # Cd = CD_BASE + CD_SPIN_COEFF * Sp
@@ -64,32 +65,6 @@ MAX_FLIGHT_SECONDS = 15.0
 # runs at DT_SECONDS; this only controls how many points the caller sees,
 # keeping payload size reasonable for UI/log consumers.
 SAMPLE_INTERVAL_S = 0.05
-
-# Club-typical spin (RPM) from TrackMan PGA Tour averages.
-# Used as fallback when measured spin is missing or low-confidence.
-CLUB_TYPICAL_SPIN_RPM: dict[ClubType, float] = {
-    ClubType.DRIVER: 2700,
-    ClubType.WOOD_3: 3500,
-    ClubType.WOOD_5: 4200,
-    ClubType.WOOD_7: 4800,
-    ClubType.HYBRID_3: 4400,
-    ClubType.HYBRID_5: 4900,
-    ClubType.HYBRID_7: 5300,
-    ClubType.HYBRID_9: 5800,
-    ClubType.IRON_2: 4000,
-    ClubType.IRON_3: 4500,
-    ClubType.IRON_4: 5000,
-    ClubType.IRON_5: 5400,
-    ClubType.IRON_6: 6000,
-    ClubType.IRON_7: 6500,
-    ClubType.IRON_8: 7500,
-    ClubType.IRON_9: 8500,
-    ClubType.PW: 9000,
-    ClubType.GW: 9500,
-    ClubType.SW: 10000,
-    ClubType.LW: 10500,
-    ClubType.UNKNOWN: 5000,
-}
 
 
 @dataclass
@@ -156,9 +131,7 @@ def resolve_launch(shot: Shot) -> Optional[LaunchConditions]:
         spin_rpm = float(shot.spin_rpm)
         source: Literal["measured", "club_typical"] = "measured"
     else:
-        spin_rpm = CLUB_TYPICAL_SPIN_RPM.get(
-            shot.club, CLUB_TYPICAL_SPIN_RPM[ClubType.UNKNOWN]
-        )
+        spin_rpm = CLUB_TYPICAL_SPIN_RPM.get(shot.club, CLUB_TYPICAL_SPIN_RPM[ClubType.UNKNOWN])
         source = "club_typical"
 
     return LaunchConditions(
@@ -244,10 +217,7 @@ def _rk4_step(
     k3 = _derivatives(s3, omega, axis, air_density)
     s4 = tuple(state[i] + dt * k3[i] for i in range(6))
     k4 = _derivatives(s4, omega, axis, air_density)
-    return tuple(
-        state[i] + (dt / 6.0) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])
-        for i in range(6)
-    )
+    return tuple(state[i] + (dt / 6.0) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) for i in range(6))
 
 
 def simulate(
@@ -311,15 +281,17 @@ def simulate(
             final = tuple(state[i] + frac * (new_state[i] - state[i]) for i in range(6))
             fx, fy, fz, fvx, fvy, fvz = final
             v_final = math.sqrt(fvx * fvx + fvy * fvy + fvz * fvz)
-            landing_angle = math.degrees(
-                math.atan2(-fvz, math.sqrt(fvx * fvx + fvy * fvy))
+            landing_angle = math.degrees(math.atan2(-fvz, math.sqrt(fvx * fvx + fvy * fvy)))
+            points.append(
+                TrajectoryPoint(
+                    t_hit,
+                    fx * M_TO_YD,
+                    fy * M_TO_YD,
+                    max(fz, 0.0) * M_TO_YD,
+                    v_final * MPS_TO_MPH,
+                    omega * 60 / (2 * math.pi),
+                )
             )
-            points.append(TrajectoryPoint(
-                t_hit,
-                fx * M_TO_YD, fy * M_TO_YD, max(fz, 0.0) * M_TO_YD,
-                v_final * MPS_TO_MPH,
-                omega * 60 / (2 * math.pi),
-            ))
             return Trajectory(
                 points=points,
                 carry_yards=fx * M_TO_YD,
@@ -335,12 +307,16 @@ def simulate(
         if t - last_sample_t >= SAMPLE_INTERVAL_S:
             sx_, sy_, sz_, svx, svy, svz = state
             v = math.sqrt(svx * svx + svy * svy + svz * svz)
-            points.append(TrajectoryPoint(
-                t,
-                sx_ * M_TO_YD, sy_ * M_TO_YD, sz_ * M_TO_YD,
-                v * MPS_TO_MPH,
-                omega * 60 / (2 * math.pi),
-            ))
+            points.append(
+                TrajectoryPoint(
+                    t,
+                    sx_ * M_TO_YD,
+                    sy_ * M_TO_YD,
+                    sz_ * M_TO_YD,
+                    v * MPS_TO_MPH,
+                    omega * 60 / (2 * math.pi),
+                )
+            )
             last_sample_t = t
 
     # Flight did not terminate — return current state as best-effort

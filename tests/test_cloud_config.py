@@ -2,6 +2,7 @@
 
 import json
 import stat
+import sys
 
 import pytest
 
@@ -39,6 +40,10 @@ class TestLoadConfig:
 
 
 class TestSaveConfig:
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="POSIX file permissions (0600) are not enforced on Windows",
+    )
     def test_writes_file_with_0600_permissions(self, tmp_path):
         path = tmp_path / "nested" / "cloud.json"
         config = cfg.CloudConfig(device_token="tok", device_id="id")

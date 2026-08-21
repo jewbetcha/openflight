@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from typing import Callable, List, Optional
 
+from ..club_data import CLUB_SPIN_MULTIPLIERS, OPTIMAL_SMASH_FACTORS
 from ..launch_monitor import ClubType, Shot, estimate_carry_distance
 from ..ops243 import OPS243Radar, SpeedReading
 from ..session_logger import get_session_logger, log_session_error
@@ -33,20 +34,17 @@ def get_optimal_spin_for_ball_speed(
     - Lower ball speeds need MORE spin to maintain lift
 
     Reference data points (driver):
-    - 120 mph ball speed → ~2900 rpm optimal
-    - 140 mph ball speed → ~2700 rpm optimal
-    - 160 mph ball speed → ~2550 rpm optimal (Tour average zone)
     - 180 mph ball speed → ~2050 rpm optimal
+    - 167 mph (PGA Tour avg) → ~2450 rpm optimal
+    - 160 mph ball speed → ~2550 rpm optimal
+    - 140 mph ball speed → ~2700 rpm optimal
+    - 120 mph ball speed → ~2900 rpm optimal
+    - 100 mph ball speed → ~3200 rpm optimal
 
-    Args:
-        ball_speed_mph: Ball speed in mph
-        club: Club type (affects optimal spin)
-
-    Returns:
-        Optimal spin rate in RPM
+    For irons/wedges, optimal spin is higher (scaled by club multiplier).
     """
-    # Driver optimal spin (baseline) - interpolated from TrackMan/PING data
-    # Table: (min_speed, base_rpm_at_upper_bound, rpm_per_mph_below_upper, upper_bound)
+    # Base optimal spin curve for driver (from TrackMan data)
+    # Piecewise linear interpolation based on ball speed
     _spin_table = [
         (180, 2050, 0, 999),
         (170, 2050, 25, 180),
@@ -62,32 +60,8 @@ def get_optimal_spin_for_ball_speed(
             optimal = base_rpm + (upper - ball_speed_mph) * rpm_per_mph
             break
 
-    # Adjust for club type - irons need more spin
-    club_spin_multipliers = {
-        ClubType.DRIVER: 1.0,
-        ClubType.WOOD_3: 1.15,
-        ClubType.WOOD_5: 1.25,
-        ClubType.WOOD_7: 1.32,
-        ClubType.HYBRID_3: 1.45,
-        ClubType.HYBRID_5: 1.55,
-        ClubType.HYBRID_7: 1.65,
-        ClubType.HYBRID_9: 1.75,
-        ClubType.IRON_2: 1.5,
-        ClubType.IRON_3: 1.6,
-        ClubType.IRON_4: 1.8,
-        ClubType.IRON_5: 2.0,
-        ClubType.IRON_6: 2.2,
-        ClubType.IRON_7: 2.5,
-        ClubType.IRON_8: 2.8,
-        ClubType.IRON_9: 3.2,
-        ClubType.PW: 3.6,
-        ClubType.GW: 4.1,
-        ClubType.SW: 4.3,
-        ClubType.LW: 4.6,
-        ClubType.UNKNOWN: 1.0,
-    }
-
-    multiplier = club_spin_multipliers.get(club, 1.0)
+    # Adjust for club type - irons need more spin (canonical source: club_data.py)
+    multiplier = CLUB_SPIN_MULTIPLIERS.get(club, 1.0)
     return optimal * multiplier
 
 
@@ -162,32 +136,7 @@ def estimate_carry_with_spin(
     if club_speed_mph and club_speed_mph > 0:
         smash = ball_speed_mph / club_speed_mph
 
-        # Optimal smash factors by club type
-        optimal_smash = {
-            ClubType.DRIVER: 1.48,
-            ClubType.WOOD_3: 1.44,
-            ClubType.WOOD_5: 1.42,
-            ClubType.WOOD_7: 1.41,
-            ClubType.HYBRID_3: 1.39,
-            ClubType.HYBRID_5: 1.37,
-            ClubType.HYBRID_7: 1.35,
-            ClubType.HYBRID_9: 1.33,
-            ClubType.IRON_2: 1.36,
-            ClubType.IRON_3: 1.35,
-            ClubType.IRON_4: 1.33,
-            ClubType.IRON_5: 1.31,
-            ClubType.IRON_6: 1.29,
-            ClubType.IRON_7: 1.27,
-            ClubType.IRON_8: 1.25,
-            ClubType.IRON_9: 1.23,
-            ClubType.PW: 1.21,
-            ClubType.GW: 1.19,
-            ClubType.SW: 1.18,
-            ClubType.LW: 1.17,
-            ClubType.UNKNOWN: 1.35,
-        }
-
-        target_smash = optimal_smash.get(club, 1.35)
+        target_smash = OPTIMAL_SMASH_FACTORS.get(club, 1.35)
         smash_delta = target_smash - smash
 
         if smash_delta > 0:

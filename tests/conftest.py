@@ -3,6 +3,7 @@
 Protocol-agnostic: records bytes received and can send scripted JSON replies or
 drop the connection. Used by both GSPro and OpenGolfSim connector tests.
 """
+
 import json
 import socket
 import sys

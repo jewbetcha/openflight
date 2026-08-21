@@ -264,9 +264,7 @@ def angle_points(
 def circular_median(values: list[float]) -> float:
     """Median of angles, wrapping correctly across +/-pi."""
     array = np.asarray(values, dtype=float)
-    scores = [
-        np.median(np.abs(np.angle(np.exp(1j * (array - candidate))))) for candidate in array
-    ]
+    scores = [np.median(np.abs(np.angle(np.exp(1j * (array - candidate))))) for candidate in array]
     return float(array[int(np.argmin(scores))])
 
 

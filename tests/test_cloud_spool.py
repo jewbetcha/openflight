@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from openflight.cloud import spool
 
 

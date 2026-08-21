@@ -1,8 +1,9 @@
-"""Tests for the Raspberry Pi Geekworm provisioning script."""
-
 import hashlib
 import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SETUP_SCRIPT = PROJECT_ROOT / "scripts" / "battery" / "geekworm" / "setup.sh"
@@ -34,10 +35,12 @@ def _run_function(function: str, config_path: Path) -> subprocess.CompletedProce
     )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Bash setup script execution requires Linux")
 def test_setup_script_has_valid_bash_syntax():
     subprocess.run(["bash", "-n", SETUP_SCRIPT], check=True)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Bash setup script execution requires Linux")
 def test_boot_configuration_update_is_idempotent(tmp_path):
     config = tmp_path / "config.txt"
     config.write_text("[cm5]\nfoo=bar\n", encoding="ascii")
@@ -55,6 +58,7 @@ def test_boot_configuration_update_is_idempotent(tmp_path):
     assert "\n[all]\n# OpenFlight Geekworm" in first_content
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Bash setup script execution requires Linux")
 def test_boot_configuration_accepts_existing_openflight_settings(tmp_path):
     config = tmp_path / "config.txt"
     original = """\
@@ -71,6 +75,7 @@ dtoverlay=gpio-charger,gpio=6,active_low=0,gpio_pull=down,type=mains
     assert config.read_text(encoding="ascii") == original
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Bash setup script execution requires Linux")
 def test_boot_configuration_rejects_conflicting_charger_overlay(tmp_path):
     config = tmp_path / "config.txt"
     config.write_text(
@@ -84,6 +89,7 @@ def test_boot_configuration_rejects_conflicting_charger_overlay(tmp_path):
     assert "different gpio-charger overlay" in result.stderr
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Bash setup script execution requires Linux")
 def test_eeprom_configuration_replaces_and_deduplicates_power_settings(tmp_path):
     config = tmp_path / "eeprom.conf"
     config.write_text(
