@@ -1,10 +1,6 @@
-"""
-Camera-based ball tracking for launch angle detection.
+"""[DEPRECATED] Camera-based ball tracking for launch angle detection."""
 
-Uses Hough circle detection with ByteTrack for persistent tracking,
-or optionally YOLO/Roboflow for detection. Calculates launch angle
-from the ball trajectory.
-"""
+from __future__ import annotations
 
 import math
 import os
@@ -13,9 +9,10 @@ from collections import deque
 from dataclasses import dataclass
 from typing import List, Optional
 
+import numpy as np
+
 try:
     import cv2
-    import numpy as np
 
     CV2_AVAILABLE = True
 except ImportError:
@@ -136,7 +133,7 @@ class CameraTracker:
 
     def __init__(
         self,
-        model_path: str = None,
+        model_path: Optional[str] = None,
         camera_distance_inches: float = 48,
         frame_width: int = 640,
         roboflow_api_key: Optional[str] = None,
@@ -149,6 +146,15 @@ class CameraTracker:
         hough_max_radius: int = 43,
         hough_min_dist: int = 266,
     ):
+        import warnings
+
+        warnings.warn(
+            "Camera tracking is deprecated and scheduled for retirement; "
+            "OpenFlight uses radar hardware (OPS243 + TI IWR6843/K-LD7) for launch angles.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if not CV2_AVAILABLE:
             raise ImportError("opencv required: pip install opencv-python")
 

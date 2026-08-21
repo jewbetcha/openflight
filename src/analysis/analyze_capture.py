@@ -7,18 +7,18 @@
 # ///
 
 import argparse
-import pickle
 import os
-import numpy as np
+import pickle
 
 # matplotlib backend set after arg parsing (Agg for headless, TkAgg for interactive)
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def load_data(file_path):
     try:
-        with open(file_path, 'rb') as file:
+        with open(file_path, "rb") as file:
             data = pickle.load(file)
             return data
 
@@ -29,16 +29,16 @@ def load_data(file_path):
 def time_domain_plot(sig, t_s, title_suffix="", save_path=None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    ax1.plot(t_s * 1000, sig.real, color='blue', label='I')
-    ax1.plot(t_s * 1000, sig.imag, color='red', label='Q')
+    ax1.plot(t_s * 1000, sig.real, color="blue", label="I")
+    ax1.plot(t_s * 1000, sig.imag, color="red", label="Q")
     ax1.set_title(f"Time Domain Signal{title_suffix}")
     ax1.set_xlabel("Time (ms)")
     ax1.set_ylabel("Amplitude")
     ax1.legend()
     ax1.grid(True)
 
-    ax2.plot(sig.real, color='blue', label='I')
-    ax2.plot(sig.imag, color='red', label='Q')
+    ax2.plot(sig.real, color="blue", label="I")
+    ax2.plot(sig.imag, color="red", label="Q")
     ax2.set_title(f"Time Domain Signal (Sample Index){title_suffix}")
     ax2.set_xlabel("Sample Index")
     ax2.set_ylabel("Amplitude")
@@ -48,7 +48,7 @@ def time_domain_plot(sig, t_s, title_suffix="", save_path=None):
     fig.tight_layout()
 
     if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"    Saved: {save_path}")
         plt.close(fig)
 
@@ -103,15 +103,19 @@ def analyze_rolling_buffer(data, fs_hz, capture_idx=None, save_dir=None):
     # Print summary table
     print()
     print(f"  {'#':>3s}  {'ball':>6s}  {'club':>6s}  {'smash':>5s}  {'spin':>6s}  {'trigger':>8s}")
-    print(f"  {'---':>3s}  {'------':>6s}  {'------':>6s}  {'-----':>5s}  {'------':>6s}  {'--------':>8s}")
+    print(
+        f"  {'---':>3s}  {'------':>6s}  {'------':>6s}  {'-----':>5s}  {'------':>6s}  {'--------':>8s}"
+    )
     for idx, capture in enumerate(captures, 1):
         ball = capture.get("ball_speed_mph")
         club = capture.get("club_speed_mph")
         smash = capture.get("smash_factor")
         spin = capture.get("spin_rpm")
         trig = capture.get("trigger_offset_ms", 0)
-        print(f"  {idx:3d}  {fmt(ball, '{:.1f}'):>6s}  {fmt(club, '{:.1f}'):>6s}  "
-              f"{fmt(smash, '{:.2f}'):>5s}  {fmt(spin, '{:.0f}'):>6s}  {trig:7.1f}ms")
+        print(
+            f"  {idx:3d}  {fmt(ball, '{:.1f}'):>6s}  {fmt(club, '{:.1f}'):>6s}  "
+            f"{fmt(smash, '{:.2f}'):>5s}  {fmt(spin, '{:.0f}'):>6s}  {trig:7.1f}ms"
+        )
     print()
 
     for idx, capture in captures_to_plot:
@@ -133,18 +137,29 @@ def analyze_rolling_buffer(data, fs_hz, capture_idx=None, save_dir=None):
             info_parts.append(f"spin={spin_rpm}rpm")
 
         info_str = ", ".join(info_parts)
-        print(f"  Plotting capture #{idx}: {n_samples} samples, {n_samples/fs_hz*1000:.1f}ms ({info_str})")
+        print(
+            f"  Plotting capture #{idx}: {n_samples} samples, {n_samples / fs_hz * 1000:.1f}ms ({info_str})"
+        )
 
         suffix = f" - Capture #{idx}"
         if ball_speed:
             suffix += f" ({ball_speed}mph)"
 
         save_td = os.path.join(save_dir, f"capture_{idx:02d}_time.png") if save_dir else None
-        save_spec = os.path.join(save_dir, f"capture_{idx:02d}_spectrogram.png") if save_dir else None
+        save_spec = (
+            os.path.join(save_dir, f"capture_{idx:02d}_spectrogram.png") if save_dir else None
+        )
 
         time_domain_plot(sig, t_s, title_suffix=suffix, save_path=save_td)
-        spectrogram(sig, fs_hz, window_size=128, overlap=96,
-                    title_suffix=suffix, trigger_ms=trigger_offset, save_path=save_spec)
+        spectrogram(
+            sig,
+            fs_hz,
+            window_size=128,
+            overlap=96,
+            title_suffix=suffix,
+            trigger_ms=trigger_offset,
+            save_path=save_spec,
+        )
 
 
 def fmt(val, spec):
@@ -174,7 +189,7 @@ def get_complex_signal(capture, fs_hz):
 
 def parse_streaming_datastruct(data, fs_hz):
     """Parse old streaming format (many 128-sample blocks concatenated)."""
-    ts_s = 1/fs_hz
+    ts_s = 1 / fs_hz
     tmp_sig = []
     tmp_time = []
 
@@ -197,7 +212,7 @@ def parse_streaming_datastruct(data, fs_hz):
 def spectrogram(sig, fs_hz, window_size, overlap, title_suffix="", trigger_ms=None, save_path=None):
     # full fft for comparison
     sig_fft = np.fft.fftshift(np.fft.fft(sig))
-    fft_freqs = np.linspace(-fs_hz/2, fs_hz/2, len(sig), endpoint=False)
+    fft_freqs = np.linspace(-fs_hz / 2, fs_hz / 2, len(sig), endpoint=False)
     fft_mph = dopp_to_mph(fft_freqs)
 
     # rough spectral estimate
@@ -220,14 +235,18 @@ def spectrogram(sig, fs_hz, window_size, overlap, title_suffix="", trigger_ms=No
         spec[:, i] = np.fft.fftshift(spectrum)
 
     spec_db = db20(spec)
-    freqs_hz = np.linspace(-fs_hz/2, fs_hz/2, window_size, endpoint=False)
+    freqs_hz = np.linspace(-fs_hz / 2, fs_hz / 2, window_size, endpoint=False)
     freqs_mph = dopp_to_mph(freqs_hz)
     times_ms = np.arange(num_segments) * (hop_size / fs_hz) * 1000
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    im = ax1.imshow(spec_db, aspect='auto', origin='lower',
-               extent=[times_ms[0], times_ms[-1], freqs_mph[0], freqs_mph[-1]])
+    im = ax1.imshow(
+        spec_db,
+        aspect="auto",
+        origin="lower",
+        extent=[times_ms[0], times_ms[-1], freqs_mph[0], freqs_mph[-1]],
+    )
     ax1.set_title(f"Spectrogram{title_suffix}")
     ax1.set_ylabel("Speed (mph)")
     ax1.set_xlabel("Time (ms)")
@@ -235,9 +254,16 @@ def spectrogram(sig, fs_hz, window_size, overlap, title_suffix="", trigger_ms=No
 
     # Mark trigger point
     if trigger_ms is not None:
-        ax1.axvline(x=trigger_ms, color='white', linestyle='--', linewidth=1.5, alpha=0.8)
-        ax1.text(trigger_ms + 1, freqs_mph[-1] * 0.9, 'trigger', color='white',
-                fontsize=9, fontweight='bold', va='top')
+        ax1.axvline(x=trigger_ms, color="white", linestyle="--", linewidth=1.5, alpha=0.8)
+        ax1.text(
+            trigger_ms + 1,
+            freqs_mph[-1] * 0.9,
+            "trigger",
+            color="white",
+            fontsize=9,
+            fontweight="bold",
+            va="top",
+        )
 
     ax2.plot(fft_mph, db20(sig_fft))
     ax2.set_title(f"Full FFT{title_suffix}")
@@ -248,7 +274,7 @@ def spectrogram(sig, fs_hz, window_size, overlap, title_suffix="", trigger_ms=No
     fig.tight_layout()
 
     if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"    Saved: {save_path}")
         plt.close(fig)
 
@@ -265,35 +291,49 @@ def db20(data):
 
 
 def boldify():
-    plt.rcParams.update({
-    'font.weight': 'bold',
-    'axes.labelweight': 'bold',
-    'axes.titleweight': 'bold',
-    'axes.linewidth': 2.0,
-    'lines.linewidth': 2.5,
-    'xtick.major.width': 1.5,
-    'ytick.major.width': 1.5,
-    'font.size': 16
-    })
+    plt.rcParams.update(
+        {
+            "font.weight": "bold",
+            "axes.labelweight": "bold",
+            "axes.titleweight": "bold",
+            "axes.linewidth": 2.0,
+            "lines.linewidth": 2.5,
+            "xtick.major.width": 1.5,
+            "ytick.major.width": 1.5,
+            "font.size": 16,
+        }
+    )
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze I/Q capture files")
     parser.add_argument("files", nargs="*", help="I/Q capture file(s) to analyze (.pkl)")
     parser.add_argument("--data-dir", default="data", help="Data directory (default: data)")
-    parser.add_argument("--capture", "-c", type=int, default=None,
-                       help="Analyze only capture N (1-indexed, rolling buffer mode only)")
-    parser.add_argument("--headless", action="store_true",
-                       help="Save plots as PNGs instead of displaying (no GUI required)")
-    parser.add_argument("--output-dir", "-o", default=None,
-                       help="Directory for saved plots (default: <input_file>_plots/)")
+    parser.add_argument(
+        "--capture",
+        "-c",
+        type=int,
+        default=None,
+        help="Analyze only capture N (1-indexed, rolling buffer mode only)",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Save plots as PNGs instead of displaying (no GUI required)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        default=None,
+        help="Directory for saved plots (default: <input_file>_plots/)",
+    )
     args = parser.parse_args()
 
     # Set matplotlib backend before any plotting
     if args.headless:
-        matplotlib.use('Agg')
+        matplotlib.use("Agg")
     else:
-        matplotlib.use('TkAgg')
+        matplotlib.use("TkAgg")
 
     boldify()
 

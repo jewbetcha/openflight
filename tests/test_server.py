@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -3082,3 +3083,124 @@ class TestOpsBaudValidation:
         a stricter check would reject a legitimate fallback to 115200, which the
         flag's own help text tells operators to use."""
         assert good in UART_BAUD_COMMANDS
+
+
+class TestAppState:
+    """Tests for AppState dataclass and lifecycle operations."""
+
+    def test_app_state_initialization_defaults(self):
+        state = server_module.AppState()
+        assert state.monitor is None
+        assert state.mock_mode is False
+        assert state.debug_mode is False
+        assert state.ballistics_enabled is True
+        assert state.sim_connectors == []
+        assert state.current_player_name == "Player 1"
+        assert state.shutdown_cleanup_started is False
+
+    def test_get_app_state_returns_singleton(self):
+        state1 = server_module.get_app_state()
+        state2 = server_module.get_app_state()
+        assert state1 is state2
+
+    def test_reset_app_state_restores_defaults(self):
+        state = server_module.get_app_state()
+        state.debug_mode = True
+        state.current_player_name = "Custom Player"
+        state.mock_mode = True
+
+        reset_state = server_module.reset_app_state()
+        assert reset_state is state
+        assert reset_state.debug_mode is False
+        assert reset_state.mock_mode is False
+        assert reset_state.current_player_name == "Player 1"
+
+
+class TestStagedShotPipeline:
+    """Tests for individual shot processing pipeline stages."""
+
+    def test_process_kld7_orientation_returns_none_when_tracker_none(self):
+        shot = Shot(
+            ball_speed_mph=140.0,
+            club_speed_mph=95.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+        )
+        ball_angle, club_angle = server_module._process_kld7_orientation(
+            shot, "vertical", None, time.time(), None, False
+        )
+        assert ball_angle is None
+        assert club_angle is None
+
+    def test_process_kld7_orientation_vertical_success(self):
+        shot = Shot(
+            ball_speed_mph=140.0,
+            club_speed_mph=95.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+        )
+
+        class FakeTracker:
+            def snapshot_buffer(self, include_radc_payload=False):
+                return [SimpleNamespace(payload=b"123", timestamp=100.0)] * 30
+
+            def get_angle_for_shot(self, **kwargs):
+                return KLD7Angle(vertical_deg=11.5, confidence=0.9, num_frames=10)
+
+            def get_club_angle(self, **kwargs):
+                return KLD7Angle(vertical_deg=-3.0, confidence=0.85, num_frames=5)
+
+            def reset(self):
+                pass
+
+        ball_angle, club_angle = server_module._process_kld7_orientation(
+            shot, "vertical", FakeTracker(), 100.0, None, False
+        )
+        assert ball_angle is not None
+        assert shot.launch_angle_vertical == pytest.approx(11.5)
+        assert shot.club_angle_deg == pytest.approx(3.0)  # negated AoA
+
+    def test_stage_launch_fallback_populates_angles(self):
+        shot = Shot(
+            ball_speed_mph=140.0,
+            club_speed_mph=95.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+        )
+        server_module._stage_launch_fallback(shot)
+        assert shot.launch_angle_vertical is not None
+        assert shot.launch_angle_horizontal == 0.0
+        assert shot.launch_angle_vertical_source == "estimated"
+
+    def test_stage_speed_and_spin_adjustments_with_calculated_spin(self, monkeypatch):
+        shot = Shot(
+            ball_speed_mph=150.0,
+            club_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+            launch_angle_vertical=12.0,
+            launch_angle_vertical_source="radar",
+        )
+        state = server_module.get_app_state()
+        state.calculated_spin_enabled = True
+        state.ball_speed_correction_enabled = False
+
+        server_module._stage_speed_and_spin_adjustments(shot)
+        assert shot.spin_source == "calculated"
+        assert shot.spin_rpm is not None
+        assert shot.spin_rpm > 0
+        state.calculated_spin_enabled = False
+
+
+class TestCameraDeprecation:
+    """Tests for deprecated camera module paths."""
+
+    def test_camera_tracker_raises_deprecation_warning(self):
+        from openflight.camera_tracker import CameraTracker
+
+        with pytest.deprecated_call():
+            try:
+                CameraTracker()
+            except ImportError:
+                # Expected when cv2 is not installed on fresh setups
+                pass
