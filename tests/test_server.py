@@ -3151,6 +3151,42 @@ class TestHardwareTriggerPlumbing:
         assert captured["trigger_type"] == "sound"
         assert captured["trigger_kwargs"] == {"pre_trigger_segments": 18}
 
+    @pytest.mark.parametrize("trigger", ["speed", "polling", "threshold"])
+    def test_server_cli_does_not_reuse_sound_pre_trigger_for_other_triggers(
+        self, monkeypatch, trigger
+    ):
+        """Non-sound strategies keep their constructor pre-trigger defaults."""
+        captured = {}
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "openflight-server",
+                "--mock",
+                "--no-camera",
+                "--no-logging",
+                "--trigger",
+                trigger,
+                "--sound-pre-trigger",
+                "16",
+            ],
+        )
+        monkeypatch.setattr(
+            server_module,
+            "start_monitor",
+            lambda **kwargs: captured.update(kwargs),
+        )
+        monkeypatch.setattr(server_module, "load_sim_config", lambda: [])
+        monkeypatch.setattr(server_module, "build_connectors", lambda *args, **kwargs: [])
+        monkeypatch.setattr(server_module, "init_session_logger", lambda **kwargs: None)
+        monkeypatch.setattr(server_module, "_cleanup_hardware_for_shutdown", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "run", lambda *args, **kwargs: None)
+
+        server_module.main()
+
+        assert captured["trigger_type"] == trigger
+        assert captured["trigger_kwargs"] == {}
+
     def test_start_monitor_forwards_hardware_trigger_kwargs(self, monkeypatch):
         """The server passes threshold, magnitude, split, and sample rate through."""
         captured = {}

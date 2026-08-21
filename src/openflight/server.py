@@ -4177,10 +4177,11 @@ def main():
         set_show_raw_readings(True)
         print("Raw radar readings display ENABLED - signed speed values will be shown")
 
-    # Start the monitor. Keep the sound-trigger option on its legacy flag so
-    # selecting hardware mode cannot silently change the established path.
-    trigger_kwargs = {"pre_trigger_segments": args.sound_pre_trigger}
-    if args.trigger == "hardware":
+    # Build trigger kwargs per strategy so sound-only settings cannot change
+    # the defaults of speed, polling, or threshold capture.
+    if args.trigger == "sound":
+        trigger_kwargs = {"pre_trigger_segments": args.sound_pre_trigger}
+    elif args.trigger == "hardware":
         trigger_kwargs = {
             "trigger_threshold_mph": (
                 args.trigger_threshold if args.trigger_threshold is not None else 25.0
@@ -4188,8 +4189,12 @@ def main():
             "trigger_magnitude": args.trigger_magnitude,
             "pre_trigger_segments": args.pre_trigger_segments,
         }
-    elif args.trigger == "speed" and args.trigger_threshold is not None:
-        trigger_kwargs = {"min_trigger_speed_mph": args.trigger_threshold}
+    elif args.trigger == "speed":
+        trigger_kwargs = {}
+        if args.trigger_threshold is not None:
+            trigger_kwargs["min_trigger_speed_mph"] = args.trigger_threshold
+    else:
+        trigger_kwargs = {}
     swing_speed_kwargs = {
         "trigger_threshold_mph": args.swing_speed_threshold,
         "max_speed_mph": None if args.swing_speed_max <= 0 else args.swing_speed_max,
