@@ -584,10 +584,10 @@ class GPIOSoundTrigger(TriggerStrategy):
             gpio_pin: GPIO pin (BCM numbering) for GATE input (default: 17)
             pre_trigger_segments: Number of pre-trigger segments for S# command.
                 Each segment = 128 samples = ~4.27ms at 30ksps.
-                Default 20 gives ~85ms pre-trigger, ~51ms post-trigger.
+                Default 32 gives ~136ms total rolling window (50/50 pre/post split).
                 NOTE: This is passed to enter_rolling_buffer_mode() by the caller.
                 The trigger does NOT configure rolling buffer mode itself.
-            debounce_ms: Debounce time in ms to ignore rapid triggers (default: 200)
+            debounce_ms: Debounce time in ms to ignore rapid triggers (default: 20)
         """
         super().__init__(pre_trigger_segments=pre_trigger_segments)
         self.gpio_pin = gpio_pin
@@ -943,9 +943,7 @@ class SoundTrigger(TriggerStrategy):
         ):
             selected_sync = previous_sync
             selected_source = "previous"
-            selected_reason = (
-                f"fresh_rejected:{fresh_reason};previous_age:{previous_age_s:.1f}s"
-            )
+            selected_reason = f"fresh_rejected:{fresh_reason};previous_age:{previous_age_s:.1f}s"
         elif previous_valid and previous_age_s is not None:
             selected_reason = (
                 f"fresh_rejected:{fresh_reason};previous_too_old:{previous_age_s:.1f}s"
