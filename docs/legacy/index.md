@@ -22,7 +22,7 @@ flag.
   shot via the OPS impact timestamp.
 
 For how the estimator works internally, see
-[kld7-launch-angle-explained.html](launch-angle-explained.html) and
+[Launch angle explained](launch-angle-explained.md) and
 [kld7-ball-detection-theory.md](ball-detection-theory.md).
 
 ## Enabling it

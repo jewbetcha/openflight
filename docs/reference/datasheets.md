@@ -39,7 +39,7 @@ than checked-in copies:
 
 For what OpenFlight actually does with the device, the
 [firmware developer guide](../development/firmware.md) and the
-[launch angle field report](../iwr6843_field_report_2026-07.html) are more useful than
+[launch angle field report](../how-it-works/launch-angle.md) are more useful than
 the TI documents.
 
 ## Other hardware

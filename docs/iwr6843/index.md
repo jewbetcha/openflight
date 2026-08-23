@@ -20,7 +20,7 @@ frame ring.
 For firmware development, architecture, and build instructions, see
 [firmware developer guide](../development/firmware.md).
 For a plain-language explanation and the July 2026 TrackMan baseline, see the
-[IWR6843 launch-angle field report](../iwr6843_field_report_2026-07.html).
+[IWR6843 launch-angle field report](../how-it-works/launch-angle.md).
 
 ## Current Configuration
 

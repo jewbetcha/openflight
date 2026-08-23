@@ -73,6 +73,7 @@ nav = [
     "how-it-works/index.md",
     "how-it-works/pipeline.md",
     "how-it-works/rolling-buffer.md",
+    "how-it-works/launch-angle.md",
     "how-it-works/ballistics.md",
     "how-it-works/positioning.md",
   ] },
@@ -98,12 +99,14 @@ nav = [
     "development/spin-replay.md",
     "development/camera-yolo.md",
     "development/analysis-tooling.md",
+    "development/color-palette.md",
   ] },
 
   { "Legacy (K-LD7)" = [
     "legacy/index.md",
     "legacy/troubleshooting.md",
     "legacy/ball-detection-theory.md",
+    "legacy/launch-angle-explained.md",
     "legacy/session-review.md",
   ] },
 
@@ -161,7 +164,7 @@ language = "en"
 features = [
   "announce.dismiss",
   "content.action.edit",
-  # "content.action.view",
+  "content.action.view",
   "content.code.annotate",
   "content.code.copy",
   "content.code.select",
@@ -178,8 +181,9 @@ features = [
   "navigation.path",
   # "navigation.prune",
   "navigation.sections",
-  # "navigation.tabs",
-  # "navigation.tabs.sticky",
+  # 11 top-level sections is a wall in a sidebar; tabs put them across the top.
+  "navigation.tabs",
+  "navigation.tabs.sticky",
   "navigation.top",
   "navigation.tracking",
   "search.highlight",

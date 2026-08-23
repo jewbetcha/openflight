@@ -18,7 +18,7 @@ each stage.
     What is inside a capture, how ball and club speed are separated, and why
     spin is still experimental.
 
-- :material-angle-acute: **[Launch angle](../iwr6843_field_report_2026-07.html)**
+- :material-angle-acute: **[Launch angle](launch-angle.md)**
 
     LCMF-v1 over the IWR6843 raw radar cube, and the July 2026 TrackMan
     baseline.

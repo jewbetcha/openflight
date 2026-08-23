@@ -494,7 +494,7 @@ Also check:
 
 ## Historical Context
 
-The [IWR6843 field report](../iwr6843_field_report_2026-07.html) explains
+The [IWR6843 field report](../how-it-works/launch-angle.md) explains
 why the project moved capture into on-chip L3 and how the estimator evolved.
 The implementation has since advanced from full raw ADC rings to HWA-generated,
 dynamically windowed complex range snapshots; this README is the authoritative

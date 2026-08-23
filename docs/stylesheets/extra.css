@@ -253,6 +253,11 @@
 
 .md-header {
   border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  /* The header deliberately matches the page ground rather than using the
+     primary colour — but it must be *opaque*, or content scrolling underneath
+     the sticky tabs bar shows through the wordmark. */
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
 }
 
 .md-header__button.md-logo :is(img, svg) {
@@ -269,6 +274,20 @@
 
 .md-tabs {
   border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  /* Opaque for the same reason as .md-header — navigation.tabs.sticky keeps
+     this bar pinned while the page scrolls beneath it. */
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+}
+
+.md-tabs__link {
+  opacity: 1;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-tabs__link:is(:hover, :focus),
+.md-tabs__link--active {
+  color: var(--md-default-fg-color);
 }
 
 /* Sidebar section labels get the marketing site's eyebrow treatment */
