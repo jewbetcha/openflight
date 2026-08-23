@@ -10,7 +10,7 @@ checked into the repository. Build the firmware only when changing capture
 geometry, range windows, HWA/EDMA processing, or the binary dump contract.
 
 For hardware wiring, mounting, geometry, calibration, and normal OpenFlight
-startup, use the [IWR6843 Operator Guide](../iwr6843/README.md).
+startup, use the [IWR6843 Operator Guide](../iwr6843/index.md).
 
 ## Current Release
 
@@ -413,7 +413,7 @@ The flasher follows TI application note
 ## Verify The Installed Firmware
 
 Run OpenFlight with the matching config as described in the
-[Operator Guide](../iwr6843/README.md#start-openflight). With `--debug`, a
+[Operator Guide](../iwr6843/verify.md#start-openflight). With `--debug`, a
 healthy capture reports:
 
 ```text

@@ -15,83 +15,110 @@ repo_url = "https://github.com/jewbetcha/openflight"
 repo_name = "jewbetcha/openflight"
 edit_uri = "edit/main/docs/"
 
-# Phase 1 nav: every existing page reachable, current flat layout.
-# Phase 2 reorganises this into the seven-section architecture.
 nav = [
   { "Home" = "index.md" },
+
   { "Get started" = [
-    "PARTS.md",
-    "raspberry-pi-setup.md",
+    "get-started/parts.md",
   ] },
+
   { "Build" = [
-    "sound-trigger-wiring.md",
-    "ops243-uart-migration.md",
-    "iwr6843/README.md",
-    "iwr6843/low-confidence-recovery.md",
-    "inclinometer/README.md",
-    "battery/README.md",
-    "battery/geekworm.md",
+    "build/index.md",
+    "build/sound-trigger.md",
+    "build/ops243-uart.md",
+    { "IWR6843 angle radar" = [
+      "iwr6843/index.md",
+      "iwr6843/wiring.md",
+      "iwr6843/flashing.md",
+      "iwr6843/mounting.md",
+      "iwr6843/verify.md",
+      "iwr6843/club-path.md",
+      "iwr6843/calibration.md",
+      "iwr6843/troubleshooting.md",
+      "iwr6843/low-confidence-recovery.md",
+    ] },
+    "build/inclinometer.md",
+    "build/battery.md",
     "build/enclosure.md",
   ] },
+
+  { "Setup" = [
+    "setup/raspberry-pi.md",
+    "setup/rolling-buffer.md",
+    "setup/auto-start.md",
+  ] },
+
   { "Using OpenFlight" = [
-    "swing-speed-training.md",
-    "simulator/README.md",
-    "simulator/gspro.md",
-    "simulator/opengolfsim.md",
-    "cloud-sync.md",
-    "observability.md",
+    "using/index.md",
+    "using/swing-speed.md",
+    { "Simulator connectors" = [
+      "using/simulator/index.md",
+      "using/simulator/gspro.md",
+      "using/simulator/opengolfsim.md",
+    ] },
+    "using/cloud-sync.md",
+    "using/battery.md",
+    "using/observability.md",
   ] },
+
   { "How it works" = [
-    "rolling_buffer_spin_detection.md",
-    "spin-dechirp-replay.md",
+    "how-it-works/rolling-buffer.md",
   ] },
+
   { "Reference" = [
-    "openflight-cloud-uploader-spec.md",
+    "reference/cloud-uploader-spec.md",
   ] },
+
   { "Development" = [
+    "development/index.md",
     "development/firmware.md",
+    "development/trackman-testing.md",
+    "development/spin-replay.md",
+    "development/camera-yolo.md",
     "development/analysis-tooling.md",
-    "trackman-test-process.md",
-    "yolo-performance-tuning.md",
   ] },
+
   { "Legacy (K-LD7)" = [
-    "kld7.md",
-    "kld7-troubleshooting.md",
-    "kld7-ball-detection-theory.md",
-    "kld7-session-review.md",
+    "legacy/index.md",
+    "legacy/troubleshooting.md",
+    "legacy/ball-detection-theory.md",
+    "legacy/session-review.md",
   ] },
+
   { "Archive" = [
+    "archive/index.md",
     { "Design notes" = [
-      "plans/2026-03-03-enhanced-launch-angle-design.md",
-      "plans/2026-03-23-kld7-angle-radar-design.md",
-      "plans/2026-03-28-kld7-integration-design.md",
-      "plans/2026-04-05-kld7-radc-processing-design.md",
-      "plans/2026-04-10-spin-detection-rework-design.md",
-      "superpowers/specs/2026-04-15-spin-angle-validation-design.md",
-      "superpowers/specs/2026-04-20-hardware-diagnostic-design.md",
-      "superpowers/specs/2026-06-09-kld7-prf-probing-design.md",
-      "superpowers/specs/2026-07-25-iwr6843-club-path-design.md",
-      "superpowers/specs/2026-08-09-optional-build-items-design.md",
+      "archive/plans/2026-03-03-enhanced-launch-angle-design.md",
+      "archive/plans/2026-03-23-kld7-angle-radar-design.md",
+      "archive/plans/2026-03-28-kld7-integration-design.md",
+      "archive/plans/2026-04-05-kld7-radc-processing-design.md",
+      "archive/plans/2026-04-10-spin-detection-rework-design.md",
+      "archive/specs/2026-04-15-spin-angle-validation-design.md",
+      "archive/specs/2026-04-20-hardware-diagnostic-design.md",
+      "archive/specs/2026-06-09-kld7-prf-probing-design.md",
+      "archive/specs/2026-07-25-iwr6843-club-path-design.md",
+      "archive/specs/2026-08-09-optional-build-items-design.md",
     ] },
     { "Implementation plans" = [
-      "plans/2026-03-03-enhanced-launch-angle-plan.md",
-      "plans/2026-03-28-kld7-integration-plan.md",
-      "plans/2026-04-05-kld7-radc-processing-plan.md",
-      "plans/2026-04-06-radc-launch-angle-fullstack.md",
-      "plans/2026-04-10-spin-detection-rework-plan.md",
-      "plans/kld7-club-extraction-TODO.md",
-      "superpowers/plans/2026-04-15-spin-angle-validation.md",
-      "superpowers/plans/2026-04-20-hardware-diagnostic.md",
-      "superpowers/plans/2026-06-09-kld7-prf-probing.md",
-      "superpowers/plans/2026-06-13-sim-connector-abstraction.md",
-      "superpowers/plans/2026-08-09-documentation-audit.md",
-      "plans/2026-08-23-zensical-docs-site-plan.md",
+      "archive/plans/2026-03-03-enhanced-launch-angle-plan.md",
+      "archive/plans/2026-03-28-kld7-integration-plan.md",
+      "archive/plans/2026-04-05-kld7-radc-processing-plan.md",
+      "archive/plans/2026-04-06-radc-launch-angle-fullstack.md",
+      "archive/plans/2026-04-10-spin-detection-rework-plan.md",
+      "archive/plans/kld7-club-extraction-TODO.md",
+      "archive/superpowers-plans/2026-04-15-spin-angle-validation.md",
+      "archive/superpowers-plans/2026-04-20-hardware-diagnostic.md",
+      "archive/superpowers-plans/2026-06-09-kld7-prf-probing.md",
+      "archive/superpowers-plans/2026-06-13-sim-connector-abstraction.md",
+      "archive/superpowers-plans/2026-08-09-documentation-audit.md",
+      "archive/plans/2026-08-23-zensical-docs-site-plan.md",
     ] },
     { "Pull request notes" = [
-      "prs/2026-04-02-kld7-shot-correlation-pr.md",
+      "archive/prs/2026-04-02-kld7-shot-correlation-pr.md",
     ] },
   ] },
-  { "Changelog" = "CHANGELOG.md" },
+
+  { "Changelog" = "changelog.md" },
 ]
 
 extra_css = ["stylesheets/extra.css"]
