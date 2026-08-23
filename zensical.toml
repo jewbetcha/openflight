@@ -1,5 +1,5 @@
 [project]
-site_url = "https://austin1.github.io/openflight/"
+site_url = "https://openflight.dev/docs/"
 site_name = "OpenFlight Docs"
 
 # Config lives at the repo root so every existing `docs/…` link — from the
