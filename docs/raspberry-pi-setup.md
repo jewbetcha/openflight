@@ -148,7 +148,7 @@ Do it in this order, and confirm each step works before starting the next:
 2. **Flash the IWR6843** — operator guide, *Flash The IWR6843 Firmware*. A
    validated prebuilt image is in `firmware/releases/`, so the TI toolchain is
    not required. You only need the
-   [firmware developer guide](../firmware/README.md) to build from source.
+   [firmware developer guide](development/firmware.md) to build from source.
 3. **Mount, aim, and measure geometry** — operator guide. The geometry values
    are passed on the command line and a wrong one silently biases the launch
    angle instead of erroring, so measure rather than estimate.

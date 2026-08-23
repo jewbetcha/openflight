@@ -18,7 +18,7 @@ BCM17 and immediately asks the IWR6843 firmware to finish and dump its rolling
 frame ring.
 
 For firmware development, architecture, and build instructions, see
-[`firmware/README.md`](../../firmware/README.md).
+[firmware developer guide](../development/firmware.md).
 For a plain-language explanation and the July 2026 TrackMan baseline, see the
 [IWR6843 launch-angle field report](../iwr6843_field_report_2026-07.html).
 
@@ -837,4 +837,4 @@ until power, ports, firmware, config, and geometry are verified.
 | Dump file is missing from the session | OpenFlight was not launched with `--debug` | Re-run in debug mode when raw capture retention is required |
 
 If the firmware itself must be rebuilt rather than flashed from the checked-in
-binary, continue with [`firmware/README.md`](../../firmware/README.md).
+binary, continue with the [firmware developer guide](../development/firmware.md).

@@ -13,7 +13,7 @@ flag.
   estimator, which models the indoor ground-bounce multipath directly.
   Indoor accuracy is ~2–3° on irons and wedges.
 - **Launch direction (horizontal)** — uses the legacy estimator (see
-  [Horizontal / aim](#horizontal--aim) below).
+  [Horizontal / aim](#horizontal-aim) below).
 - Both axes are filtered by the OPS243 ball speed and correlated to the
   shot via the OPS impact timestamp.
 
@@ -115,4 +115,4 @@ by the two-ray pipeline.
 See [kld7-troubleshooting.md](kld7-troubleshooting.md) for detection and
 serial issues. For validation sessions and offline tooling, see the
 [TrackMan test process](trackman-test-process.md) and
-[K-LD7 analysis tools](../scripts/analysis/kld7_analysis_tooling.md).
+[K-LD7 analysis tools](development/analysis-tooling.md).
