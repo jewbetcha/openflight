@@ -612,8 +612,7 @@ class OPS243Radar:
                 # mid-dump). Abandon the sync; the caller falls back to
                 # first-byte timing. Retrying writes would only re-block.
                 logger.warning(
-                    "[OPS] Clock sync C? write timed out — port jammed, "
-                    "abandoning clock sync"
+                    "[OPS] Clock sync C? write timed out — port jammed, abandoning clock sync"
                 )
                 return False
             buf = ""

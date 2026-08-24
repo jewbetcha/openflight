@@ -8,39 +8,17 @@ serialize the ResolvedShot into their own wire format.
 import math
 from typing import Dict, Tuple
 
+from openflight.club_data import CLUB_TYPICAL_SPIN_RPM, OPTIMAL_LAUNCH_ANGLES
 from openflight.launch_monitor import (
-    _OPTIMAL_LAUNCH,
     SPIN_CONFIDENCE_HIGH,
     ClubType,
     Shot,
 )
 from openflight.sim.types import IncompleteShotError, PlayerState, ResolvedShot
 
-# Temporary per-club spin model (rpm), used only when a measured spin is absent
-# or low-confidence. Slated for replacement by the shared ballistics spin model.
-SPIN_MODEL_RPM: Dict[ClubType, float] = {
-    ClubType.DRIVER: 2500.0,
-    ClubType.WOOD_3: 3000.0,
-    ClubType.WOOD_5: 3500.0,
-    ClubType.WOOD_7: 4000.0,
-    ClubType.HYBRID_3: 3500.0,
-    ClubType.HYBRID_5: 4000.0,
-    ClubType.HYBRID_7: 4500.0,
-    ClubType.HYBRID_9: 5000.0,
-    ClubType.IRON_2: 4000.0,
-    ClubType.IRON_3: 4500.0,
-    ClubType.IRON_4: 5000.0,
-    ClubType.IRON_5: 5500.0,
-    ClubType.IRON_6: 6000.0,
-    ClubType.IRON_7: 7000.0,
-    ClubType.IRON_8: 8000.0,
-    ClubType.IRON_9: 9000.0,
-    ClubType.PW: 9500.0,
-    ClubType.GW: 10000.0,
-    ClubType.SW: 10500.0,
-    ClubType.LW: 11000.0,
-    ClubType.UNKNOWN: 5000.0,
-}
+# Per-club spin model (rpm) from canonical TrackMan averages (club_data.py)
+SPIN_MODEL_RPM: Dict[ClubType, float] = dict(CLUB_TYPICAL_SPIN_RPM)
+_OPTIMAL_LAUNCH: Dict[ClubType, float] = dict(OPTIMAL_LAUNCH_ANGLES)
 
 _DEFAULT_SPIN_RPM = 5000.0
 _DEFAULT_VLA_DEG = 18.0

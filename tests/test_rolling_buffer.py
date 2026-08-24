@@ -554,10 +554,7 @@ class TestSoundTriggerTimestampPropagation:
 
             def __init__(self):
                 self._response = (
-                    b'{"sample_time": 1.0}\r\n'
-                    b'{"trigger_time": 1.1}\r\n'
-                    b'{"I": [1]}\r\n'
-                    b'{"Q": [1]}'
+                    b'{"sample_time": 1.0}\r\n{"trigger_time": 1.1}\r\n{"I": [1]}\r\n{"Q": [1]}'
                 )
 
             @property

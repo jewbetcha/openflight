@@ -95,7 +95,11 @@ def _synth_club(path_deg, *, club_speed_ms=22.0, tee_range_m=1.372, n_samples=12
                 value = amp * az_factor * np.exp(1j * (tdm_phase + doppler_phase))
                 cube[frame, loop * n_tx + tx, :, bin_at] = value
     return pack_dump(
-        cube, n_tx=n_tx, version=3, frame_period_us=4000, trigger_frame=0,
+        cube,
+        n_tx=n_tx,
+        version=3,
+        frame_period_us=4000,
+        trigger_frame=0,
         sample_fmt=SAMPLE_RANGE_FFT_IQ16,
     )
 
@@ -127,19 +131,13 @@ def test_recovers_known_path(path_deg):
 
 def test_sign_convention_is_in_to_out_positive():
     """A club moving rightward relative to the target line reads positive."""
-    out_in = club.estimate_club_path(
-        _synth_club(-6.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
-    in_out = club.estimate_club_path(
-        _synth_club(6.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    out_in = club.estimate_club_path(_synth_club(-6.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
+    in_out = club.estimate_club_path(_synth_club(6.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     assert in_out.path_deg > 0 > out_in.path_deg
 
 
 def test_aim_offset_is_added():
-    without = club.estimate_club_path(
-        _synth_club(0.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    without = club.estimate_club_path(_synth_club(0.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     with_offset = club.estimate_club_path(
         _synth_club(0.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1, aim_offset_deg=2.0
     )
@@ -147,15 +145,22 @@ def test_aim_offset_is_added():
 
 
 def test_result_serialises():
-    result = club.estimate_club_path(
-        _synth_club(3.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(3.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     payload = result.to_dict()
     assert payload["status"] == "accepted"
     assert set(payload) >= {
-        "status", "path_deg", "confidence", "azimuth_rate_dps", "range_rate_ms",
-        "club_range_m", "n_frames", "n_snapshots", "fit_residual_deg",
-        "track_rms_bins", "track_inliers", "track_span_s",
+        "status",
+        "path_deg",
+        "confidence",
+        "azimuth_rate_dps",
+        "range_rate_ms",
+        "club_range_m",
+        "n_frames",
+        "n_snapshots",
+        "fit_residual_deg",
+        "track_rms_bins",
+        "track_inliers",
+        "track_span_s",
     }
 
 
@@ -170,8 +175,7 @@ def test_two_tx_dump_is_rejected():
     """Club path needs TX2; a 2-TX dump has no horizontal aperture."""
     cube = np.zeros((18, 24, 4, 128), dtype=complex)
     cube[:, :, :, 30] = 1000.0
-    raw = pack_dump(cube, n_tx=2, version=3, frame_period_us=4000,
-                    sample_fmt=SAMPLE_RANGE_FFT_IQ16)
+    raw = pack_dump(cube, n_tx=2, version=3, frame_period_us=4000, sample_fmt=SAMPLE_RANGE_FFT_IQ16)
     result = club.estimate_club_path(raw, _cal(), ops_club_speed_mph=74.0)
     assert result.status == "rejected_requires_three_tx"
     assert result.path_deg is None
@@ -179,8 +183,7 @@ def test_two_tx_dump_is_rejected():
 
 def test_empty_dump_reports_no_club_track():
     cube = np.zeros((18, 36, 4, 128), dtype=complex)
-    raw = pack_dump(cube, n_tx=3, version=3, frame_period_us=4000,
-                    sample_fmt=SAMPLE_RANGE_FFT_IQ16)
+    raw = pack_dump(cube, n_tx=3, version=3, frame_period_us=4000, sample_fmt=SAMPLE_RANGE_FFT_IQ16)
     result = club.estimate_club_path(raw, _cal(), ops_club_speed_mph=74.0)
     assert result.status == "rejected_no_club_track"
     assert result.path_deg is None
@@ -188,9 +191,7 @@ def test_empty_dump_reports_no_club_track():
 
 def test_club_speed_mismatch_is_rejected():
     """A 22 m/s radial track cannot belong to a 20 mph club."""
-    result = club.estimate_club_path(
-        _synth_club(0.0), _cal(), ops_club_speed_mph=20.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(0.0), _cal(), ops_club_speed_mph=20.0, tdm_sign=1)
     assert result.status == "rejected_club_speed_mismatch"
     assert result.path_deg is None
     assert result.range_rate_ms is not None, "evidence must survive the rejection"
@@ -198,9 +199,7 @@ def test_club_speed_mismatch_is_rejected():
 
 def test_rejections_carry_their_evidence():
     """A threshold that rejects a value must record the value it rejected."""
-    result = club.estimate_club_path(
-        _synth_club(0.0), _cal(), ops_club_speed_mph=20.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(0.0), _cal(), ops_club_speed_mph=20.0, tdm_sign=1)
     payload = result.to_dict()
     assert payload["range_rate_ms"] is not None
     assert payload["track_inliers"] is not None
@@ -210,26 +209,21 @@ def test_short_ring_reports_no_pre_impact_frames():
     """A ring with no pre-impact window cannot produce club path."""
     cube = np.zeros((4, 36, 4, 128), dtype=complex)
     cube[:, :, :, 30] = 1000.0
-    raw = pack_dump(cube, n_tx=3, version=3, frame_period_us=4000,
-                    sample_fmt=SAMPLE_RANGE_FFT_IQ16)
+    raw = pack_dump(cube, n_tx=3, version=3, frame_period_us=4000, sample_fmt=SAMPLE_RANGE_FFT_IQ16)
     result = club.estimate_club_path(raw, _cal(), ops_club_speed_mph=74.0)
     assert result.status == "rejected_no_pre_impact_frames"
 
 
 def test_insufficient_snapshots_is_rejected(monkeypatch):
     monkeypatch.setattr(club, "CLUB_MIN_SNAPSHOTS", 10_000)
-    result = club.estimate_club_path(
-        _synth_club(0.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(0.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     assert result.status == "rejected_insufficient_snapshots"
     assert result.n_snapshots > 0, "the count that failed must be recorded"
 
 
 def test_azimuth_fit_residual_is_rejected(monkeypatch):
     monkeypatch.setattr(club, "CLUB_MAX_AZIMUTH_FIT_RESIDUAL_DEG", 1e-9)
-    result = club.estimate_club_path(
-        _synth_club(4.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(4.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     assert result.status == "rejected_azimuth_fit"
     assert result.fit_residual_deg is not None
 
@@ -237,9 +231,7 @@ def test_azimuth_fit_residual_is_rejected(monkeypatch):
 def test_phase_wrap_is_rejected(monkeypatch):
     """The true azimuth swing is ~0.04 rad; anything near a wrap is a bad track."""
     monkeypatch.setattr(club, "CLUB_MAX_PHASE_SWING_RAD", 1e-6)
-    result = club.estimate_club_path(
-        _synth_club(4.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1
-    )
+    result = club.estimate_club_path(_synth_club(4.0), _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     assert result.status == "rejected_phase_wrap"
 
 
@@ -255,13 +247,19 @@ def test_club_search_does_not_fit_the_ball(monkeypatch):
     for frame in range(n_frames):
         for loop in range(loops):
             t = frame * 4e-3 + loop * 90e-6
-            if t < 0.030:                      # nothing before the ball launches
+            if t < 0.030:  # nothing before the ball launches
                 continue
             bin_at = int((1.5 + 40.0 * (t - 0.030)) / res)
             if 0 <= bin_at < n_samples:
                 cube[frame, loop * n_tx : (loop + 1) * n_tx, :, bin_at] = 1000.0
-    raw = pack_dump(cube, n_tx=n_tx, version=3, frame_period_us=4000, trigger_frame=0,
-                    sample_fmt=SAMPLE_RANGE_FFT_IQ16)
+    raw = pack_dump(
+        cube,
+        n_tx=n_tx,
+        version=3,
+        frame_period_us=4000,
+        trigger_frame=0,
+        sample_fmt=SAMPLE_RANGE_FFT_IQ16,
+    )
     result = club.estimate_club_path(raw, _cal(), ops_club_speed_mph=74.0, tdm_sign=1)
     assert result.status != "accepted", (
         f"fitted a post-impact mover as club path: {result.to_dict()}"

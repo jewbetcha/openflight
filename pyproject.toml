@@ -89,7 +89,7 @@ dev = [
     "pylint>=3.3.9",
     "pre-commit>=4.0.0",
     "pytest>=9.0.3",
-    "ruff>=0.1.0",
+    "ruff>=0.9.10",
 ]
 
 [tool.ruff]
@@ -127,3 +127,4 @@ max-line-length = 100
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+addopts = "--basetemp=.pytest_temp"

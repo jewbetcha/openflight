@@ -36,8 +36,8 @@ def test_track_broken_still_enforces_rms_and_inliers():
             self.t_first = 0.0
             self.t_last = 0.033
 
-    assert shotmod.track_broken(FakeTrack(0.60, 40)) is True   # rms >= 0.50
-    assert shotmod.track_broken(FakeTrack(0.20, 27)) is True   # inliers < 28
+    assert shotmod.track_broken(FakeTrack(0.60, 40)) is True  # rms >= 0.50
+    assert shotmod.track_broken(FakeTrack(0.20, 27)) is True  # inliers < 28
     assert shotmod.track_broken(FakeTrack(0.20, 40)) is False
 
 

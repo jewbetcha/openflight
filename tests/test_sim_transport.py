@@ -3,19 +3,23 @@
 Exercises TcpSimClient through a real codec (GSProCodec) against the mock
 sim server, plus framing unit tests for the brace-balanced JSON framer.
 """
+
 import json
+import socket
 import time
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 
 from openflight.gspro.codec import GSProCodec
-from openflight.sim.transport import find_json_end, TcpSimClient
-from openflight.sim.types import (
-    ConnectionState, PlayerUpdate, ResolvedShot, ShotAck,
-)
 from openflight.launch_monitor import ClubType
-
+from openflight.sim.transport import TcpSimClient, find_json_end
+from openflight.sim.types import (
+    ConnectionState,
+    PlayerUpdate,
+    ResolvedShot,
+    ShotAck,
+)
 
 # --- framing unit tests ------------------------------------------------------
 
@@ -52,7 +56,7 @@ def test_nested_objects():
 
 
 def test_empty_buffer_returns_none():
-    assert find_json_end(b'') is None
+    assert find_json_end(b"") is None
 
 
 def test_leading_whitespace_before_object():
@@ -69,6 +73,7 @@ def test_non_ascii_inside_string():
 
 class _NoHeartbeatCodec:
     """Minimal codec whose protocol has no keepalive (no heartbeat thread)."""
+
     name = "noheartbeat"
 
     def build_shot(self, resolved) -> bytes:
@@ -102,10 +107,19 @@ def _wait_for_state(client, state, deadline=3.0):
 
 def _resolved() -> ResolvedShot:
     return ResolvedShot(
-        shot_number=7, ball_speed_mph=140.0, vla=12.0, hla=0.0,
-        total_spin_rpm=2500.0, spin_axis_deg=0.0, back_spin_rpm=2500.0,
-        side_spin_rpm=0.0, carry_yards=255.0, club_path_deg=0.0,
-        club=ClubType.DRIVER, club_speed_mph=None, provenance={},
+        shot_number=7,
+        ball_speed_mph=140.0,
+        vla=12.0,
+        hla=0.0,
+        total_spin_rpm=2500.0,
+        spin_axis_deg=0.0,
+        back_spin_rpm=2500.0,
+        side_spin_rpm=0.0,
+        carry_yards=255.0,
+        club_path_deg=0.0,
+        club=ClubType.DRIVER,
+        club_speed_mph=None,
+        provenance={},
     )
 
 
@@ -250,20 +264,32 @@ def test_reconnect_after_server_drop(mock_sim):
         client.stop()
 
 
-def test_backoff_progression_capped():
-    client = TcpSimClient("127.0.0.1", 1, GSProCodec(), heartbeat_interval_s=60,
-                          backoff_seconds=(0.05, 0.1, 0.1))
+def test_backoff_progression_capped(monkeypatch):
+    def fake_connect(self, addr):
+        raise ConnectionRefusedError(10061, "Connection refused")
+
+    monkeypatch.setattr(socket.socket, "connect", fake_connect)
+
+    client = TcpSimClient(
+        "127.0.0.1", 1, GSProCodec(), heartbeat_interval_s=60, backoff_seconds=(0.05, 0.1, 0.1)
+    )
     statuses = []
     client.on_status = statuses.append
     client.start()
-    time.sleep(0.5)
-    client.stop()
-    # Before the first successful connection the client reports CONNECTING during
-    # the retry backoff (RECONNECT_BACKOFF is reserved for a connection that was
-    # established and then dropped). The backoff schedule is still carried on
-    # next_retry_in_s, so assert on the CONNECTING retries here.
-    backoffs = [s.next_retry_in_s for s in statuses
-                if s.state == ConnectionState.CONNECTING and s.next_retry_in_s > 0]
+    try:
+        deadline = time.time() + 1.0
+        while time.time() < deadline:
+            backoffs = [
+                s.next_retry_in_s
+                for s in statuses
+                if s.state == ConnectionState.CONNECTING and s.next_retry_in_s > 0
+            ]
+            if len(backoffs) >= 2:
+                break
+            time.sleep(0.02)
+    finally:
+        client.stop()
+
     assert len(backoffs) >= 2
     assert max(backoffs) <= 0.1
 

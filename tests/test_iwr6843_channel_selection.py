@@ -41,12 +41,8 @@ def test_collapsed_channel_is_dropped():
 
 
 def test_spread_threshold_boundary():
-    just_inside = lcmf.combine_channels(
-        {"a": 10.0, "b": 17.9}, {"a": 1.0, "b": 1.0}
-    )
-    just_outside = lcmf.combine_channels(
-        {"a": 10.0, "b": 18.1}, {"a": 0.1, "b": 1.0}
-    )
+    just_inside = lcmf.combine_channels({"a": 10.0, "b": 17.9}, {"a": 1.0, "b": 1.0})
+    just_outside = lcmf.combine_channels({"a": 10.0, "b": 18.1}, {"a": 0.1, "b": 1.0})
     assert just_inside[2] is False
     assert just_outside[2] is True
 
@@ -66,7 +62,7 @@ def test_curvature_measures_sharpness_of_the_minimum():
 
 
 def test_edge_minimum_scores_none_not_zero():
-    """"Not measured" and "flat" are different verdicts and must not collide.
+    """ "Not measured" and "flat" are different verdicts and must not collide.
 
     An argmin on the grid edge means the true minimum lies OUTSIDE the
     searched range -- the grid runs to 45 deg and a lofted club can exceed
@@ -77,8 +73,8 @@ def test_edge_minimum_scores_none_not_zero():
     A flat array is the same failure, not a separate "flat" case: every value
     ties, so argmin lands on index 0.
     """
-    rising = np.arange(41, dtype=float)          # minimum at index 0
-    falling = rising[::-1].copy()                # minimum at the last index
+    rising = np.arange(41, dtype=float)  # minimum at index 0
+    falling = rising[::-1].copy()  # minimum at the last index
     assert lcmf.grid_curvature(rising) is None
     assert lcmf.grid_curvature(falling) is None
     assert lcmf.grid_curvature(np.zeros(41)) is None

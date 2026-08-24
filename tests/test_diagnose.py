@@ -21,8 +21,11 @@ class TestCheckResult:
 
     def test_with_all_fields(self):
         r = diagnose.CheckResult(
-            name="Test", status="fail", detail="something broke",
-            hint="try this", elapsed_s=1.5,
+            name="Test",
+            status="fail",
+            detail="something broke",
+            hint="try this",
+            elapsed_s=1.5,
         )
         assert r.detail == "something broke"
         assert r.hint == "try this"
@@ -168,7 +171,9 @@ class TestCheckOps243Connectivity:
     @patch("diagnose.detect_ops243_port")
     @patch("diagnose.OPS243Radar")
     def test_returns_pass_when_connects_and_returns_version(
-        self, mock_radar_class, mock_detect,
+        self,
+        mock_radar_class,
+        mock_detect,
     ):
         mock_detect.return_value = "/dev/ttyACM0"
         mock_radar = MagicMock()
@@ -187,7 +192,9 @@ class TestCheckOps243Connectivity:
     @patch("diagnose.detect_ops243_port")
     @patch("diagnose.OPS243Radar")
     def test_returns_fail_on_connect_exception(
-        self, mock_radar_class, mock_detect,
+        self,
+        mock_radar_class,
+        mock_detect,
     ):
         mock_detect.return_value = "/dev/ttyACM0"
         mock_radar = MagicMock()
@@ -297,7 +304,10 @@ class TestCheckKld7Vertical:
     @patch("diagnose.KLD7Tracker")
     @patch("diagnose.time.sleep")
     def test_pass_when_frames_stream(
-        self, mock_sleep, mock_tracker_class, mock_detect,
+        self,
+        mock_sleep,
+        mock_tracker_class,
+        mock_detect,
     ):
         mock_detect.return_value = ["/dev/ttyUSB0"]
         mock_tracker = MagicMock()
@@ -317,7 +327,10 @@ class TestCheckKld7Vertical:
     @patch("diagnose.KLD7Tracker")
     @patch("diagnose.time.sleep")
     def test_fail_when_no_frames(
-        self, mock_sleep, mock_tracker_class, mock_detect,
+        self,
+        mock_sleep,
+        mock_tracker_class,
+        mock_detect,
     ):
         mock_detect.return_value = ["/dev/ttyUSB0"]
         mock_tracker = MagicMock()
@@ -334,7 +347,9 @@ class TestCheckKld7Vertical:
     @patch("diagnose.detect_kld7_ports")
     @patch("diagnose.KLD7Tracker")
     def test_fail_when_connect_returns_false(
-        self, mock_tracker_class, mock_detect,
+        self,
+        mock_tracker_class,
+        mock_detect,
     ):
         mock_detect.return_value = ["/dev/ttyUSB0"]
         mock_tracker = MagicMock()
@@ -370,7 +385,10 @@ class TestCheckKld7Horizontal:
     @patch("diagnose.KLD7Tracker")
     @patch("diagnose.time.sleep")
     def test_pass_with_second_port(
-        self, mock_sleep, mock_tracker_class, mock_detect,
+        self,
+        mock_sleep,
+        mock_tracker_class,
+        mock_detect,
     ):
         mock_detect.return_value = ["/dev/ttyUSB0", "/dev/ttyUSB1"]
         mock_tracker = MagicMock()
@@ -470,17 +488,21 @@ class TestUartPreflight:
 
     def test_passes_when_environment_is_clean(self):
         state = diagnose.DiagnosticState(ops243_port="/dev/ttyAMA0")
-        with patch.object(diagnose.os.path, "exists", return_value=True), \
-             patch.object(diagnose, "_serial_console_units", return_value=[]), \
-             patch.object(diagnose, "detect_ops243_port", return_value=None):
+        with (
+            patch.object(diagnose.os.path, "exists", return_value=True),
+            patch.object(diagnose, "_serial_console_units", return_value=[]),
+            patch.object(diagnose, "detect_ops243_port", return_value=None),
+        ):
             result = diagnose.check_uart_preflight(state)
         assert result.status == "pass"
 
     def test_fails_when_device_node_missing(self):
         state = diagnose.DiagnosticState(ops243_port="/dev/ttyAMA0")
-        with patch.object(diagnose.os.path, "exists", return_value=False), \
-             patch.object(diagnose, "_serial_console_units", return_value=[]), \
-             patch.object(diagnose, "detect_ops243_port", return_value=None):
+        with (
+            patch.object(diagnose.os.path, "exists", return_value=False),
+            patch.object(diagnose, "_serial_console_units", return_value=[]),
+            patch.object(diagnose, "detect_ops243_port", return_value=None),
+        ):
             result = diagnose.check_uart_preflight(state)
         assert result.status == "fail"
         assert "does not exist" in result.detail
@@ -489,12 +511,15 @@ class TestUartPreflight:
     def test_fails_when_serial_console_holds_the_port(self):
         """Console chatter is transmitted into the radar's RxD pin."""
         state = diagnose.DiagnosticState(ops243_port="/dev/ttyAMA0")
-        with patch.object(diagnose.os.path, "exists", return_value=True), \
-             patch.object(
-                 diagnose, "_serial_console_units",
-                 return_value=["serial-getty@ttyAMA0.service"],
-             ), \
-             patch.object(diagnose, "detect_ops243_port", return_value=None):
+        with (
+            patch.object(diagnose.os.path, "exists", return_value=True),
+            patch.object(
+                diagnose,
+                "_serial_console_units",
+                return_value=["serial-getty@ttyAMA0.service"],
+            ),
+            patch.object(diagnose, "detect_ops243_port", return_value=None),
+        ):
             result = diagnose.check_uart_preflight(state)
         assert result.status == "fail"
         assert "console" in result.detail
@@ -503,9 +528,11 @@ class TestUartPreflight:
     def test_fails_when_ops_usb_is_also_enumerated(self):
         """Enumerating USB silences the UART entirely (AN-010-AD)."""
         state = diagnose.DiagnosticState(ops243_port="/dev/ttyAMA0")
-        with patch.object(diagnose.os.path, "exists", return_value=True), \
-             patch.object(diagnose, "_serial_console_units", return_value=[]), \
-             patch.object(diagnose, "detect_ops243_port", return_value="/dev/ttyACM0"):
+        with (
+            patch.object(diagnose.os.path, "exists", return_value=True),
+            patch.object(diagnose, "_serial_console_units", return_value=[]),
+            patch.object(diagnose, "detect_ops243_port", return_value="/dev/ttyACM0"),
+        ):
             result = diagnose.check_uart_preflight(state)
         assert result.status == "fail"
         assert "USB" in result.detail
@@ -547,8 +574,10 @@ class TestConnectivityReportsBaud:
 
     def test_explicit_port_overrides_autodetect(self):
         state = diagnose.DiagnosticState(ops243_port="/dev/ttyAMA0")
-        with patch.object(diagnose, "OPS243Radar", return_value=self._radar(230400)) as radar_cls, \
-             patch.object(diagnose, "detect_ops243_port", return_value="/dev/ttyACM0"):
+        with (
+            patch.object(diagnose, "OPS243Radar", return_value=self._radar(230400)) as radar_cls,
+            patch.object(diagnose, "detect_ops243_port", return_value="/dev/ttyACM0"),
+        ):
             diagnose.check_ops243_connectivity(state)
         assert radar_cls.call_args.kwargs["port"] == "/dev/ttyAMA0"
 

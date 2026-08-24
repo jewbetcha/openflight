@@ -1,10 +1,14 @@
 """Tests for sim.types — ConnectionState, PlayerState, inbound events."""
+
 import time
 
 from openflight.launch_monitor import ClubType
 from openflight.sim.types import (
-    ConnectionState, PlayerState, PlayerUpdate,
-    SHOT_NUMBER_MAX, initial_shot_counter,
+    SHOT_NUMBER_MAX,
+    ConnectionState,
+    PlayerState,
+    PlayerUpdate,
+    initial_shot_counter,
 )
 
 

@@ -1,4 +1,5 @@
 """Tests for gspro.state — GSPro club-code mapping."""
+
 from openflight.gspro.state import gspro_code_to_club
 from openflight.launch_monitor import ClubType
 
@@ -28,9 +29,26 @@ def test_all_openconnect_codes_from_ogs_clubsync_map_to_real_clubs():
     here, or club sync would silently produce UNKNOWN.
     """
     codes = [
-        "DR", "W3", "W5", "W7", "H3", "H5", "H7", "H9",
-        "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9",
-        "PW", "GW", "SW", "LW",
+        "DR",
+        "W3",
+        "W5",
+        "W7",
+        "H3",
+        "H5",
+        "H7",
+        "H9",
+        "I2",
+        "I3",
+        "I4",
+        "I5",
+        "I6",
+        "I7",
+        "I8",
+        "I9",
+        "PW",
+        "GW",
+        "SW",
+        "LW",
     ]
     for code in codes:
         assert gspro_code_to_club(code) is not ClubType.UNKNOWN, code

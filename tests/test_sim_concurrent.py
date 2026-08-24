@@ -3,6 +3,7 @@
 Both ride the shared OpenConnect V1 codec; they differ only in target/name. The
 shot must reach each connector's own endpoint independently.
 """
+
 import json
 import sys
 import threading
@@ -46,10 +47,8 @@ def test_shot_reaches_both_sims():
     ogs_srv = MockSimServer()
     try:
         cfgs = [
-            ConnectorConfig(type="gspro", enabled=True, host=gspro_srv.host,
-                            port=gspro_srv.port),
-            ConnectorConfig(type="opengolfsim", enabled=True, host=ogs_srv.host,
-                            port=ogs_srv.port),
+            ConnectorConfig(type="gspro", enabled=True, host=gspro_srv.host, port=gspro_srv.port),
+            ConnectorConfig(type="opengolfsim", enabled=True, host=ogs_srv.host, port=ogs_srv.port),
         ]
         connectors = build_connectors(cfgs)
         assert {c.name for c in connectors} == {"gspro", "opengolfsim"}
@@ -58,9 +57,13 @@ def test_shot_reaches_both_sims():
         try:
             assert all(_wait(c, ConnectionState.CONNECTED) for c in connectors)
 
-            shot = Shot(ball_speed_mph=135.0, timestamp=datetime(2026, 6, 13, 12, 0, 0),
-                        club=ClubType.DRIVER, launch_angle_vertical=11.1,
-                        launch_angle_horizontal=1.2)
+            shot = Shot(
+                ball_speed_mph=135.0,
+                timestamp=datetime(2026, 6, 13, 12, 0, 0),
+                club=ClubType.DRIVER,
+                launch_angle_vertical=11.1,
+                launch_angle_horizontal=1.2,
+            )
             resolved = resolve_shot(shot, PlayerState())
             for c in connectors:
                 c.send_shot(resolved)

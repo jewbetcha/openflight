@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from openflight.cloud import commands, spool
 from openflight.cloud.client import LinkPoll, LinkStart, UploadResult
 from openflight.cloud.config import CloudConfig

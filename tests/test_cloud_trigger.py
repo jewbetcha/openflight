@@ -1,7 +1,5 @@
 """Tests for the non-blocking session-end push trigger."""
 
-import pytest
-
 from openflight.cloud import trigger
 from openflight.cloud.config import CloudConfig
 
