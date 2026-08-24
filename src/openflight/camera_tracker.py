@@ -1,10 +1,6 @@
-"""
-Camera-based ball tracking for launch angle detection.
+"""[DEPRECATED] Camera-based ball tracking for launch angle detection."""
 
-Uses Hough circle detection with ByteTrack for persistent tracking,
-or optionally YOLO/Roboflow for detection. Calculates launch angle
-from the ball trajectory.
-"""
+from __future__ import annotations
 
 import math
 import os
@@ -13,9 +9,11 @@ from collections import deque
 from dataclasses import dataclass
 from typing import List, Optional
 
+import numpy as np
+
 try:
     import cv2
-    import numpy as np
+
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
@@ -23,18 +21,21 @@ except ImportError:
 try:
     import supervision as sv
     from trackers import ByteTrackTracker
+
     BYTETRACK_AVAILABLE = True
 except ImportError:
     BYTETRACK_AVAILABLE = False
 
 try:
     from ultralytics import YOLO
+
     YOLO_AVAILABLE = True
 except ImportError:
     YOLO_AVAILABLE = False
 
 try:
     from inference_sdk import InferenceHTTPClient
+
     ROBOFLOW_AVAILABLE = True
 except ImportError:
     ROBOFLOW_AVAILABLE = False
@@ -43,6 +44,7 @@ except ImportError:
 @dataclass
 class BallPosition:
     """A detected ball position in a frame."""
+
     x: int
     y: int
     radius: int
@@ -54,6 +56,7 @@ class BallPosition:
 @dataclass
 class LaunchAngle:
     """Calculated launch angle from ball trajectory."""
+
     vertical: float  # degrees, positive = up
     horizontal: float  # degrees, positive = right of target
     confidence: float  # 0-1
@@ -69,7 +72,7 @@ class HoughDetector:
         max_radius: int = 43,
         param1: int = 48,
         param2: int = 33,
-        min_dist: int = 266
+        min_dist: int = 266,
     ):
         self.min_radius = min_radius
         self.max_radius = max_radius
@@ -94,7 +97,7 @@ class HoughDetector:
             param1=self.param1,
             param2=self.param2,
             minRadius=self.min_radius,
-            maxRadius=self.max_radius
+            maxRadius=self.max_radius,
         )
 
         detections = []
@@ -102,12 +105,9 @@ class HoughDetector:
             circles = np.uint16(np.around(circles))
             for circle in circles[0, :]:
                 x, y, r = circle
-                detections.append({
-                    'x': float(x),
-                    'y': float(y),
-                    'radius': float(r),
-                    'confidence': 0.8
-                })
+                detections.append(
+                    {"x": float(x), "y": float(y), "radius": float(r), "confidence": 0.8}
+                )
 
         return detections
 
@@ -133,7 +133,7 @@ class CameraTracker:
 
     def __init__(
         self,
-        model_path: str = None,
+        model_path: Optional[str] = None,
         camera_distance_inches: float = 48,
         frame_width: int = 640,
         roboflow_api_key: Optional[str] = None,
@@ -146,6 +146,15 @@ class CameraTracker:
         hough_max_radius: int = 43,
         hough_min_dist: int = 266,
     ):
+        import warnings
+
+        warnings.warn(
+            "Camera tracking is deprecated and scheduled for retirement; "
+            "OpenFlight uses radar hardware (OPS243 + TI IWR6843/K-LD7) for launch angles.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if not CV2_AVAILABLE:
             raise ImportError("opencv required: pip install opencv-python")
 
@@ -226,12 +235,12 @@ class CameraTracker:
             return None
 
         position = BallPosition(
-            x=int(best['x']),
-            y=int(best['y']),
-            radius=int(best['radius']),
-            confidence=best['confidence'],
+            x=int(best["x"]),
+            y=int(best["y"]),
+            radius=int(best["radius"]),
+            confidence=best["confidence"],
             timestamp=now,
-            track_id=best.get('track_id')
+            track_id=best.get("track_id"),
         )
 
         self.positions.append(position)
@@ -243,15 +252,21 @@ class CameraTracker:
     def _apply_tracking(self, detections: List[dict]) -> Optional[dict]:
         """Apply ByteTrack to detections, or pick best detection if unavailable."""
         if self.tracker and BYTETRACK_AVAILABLE:
-            xyxy = np.array([
-                [d['x'] - d['radius'], d['y'] - d['radius'],
-                 d['x'] + d['radius'], d['y'] + d['radius']]
-                for d in detections
-            ])
+            xyxy = np.array(
+                [
+                    [
+                        d["x"] - d["radius"],
+                        d["y"] - d["radius"],
+                        d["x"] + d["radius"],
+                        d["y"] + d["radius"],
+                    ]
+                    for d in detections
+                ]
+            )
             sv_detections = sv.Detections(
                 xyxy=xyxy,
-                confidence=np.array([d['confidence'] for d in detections]),
-                class_id=np.zeros(len(detections), dtype=int)
+                confidence=np.array([d["confidence"] for d in detections]),
+                class_id=np.zeros(len(detections), dtype=int),
             )
 
             tracked = self.tracker.update(sv_detections)
@@ -260,16 +275,16 @@ class CameraTracker:
 
             bbox = tracked.xyxy[0]
             return {
-                'x': (bbox[0] + bbox[2]) / 2,
-                'y': (bbox[1] + bbox[3]) / 2,
-                'radius': (bbox[2] - bbox[0]) / 2,
-                'confidence': tracked.confidence[0] if tracked.confidence is not None else 0.8,
-                'track_id': int(tracked.tracker_id[0]) if tracked.tracker_id is not None else 0,
+                "x": (bbox[0] + bbox[2]) / 2,
+                "y": (bbox[1] + bbox[3]) / 2,
+                "radius": (bbox[2] - bbox[0]) / 2,
+                "confidence": tracked.confidence[0] if tracked.confidence is not None else 0.8,
+                "track_id": int(tracked.tracker_id[0]) if tracked.tracker_id is not None else 0,
             }
 
         # No tracking - use highest confidence detection
-        best = max(detections, key=lambda d: d['confidence'])
-        best['track_id'] = None
+        best = max(detections, key=lambda d: d["confidence"])
+        best["track_id"] = None
         return best
 
     def _check_launch(self, current: BallPosition):
@@ -284,7 +299,7 @@ class CameraTracker:
 
         dx = current.x - prev.x
         dy = prev.y - current.y  # Invert Y (image coords are top-down)
-        velocity = math.sqrt(dx*dx + dy*dy) / dt
+        velocity = math.sqrt(dx * dx + dy * dy) / dt
 
         if velocity > self.launch_velocity_threshold and not self.launch_detected:
             self.launch_detected = True
@@ -305,14 +320,16 @@ class CameraTracker:
                 cls = int(box.cls[0])
                 class_name = self.model.names[cls]
 
-                if cls == 32 or 'ball' in class_name.lower() or 'golf' in class_name.lower():
+                if cls == 32 or "ball" in class_name.lower() or "golf" in class_name.lower():
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    detections.append({
-                        'x': (x1 + x2) / 2,
-                        'y': (y1 + y2) / 2,
-                        'radius': (x2 - x1 + y2 - y1) / 4,
-                        'confidence': float(box.conf[0])
-                    })
+                    detections.append(
+                        {
+                            "x": (x1 + x2) / 2,
+                            "y": (y1 + y2) / 2,
+                            "radius": (x2 - x1 + y2 - y1) / 4,
+                            "confidence": float(box.conf[0]),
+                        }
+                    )
 
         return detections
 
@@ -322,18 +339,18 @@ class CameraTracker:
             return []
 
         try:
-            _, buffer = cv2.imencode('.jpg', frame)
+            _, buffer = cv2.imencode(".jpg", frame)
             result = self.roboflow_client.infer(buffer.tobytes(), model_id=self.roboflow_model_id)
 
             return [
                 {
-                    'x': pred.get('x', 0),
-                    'y': pred.get('y', 0),
-                    'radius': (pred.get('width', 0) + pred.get('height', 0)) / 4,
-                    'confidence': pred.get('confidence', 0)
+                    "x": pred.get("x", 0),
+                    "y": pred.get("y", 0),
+                    "radius": (pred.get("width", 0) + pred.get("height", 0)) / 4,
+                    "confidence": pred.get("confidence", 0),
                 }
-                for pred in result.get('predictions', [])
-                if pred.get('confidence', 0) >= 0.3
+                for pred in result.get("predictions", [])
+                if pred.get("confidence", 0) >= 0.3
             ]
         except Exception as e:
             print(f"Roboflow detection error: {e}")
@@ -388,7 +405,7 @@ class CameraTracker:
             vertical=round(vertical, 1),
             horizontal=round(horizontal, 1),
             confidence=round(confidence, 2),
-            positions=positions.copy()
+            positions=positions.copy(),
         )
 
     def _reset_tracking_state(self):
@@ -409,8 +426,12 @@ class CameraTracker:
         display = frame.copy()
 
         colors = [
-            (255, 0, 0), (0, 255, 0), (0, 0, 255),
-            (255, 255, 0), (255, 0, 255), (0, 255, 255)
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (255, 255, 0),
+            (255, 0, 255),
+            (0, 255, 255),
         ]
 
         for i, pos in enumerate(self.positions):
@@ -418,30 +439,55 @@ class CameraTracker:
                 color = colors[pos.track_id % len(colors)]
             else:
                 t = i / max(1, len(self.positions) - 1)
-                color = (int(255 * (1-t)), int(255 * t), 0)
+                color = (int(255 * (1 - t)), int(255 * t), 0)
 
             cv2.circle(display, (pos.x, pos.y), pos.radius, color, 2)
             cv2.circle(display, (pos.x, pos.y), 3, color, -1)
 
             if pos.track_id is not None:
-                cv2.putText(display, f"ID:{pos.track_id}", (pos.x + 5, pos.y - 5),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+                cv2.putText(
+                    display,
+                    f"ID:{pos.track_id}",
+                    (pos.x + 5, pos.y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.4,
+                    color,
+                    1,
+                )
 
         # Draw trajectory line
         if len(self.positions) >= 2:
             points = [(p.x, p.y) for p in self.positions]
             for i in range(len(points) - 1):
-                cv2.line(display, points[i], points[i+1], (0, 255, 255), 2)
+                cv2.line(display, points[i], points[i + 1], (0, 255, 255), 2)
 
         # Show launch angle if calculated
         angle = self.calculate_launch_angle()
         if angle:
-            cv2.putText(display, f"Launch: {angle.vertical:.1f} V, {angle.horizontal:.1f} H",
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            cv2.putText(display, f"Confidence: {angle.confidence:.0%}",
-                       (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(
+                display,
+                f"Launch: {angle.vertical:.1f} V, {angle.horizontal:.1f} H",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 0),
+                2,
+            )
+            cv2.putText(
+                display,
+                f"Confidence: {angle.confidence:.0%}",
+                (10, 55),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 255, 0),
+                1,
+            )
 
-        status = "LAUNCH DETECTED" if self.launch_detected else f"Tracking: {len(self.positions)} positions"
+        status = (
+            "LAUNCH DETECTED"
+            if self.launch_detected
+            else f"Tracking: {len(self.positions)} positions"
+        )
         cv2.putText(display, status, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
         return display

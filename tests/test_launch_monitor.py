@@ -1,13 +1,14 @@
 """Tests for launch_monitor module."""
 
-import pytest
 from datetime import datetime
 
+import pytest
+
 from openflight.launch_monitor import (
-    Shot,
     ClubType,
-    estimate_carry_distance,
+    Shot,
     adjust_carry_for_launch_angle,
+    estimate_carry_distance,
 )
 
 
@@ -125,7 +126,8 @@ class TestShot:
         """Shot with launch angle should adjust carry distance."""
         shot_no_angle = Shot(ball_speed_mph=150.0, timestamp=datetime.now())
         shot_low_angle = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
             launch_angle_vertical=7.0,  # well below 11 optimal for driver
             launch_angle_confidence=1.0,
         )
@@ -141,11 +143,14 @@ class TestShot:
         """Shot with launch angle should have tighter carry range."""
         shot_no_angle = Shot(ball_speed_mph=150.0, timestamp=datetime.now())
         shot_angle = Shot(
-            ball_speed_mph=150.0, timestamp=datetime.now(),
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
             launch_angle_vertical=11.0,
             launch_angle_confidence=0.5,
         )
-        no_angle_spread = shot_no_angle.estimated_carry_range[1] - shot_no_angle.estimated_carry_range[0]
+        no_angle_spread = (
+            shot_no_angle.estimated_carry_range[1] - shot_no_angle.estimated_carry_range[0]
+        )
         angle_spread = shot_angle.estimated_carry_range[1] - shot_angle.estimated_carry_range[0]
         assert angle_spread < no_angle_spread
 
@@ -216,7 +221,7 @@ class TestMultiObjectReporting:
 
         # Verify the method exists and handles single digits
         # Can't test actual command without hardware, but method should not raise
-        assert hasattr(radar, 'set_num_reports')
+        assert hasattr(radar, "set_num_reports")
 
     def test_direction_constants(self):
         """Verify direction enum values."""

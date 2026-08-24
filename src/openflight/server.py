@@ -13,15 +13,23 @@ import statistics
 import sys
 import threading
 import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from flask import Flask, Response, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
 from .ballistics import resolve_launch, simulate
+from .club_data import (
+    CLUB_BALL_SPEEDS,
+    CLUB_LAUNCH_DISTRIBUTIONS,
+    CLUB_LAUNCH_MODELS,
+    CLUB_SPIN_DISTRIBUTIONS,
+    OPTIMAL_SMASH_FACTORS,
+)
 from .launch_monitor import SPIN_CONFIDENCE_HIGH, ClubType, Shot
 from .ops243 import (
     UART_BAUD_COMMANDS,
@@ -78,16 +86,168 @@ app = Flask(__name__, static_folder=str(FRONTEND_DIST_DIR), static_url_path="")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# Global state
-monitor = None
-power_monitor: Optional[PowerMonitor] = None
-battery_provider: str | None = None
-mock_mode: bool = False
-debug_mode: bool = False
-mock_swing_speed_mode: bool = False
-debug_log_file = None
-debug_log_path: Optional[Path] = None
-current_player_name: str = "Player 1"
+
+# Global server AppState
+@dataclass
+class AppState:
+    """Encapsulates all runtime server state, hardware monitors, and settings."""
+
+    monitor: Any = None
+    power_monitor: Optional[PowerMonitor] = None
+    battery_provider: Optional[str] = None
+    mock_mode: bool = False
+    debug_mode: bool = False
+    mock_swing_speed_mode: bool = False
+    debug_log_file: Any = None
+    debug_log_path: Optional[Path] = None
+    current_player_name: str = "Player 1"
+
+    # K-LD7 angle radars
+    kld7_vertical: Any = None
+    kld7_horizontal: Any = None
+    experimental_kld7_radc_tuning: bool = False
+    experimental_kld7_raw_radc_logging: bool = False
+    active_kld7_radc_tuning: dict = field(
+        default_factory=lambda: {
+            "radc_speed_tolerance_mph": 10.0,
+            "radc_centroid_floor_frac": 0.5,
+            "radc_spectrum_source": "f1a",
+            "radc_ops_bin_outlier_tol": 25,
+            "radc_ops_bin_outlier_penalty": 10.0,
+            "radc_ops_anchored_peak_min_snr": 5.0,
+            "radc_vertical_impact_energy_threshold": 3.0,
+            "radc_horizontal_impact_energy_threshold": 1.85,
+            "radc_horizontal_retry_impact_energy_threshold": 0.5,
+            "radc_horizontal_angle_limit_deg": 15.0,
+        }
+    )
+
+    # TI IWR6843 L3 rolling-buffer capture + LCMF-v1 launch angle
+    iwr6843_runtime: Any = None
+    iwr6843_runtime_config: dict = field(default_factory=lambda: {"enabled": False})
+
+    # Inclinometer
+    inclinometer_service: Any = None
+    inclinometer_runtime_config: dict = field(default_factory=lambda: {"enabled": False})
+
+    # Ballistics & Simulators
+    ballistics_enabled: bool = True
+    sim_connectors: List[Any] = field(default_factory=list)
+    sim_player_state: SimPlayerState = field(
+        default_factory=lambda: SimPlayerState(shot_counter=initial_shot_counter())
+    )
+
+    # Legacy Camera state (deprecated)
+    camera: Any = None
+    camera_tracker: Any = None
+    camera_enabled: bool = False
+    camera_streaming: bool = False
+    camera_thread: Optional[threading.Thread] = None
+    camera_stop_event: Optional[threading.Event] = None
+    ball_detected: bool = False
+    ball_detection_confidence: float = 0.0
+    latest_frame: Optional[bytes] = None
+
+    # Corrections & Gates
+    ball_speed_correction_enabled: bool = False
+    ball_speed_correction_distance_ft: float = 5.0
+    ball_speed_correction_ball_above_radar_ft: float = 0.0
+    calculated_spin_enabled: bool = False
+    vertical_radar_gate_bypass: bool = False
+
+    # Synchronization & Lifecycle
+    shutdown_cleanup_started: bool = False
+    frame_lock: threading.Lock = field(default_factory=threading.Lock)
+    shutdown_lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def reset(self) -> None:
+        """Reset state between test runs or sessions."""
+        self.monitor = None
+        self.power_monitor = None
+        self.battery_provider = None
+        self.mock_mode = False
+        self.debug_mode = False
+        self.mock_swing_speed_mode = False
+        self.debug_log_file = None
+        self.debug_log_path = None
+        self.current_player_name = "Player 1"
+        self.kld7_vertical = None
+        self.kld7_horizontal = None
+        self.experimental_kld7_radc_tuning = False
+        self.experimental_kld7_raw_radc_logging = False
+        self.active_kld7_radc_tuning = {
+            "radc_speed_tolerance_mph": 10.0,
+            "radc_centroid_floor_frac": 0.5,
+            "radc_spectrum_source": "f1a",
+            "radc_ops_bin_outlier_tol": 25,
+            "radc_ops_bin_outlier_penalty": 10.0,
+            "radc_ops_anchored_peak_min_snr": 5.0,
+            "radc_vertical_impact_energy_threshold": 3.0,
+            "radc_horizontal_impact_energy_threshold": 1.85,
+            "radc_horizontal_retry_impact_energy_threshold": 0.5,
+            "radc_horizontal_angle_limit_deg": 15.0,
+        }
+        self.iwr6843_runtime = None
+        self.iwr6843_runtime_config = {"enabled": False}
+        self.inclinometer_service = None
+        self.inclinometer_runtime_config = {"enabled": False}
+        self.ballistics_enabled = True
+        self.sim_connectors.clear()
+        self.sim_player_state = SimPlayerState(shot_counter=initial_shot_counter())
+        self.camera = None
+        self.camera_tracker = None
+        self.camera_enabled = False
+        self.camera_streaming = False
+        self.camera_thread = None
+        self.camera_stop_event = None
+        self.ball_detected = False
+        self.ball_detection_confidence = 0.0
+        self.latest_frame = None
+        self.ball_speed_correction_enabled = False
+        self.ball_speed_correction_distance_ft = 5.0
+        self.ball_speed_correction_ball_above_radar_ft = 0.0
+        self.calculated_spin_enabled = False
+        self.vertical_radar_gate_bypass = False
+        self.shutdown_cleanup_started = False
+
+
+app_state = AppState()
+
+
+def get_app_state() -> AppState:
+    """Get the active server AppState instance."""
+    return app_state
+
+
+def reset_app_state() -> AppState:
+    """Reset the active server AppState instance."""
+    app_state.reset()
+    mod = sys.modules.get(__name__)
+    if mod is not None:
+        mod.sim_connectors = app_state.sim_connectors
+        mod.sim_player_state = app_state.sim_player_state
+        mod.monitor = app_state.monitor
+        mod.kld7_vertical = app_state.kld7_vertical
+        mod.kld7_horizontal = app_state.kld7_horizontal
+        mod.iwr6843_runtime = app_state.iwr6843_runtime
+        mod.inclinometer_service = app_state.inclinometer_service
+        mod.power_monitor = app_state.power_monitor
+        mod.camera = app_state.camera
+        mod.camera_tracker = app_state.camera_tracker
+        mod.shutdown_cleanup_started = app_state.shutdown_cleanup_started
+    return app_state
+
+
+# Legacy module-level variables for backwards compatibility
+monitor = app_state.monitor
+power_monitor = app_state.power_monitor
+battery_provider = app_state.battery_provider
+mock_mode = app_state.mock_mode
+debug_mode = app_state.debug_mode
+mock_swing_speed_mode = app_state.mock_swing_speed_mode
+debug_log_file = app_state.debug_log_file
+debug_log_path = app_state.debug_log_path
+current_player_name = app_state.current_player_name
 
 TRAINING_IMPLEMENT_LABELS = {
     "driver": "Driver",
@@ -119,64 +279,35 @@ TRAINING_IMPLEMENT_LABELS = {
     "custom": "Custom",
 }
 
-# K-LD7 angle radars (vertical = launch angle, horizontal = club path)
-kld7_vertical = None
-kld7_horizontal = None
-experimental_kld7_radc_tuning: bool = False
-experimental_kld7_raw_radc_logging: bool = False
+kld7_vertical = app_state.kld7_vertical
+kld7_horizontal = app_state.kld7_horizontal
+experimental_kld7_radc_tuning = app_state.experimental_kld7_radc_tuning
+experimental_kld7_raw_radc_logging = app_state.experimental_kld7_raw_radc_logging
+_DEFAULT_KLD7_RADC_TUNING = app_state.active_kld7_radc_tuning
+active_kld7_radc_tuning = app_state.active_kld7_radc_tuning
 
-# TI IWR6843 L3 rolling-buffer capture + LCMF-v1 launch angle.
-iwr6843_runtime = None
-iwr6843_runtime_config: dict = {"enabled": False}
+iwr6843_runtime = app_state.iwr6843_runtime
+iwr6843_runtime_config = app_state.iwr6843_runtime_config
 
-# Optional LIS3DH enclosure orientation used to compensate TI mount tilt.
-inclinometer_service = None
-inclinometer_runtime_config: dict = {"enabled": False}
+inclinometer_service = app_state.inclinometer_service
+inclinometer_runtime_config = app_state.inclinometer_runtime_config
 
-# Ballistic model toggle. Shot carry comes from the physics simulator whenever
-# a vertical launch angle is available. Operators can explicitly disable it;
-# missing launch inputs always fall back to the legacy table estimator.
-ballistics_enabled: bool = True
+ballistics_enabled = app_state.ballistics_enabled
+sim_connectors = app_state.sim_connectors
+sim_player_state = app_state.sim_player_state
 
-# Simulator connectors (optional). Populated in main() from config/sim.json +
-# CLI flags; shots fan out to every connected connector. Player/club state is
-# shared across all of them.
-sim_connectors: List = []
-# Seed the shot counter from the clock so ShotNumber strictly increases across
-# server restarts. Some sims (e.g. OpenGolfSim's Developer API) reject any
-# ShotNumber <= the highest they've seen, and that counter persists across
-# reconnects — a per-run reset to 1 would get every shot dropped. Uses epoch
-# *seconds* (see initial_shot_counter): epoch millis overflow GSPro's 32-bit
-# ShotNumber field and every shot comes back 501 "Bad format".
-sim_player_state = SimPlayerState(shot_counter=initial_shot_counter())
-
-_DEFAULT_KLD7_RADC_TUNING = {
-    "radc_speed_tolerance_mph": 10.0,
-    "radc_centroid_floor_frac": 0.5,
-    "radc_spectrum_source": "f1a",
-    "radc_ops_bin_outlier_tol": 25,
-    "radc_ops_bin_outlier_penalty": 10.0,
-    "radc_ops_anchored_peak_min_snr": 5.0,
-    "radc_vertical_impact_energy_threshold": 3.0,
-    "radc_horizontal_impact_energy_threshold": 1.85,
-    "radc_horizontal_retry_impact_energy_threshold": 0.5,
-    "radc_horizontal_angle_limit_deg": 15.0,
-}
-active_kld7_radc_tuning: dict = dict(_DEFAULT_KLD7_RADC_TUNING)
-
-# Camera state
-camera: Optional["Picamera2"] = None
-camera_tracker: Optional["CameraTracker"] = None
-camera_enabled: bool = False
-camera_streaming: bool = False
-camera_thread: Optional[threading.Thread] = None
-camera_stop_event: Optional[threading.Event] = None
-ball_detected: bool = False
-ball_detection_confidence: float = 0.0
-latest_frame: Optional[bytes] = None
-frame_lock = threading.Lock()
-shutdown_lock = threading.Lock()
-shutdown_cleanup_started = False
+camera = app_state.camera
+camera_tracker = app_state.camera_tracker
+camera_enabled = app_state.camera_enabled
+camera_streaming = app_state.camera_streaming
+camera_thread = app_state.camera_thread
+camera_stop_event = app_state.camera_stop_event
+ball_detected = app_state.ball_detected
+ball_detection_confidence = app_state.ball_detection_confidence
+latest_frame = app_state.latest_frame
+frame_lock = app_state.frame_lock
+shutdown_lock = app_state.shutdown_lock
+shutdown_cleanup_started = app_state.shutdown_cleanup_started
 
 
 def _run_shutdown_step(name: str, callback) -> None:
@@ -234,56 +365,11 @@ def _shutdown_process_after_delay(delay_s: float = 0.5) -> None:
     os._exit(0)
 
 
-# Baseline launch angles by club (TrackMan data)
-# Format: (avg_launch_deg, avg_ball_speed_mph, deg_per_mph_deviation)
-_CLUB_LAUNCH_MODEL = {
-    ClubType.DRIVER: (11.0, 143, 0.15),
-    ClubType.WOOD_3: (12.5, 135, 0.18),
-    ClubType.WOOD_5: (14.0, 128, 0.20),
-    ClubType.WOOD_7: (15.5, 122, 0.20),
-    ClubType.HYBRID_3: (13.5, 123, 0.22),
-    ClubType.HYBRID_5: (15.0, 118, 0.22),
-    ClubType.HYBRID_7: (16.5, 112, 0.25),
-    ClubType.HYBRID_9: (18.0, 106, 0.25),
-    ClubType.IRON_2: (13.0, 120, 0.25),
-    ClubType.IRON_3: (14.5, 118, 0.25),
-    ClubType.IRON_4: (16.0, 114, 0.28),
-    ClubType.IRON_5: (17.5, 110, 0.28),
-    ClubType.IRON_6: (19.0, 105, 0.30),
-    ClubType.IRON_7: (20.5, 100, 0.30),
-    ClubType.IRON_8: (23.0, 94, 0.30),
-    ClubType.IRON_9: (25.5, 88, 0.30),
-    ClubType.PW: (28.0, 82, 0.30),
-    ClubType.GW: (30.0, 76, 0.30),
-    ClubType.SW: (32.0, 73, 0.30),
-    ClubType.LW: (35.0, 70, 0.30),
-    ClubType.UNKNOWN: (18.0, 120, 0.25),
-}
+# Baseline launch angles by club (TrackMan data, canonical source: club_data.py)
+_CLUB_LAUNCH_MODEL = CLUB_LAUNCH_MODELS
 
-# Optimal smash factor by club type (ball_speed / club_speed)
-_OPTIMAL_SMASH = {
-    ClubType.DRIVER: 1.48,
-    ClubType.WOOD_3: 1.44,
-    ClubType.WOOD_5: 1.42,
-    ClubType.WOOD_7: 1.42,
-    ClubType.HYBRID_3: 1.39,
-    ClubType.HYBRID_5: 1.38,
-    ClubType.HYBRID_7: 1.37,
-    ClubType.HYBRID_9: 1.36,
-    ClubType.IRON_2: 1.37,
-    ClubType.IRON_3: 1.36,
-    ClubType.IRON_4: 1.35,
-    ClubType.IRON_5: 1.35,
-    ClubType.IRON_6: 1.34,
-    ClubType.IRON_7: 1.34,
-    ClubType.IRON_8: 1.33,
-    ClubType.IRON_9: 1.33,
-    ClubType.PW: 1.25,
-    ClubType.GW: 1.23,
-    ClubType.SW: 1.22,
-    ClubType.LW: 1.20,
-    ClubType.UNKNOWN: 1.35,
-}
+# Optimal smash factor by club type (ball_speed / club_speed, canonical source: club_data.py)
+_OPTIMAL_SMASH = OPTIMAL_SMASH_FACTORS
 
 # Max smash factor adjustment in degrees (clamped to prevent floor-dependence)
 _MAX_SMASH_ADJ_LOW = -3.0  # max degrees to subtract for thin/toe hits
@@ -2389,255 +2475,236 @@ def _emit_iwr6843_trigger_status(
     )
 
 
-def on_shot_detected(shot: Shot):
-    """Callback when a shot is detected - emit to all clients."""
-    global ball_detected, ball_detection_confidence  # pylint: disable=global-statement
+def _process_kld7_orientation(
+    shot: Shot,
+    orientation: str,
+    tracker: Any,
+    shot_ts: float,
+    session_log: Any,
+    raw_payload_expected: bool,
+    horizontal_limit: float = 15.0,
+) -> tuple[Optional[Any], Optional[Any]]:
+    """Process a single K-LD7 radar orientation (vertical or horizontal).
 
-    shot.player_name = current_player_name
-    logger.info("[SERVER] Shot callback: %.1f mph", shot.ball_speed_mph)
+    Returns (kld7_angle, club_angle) for diagnostics and session logging.
+    """
+    if tracker is None:
+        return None, None
 
-    # Snapshot orientation before IWR capture can block, and select only data
-    # timestamped before impact so impact vibration cannot bias the geometry.
-    _snapshot_inclinometer_for_shot(shot)
-    iwr6843_ms = _process_iwr6843_angle(shot)
-    kld7_ms = None
-    # Process K-LD7 angle radars (vertical = launch angle, horizontal = club path)
-    try:
-        if shot.mode != "mock":
-            kld7_start = time.time()
-            shot_ts = shot.impact_timestamp or kld7_start
-            session_log = get_session_logger()
-            if kld7_vertical or kld7_horizontal:
-                _maybe_wait_for_kld7_post_shot_frames(shot_ts)
+    if raw_payload_expected:
+        raw_buffer = tracker.snapshot_buffer(include_radc_payload=True)
+    else:
+        raw_buffer = tracker.snapshot_buffer()
 
-            # --- Vertical K-LD7 (launch angle) ---
-            if kld7_vertical:
-                raw_payload_expected = _experimental_kld7_raw_radc_logging_enabled()
-                if raw_payload_expected:
-                    raw_buffer = kld7_vertical.snapshot_buffer(include_radc_payload=True)
-                else:
-                    raw_buffer = kld7_vertical.snapshot_buffer()
-                _warn_if_kld7_buffer_underfilled("vertical", len(raw_buffer))
-                _warn_if_kld7_raw_payload_missing(
-                    "vertical",
-                    raw_buffer,
-                    raw_payload_expected=raw_payload_expected,
+    _warn_if_kld7_buffer_underfilled(orientation, len(raw_buffer))
+    _warn_if_kld7_raw_payload_missing(
+        orientation, raw_buffer, raw_payload_expected=raw_payload_expected
+    )
+    _warn_if_kld7_snapshot_lacks_post_shot_frames(
+        orientation, raw_buffer, shot_ts, raw_payload_expected=raw_payload_expected
+    )
+
+    selection_details = None
+    if orientation == "vertical":
+        kld7_angle = tracker.get_angle_for_shot(
+            shot_timestamp=shot_ts,
+            ball_speed_mph=shot.ball_speed_mph,
+            impact_timestamp=shot.impact_timestamp_kld7,
+            club=shot.club,
+        )
+        if kld7_angle and kld7_angle.vertical_deg is not None:
+            accepted, selection_details = _select_vertical_radar_launch(kld7_angle, shot)
+            selection_reason = selection_details["selection_reason"]
+            if not accepted:
+                logger.warning(
+                    "[SERVER] Vertical angle %.1f° rejected: %s "
+                    "(expected=%s°, delta=%s°, conf=%.0f%%)",
+                    kld7_angle.vertical_deg,
+                    selection_reason,
+                    selection_details.get("expected_launch_deg"),
+                    selection_details.get("delta_deg"),
+                    kld7_angle.confidence * 100,
                 )
-                _warn_if_kld7_snapshot_lacks_post_shot_frames(
-                    "vertical",
-                    raw_buffer,
-                    shot_ts,
-                    raw_payload_expected=raw_payload_expected,
-                )
-                kld7_angle = kld7_vertical.get_angle_for_shot(
-                    shot_timestamp=shot_ts,
-                    ball_speed_mph=shot.ball_speed_mph,
-                    impact_timestamp=shot.impact_timestamp_kld7,
-                    club=shot.club,
-                )
-                vertical_selection_details = None
-                if kld7_angle and kld7_angle.vertical_deg is not None:
-                    accepted, vertical_selection_details = _select_vertical_radar_launch(
-                        kld7_angle, shot
-                    )
-                    selection_reason = vertical_selection_details["selection_reason"]
-                    if not accepted:
-                        logger.warning(
-                            "[SERVER] Vertical angle %.1f° rejected: %s "
-                            "(expected=%s°, delta=%s°, conf=%.0f%%)",
-                            kld7_angle.vertical_deg,
-                            selection_reason,
-                            vertical_selection_details.get("expected_launch_deg"),
-                            vertical_selection_details.get("delta_deg"),
-                            kld7_angle.confidence * 100,
-                        )
-                    else:
-                        accepted_conf = kld7_angle.confidence
-                        if vertical_selection_details.get("acceptance_path") == "marginal":
-                            accepted_conf = min(
-                                accepted_conf, _VERTICAL_MARGINAL_DISPLAY_CONFIDENCE
-                            )
-                        shot.launch_angle_vertical = kld7_angle.vertical_deg
-                        shot.launch_angle_confidence = accepted_conf
-                        shot.launch_angle_vertical_confidence = accepted_conf
-                        shot.launch_angle_vertical_source = "radar"
-                        shot.angle_source = "radar"
-                        logger.info(
-                            "[SERVER] Vertical angle: %.1f° (conf=%.0f%%, %d frames, %s)",
-                            kld7_angle.vertical_deg,
-                            kld7_angle.confidence * 100,
-                            kld7_angle.num_frames,
-                            selection_reason,
-                        )
-                # Club angle of attack (same RADC buffer, club speed from OPS).
-                # Compute BEFORE logging the buffer so the log entry can
-                # include club_angle alongside ball_angle for offline analysis.
-                club_angle_v = None
-                if shot.club_speed_mph:
-                    club_angle_v = kld7_vertical.get_club_angle(
-                        club_speed_mph=shot.club_speed_mph,
-                        shot_timestamp=shot_ts,
-                    )
-                    if club_angle_v and club_angle_v.vertical_deg is not None:
-                        # Negate: the radar sees where the club IS (above center = positive),
-                        # but AoA is the club's attack direction (descending = negative).
-                        candidate_aoa = -club_angle_v.vertical_deg
-                        # Reject physically impossible AoA values.
-                        # Real AoA ranges from ~-15° (steep iron) to ~+8° (ascending driver).
-                        if -15.0 <= candidate_aoa <= 8.0:
-                            shot.club_angle_deg = candidate_aoa
-                            logger.info(
-                                "[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
-                                shot.club_angle_deg,
-                                club_angle_v.confidence * 100,
-                            )
-                        else:
-                            logger.warning(
-                                "[SERVER] Club AoA rejected: %.1f° outside plausible range",
-                                candidate_aoa,
-                            )
-
-                if session_log and raw_buffer:
-                    session_log.log_kld7_buffer(
-                        shot_number=session_log.stats.get("shots_detected", 0) + 1,
-                        shot_timestamp=shot_ts,
-                        orientation="vertical",
-                        buffer_frames=raw_buffer,
-                        ball_angle=_kld7_angle_log_payload(
-                            kld7_angle,
-                            "vertical_deg",
-                            selection_details=vertical_selection_details,
-                        ),
-                        club_angle=_kld7_angle_log_payload(club_angle_v, "vertical_deg"),
-                        raw_payload_expected=raw_payload_expected,
-                    )
-
-                kld7_vertical.reset()
-
-            # --- Horizontal K-LD7 (club path / aim direction) ---
-            if kld7_horizontal:
-                raw_payload_expected_h = _experimental_kld7_raw_radc_logging_enabled()
-                if raw_payload_expected_h:
-                    raw_buffer_h = kld7_horizontal.snapshot_buffer(include_radc_payload=True)
-                else:
-                    raw_buffer_h = kld7_horizontal.snapshot_buffer()
-                _warn_if_kld7_buffer_underfilled("horizontal", len(raw_buffer_h))
-                _warn_if_kld7_raw_payload_missing(
-                    "horizontal",
-                    raw_buffer_h,
-                    raw_payload_expected=raw_payload_expected_h,
-                )
-                _warn_if_kld7_snapshot_lacks_post_shot_frames(
-                    "horizontal",
-                    raw_buffer_h,
-                    shot_ts,
-                    raw_payload_expected=raw_payload_expected_h,
-                )
-                kld7_angle_h = kld7_horizontal.get_angle_for_shot(
-                    shot_timestamp=shot_ts,
-                    ball_speed_mph=shot.ball_speed_mph,
-                )
-                horizontal_selection_details = None
-                if kld7_angle_h and kld7_angle_h.horizontal_deg is not None:
-                    horizontal_limit = (
-                        float(
-                            active_kld7_radc_tuning.get(
-                                "radc_horizontal_angle_limit_deg",
-                                15.0,
-                            )
-                        )
-                        if experimental_kld7_radc_tuning
-                        else 15.0
-                    )
-                    accepted_h, horizontal_selection_details = _select_horizontal_radar_launch(
-                        kld7_angle_h, horizontal_limit
-                    )
-                    selection_reason_h = horizontal_selection_details["selection_reason"]
-                    if accepted_h:
-                        shot.launch_angle_horizontal = kld7_angle_h.horizontal_deg
-                        shot.launch_angle_horizontal_confidence = kld7_angle_h.confidence
-                        shot.launch_angle_horizontal_source = "radar"
-                        if shot.angle_source is None:
-                            shot.angle_source = "radar"
-                        if shot.launch_angle_confidence is None:
-                            shot.launch_angle_confidence = kld7_angle_h.confidence
-                        logger.info(
-                            "[SERVER] Horizontal angle: %.1f° (conf=%.0f%%, %d frames, %s)",
-                            kld7_angle_h.horizontal_deg,
-                            kld7_angle_h.confidence * 100,
-                            kld7_angle_h.num_frames,
-                            selection_reason_h,
-                        )
-                    else:
-                        logger.warning(
-                            "[SERVER] Horizontal angle %.1f° rejected: %s "
-                            "(limit=±%.0f°, conf=%.0f%%)",
-                            kld7_angle_h.horizontal_deg,
-                            selection_reason_h,
-                            horizontal_limit,
-                            kld7_angle_h.confidence * 100,
-                        )
-                # Club path (same RADC buffer, club speed from OPS).
-                # Compute BEFORE logging the buffer so the log entry can
-                # include club_angle alongside ball_angle for offline analysis.
-                club_angle_h = None
-                if shot.club_speed_mph:
-                    club_angle_h = kld7_horizontal.get_club_angle(
-                        club_speed_mph=shot.club_speed_mph,
-                        shot_timestamp=shot_ts,
-                    )
-                    if club_angle_h and club_angle_h.horizontal_deg is not None:
-                        shot.club_path_deg = club_angle_h.horizontal_deg
-                        logger.info(
-                            "[SERVER] Club path: %.1f° (conf=%.0f%%)",
-                            club_angle_h.horizontal_deg,
-                            club_angle_h.confidence * 100,
-                        )
-
-                if session_log and raw_buffer_h:
-                    session_log.log_kld7_buffer(
-                        shot_number=session_log.stats.get("shots_detected", 0) + 1,
-                        shot_timestamp=shot_ts,
-                        orientation="horizontal",
-                        buffer_frames=raw_buffer_h,
-                        ball_angle=_kld7_angle_log_payload(
-                            kld7_angle_h,
-                            "horizontal_deg",
-                            selection_details=horizontal_selection_details,
-                        ),
-                        club_angle=_kld7_angle_log_payload(club_angle_h, "horizontal_deg"),
-                        raw_payload_expected=raw_payload_expected_h,
-                    )
-
-                kld7_horizontal.reset()
-
-            # Derive spin axis from face angle (H. launch) minus club path.
-            # Both are experimental estimates; only trust the difference once
-            # the weaker leg (horizontal launch) clears a confidence floor,
-            # rather than emitting it the moment club path is non-null.
-            # club_path_deg can come from IWR6843 (_process_iwr6843_angle,
-            # above) rather than K-LD7, so a failure here is not necessarily
-            # a K-LD7 failure -- see the except block below.
-            if (
-                shot.launch_angle_horizontal is not None
-                and shot.club_path_deg is not None
-                and (shot.launch_angle_horizontal_confidence or 0.0) >= SPIN_AXIS_MIN_CONFIDENCE
-            ):
-                shot.spin_axis_deg = round(shot.launch_angle_horizontal - shot.club_path_deg, 1)
+            else:
+                accepted_conf = kld7_angle.confidence
+                if selection_details.get("acceptance_path") == "marginal":
+                    accepted_conf = min(accepted_conf, _VERTICAL_MARGINAL_DISPLAY_CONFIDENCE)
+                shot.launch_angle_vertical = kld7_angle.vertical_deg
+                shot.launch_angle_confidence = accepted_conf
+                shot.launch_angle_vertical_confidence = accepted_conf
+                shot.launch_angle_vertical_source = "radar"
+                shot.angle_source = "radar"
                 logger.info(
-                    "[SERVER] Spin axis: %+.1f° (face=%+.1f° - path=%+.1f°)",
-                    shot.spin_axis_deg,
-                    shot.launch_angle_horizontal,
-                    shot.club_path_deg,
+                    "[SERVER] Vertical angle: %.1f° (conf=%.0f%%, %d frames, %s)",
+                    kld7_angle.vertical_deg,
+                    kld7_angle.confidence * 100,
+                    kld7_angle.num_frames,
+                    selection_reason,
+                )
+    else:  # horizontal
+        kld7_angle = tracker.get_angle_for_shot(
+            shot_timestamp=shot_ts,
+            ball_speed_mph=shot.ball_speed_mph,
+        )
+        if kld7_angle and kld7_angle.horizontal_deg is not None:
+            accepted_h, selection_details = _select_horizontal_radar_launch(
+                kld7_angle, horizontal_limit
+            )
+            selection_reason_h = selection_details["selection_reason"]
+            if accepted_h:
+                shot.launch_angle_horizontal = kld7_angle.horizontal_deg
+                shot.launch_angle_horizontal_confidence = kld7_angle.confidence
+                shot.launch_angle_horizontal_source = "radar"
+                if shot.angle_source is None:
+                    shot.angle_source = "radar"
+                if shot.launch_angle_confidence is None:
+                    shot.launch_angle_confidence = kld7_angle.confidence
+                logger.info(
+                    "[SERVER] Horizontal angle: %.1f° (conf=%.0f%%, %d frames, %s)",
+                    kld7_angle.horizontal_deg,
+                    kld7_angle.confidence * 100,
+                    kld7_angle.num_frames,
+                    selection_reason_h,
+                )
+            else:
+                logger.warning(
+                    "[SERVER] Horizontal angle %.1f° rejected: %s (limit=±%.0f°, conf=%.0f%%)",
+                    kld7_angle.horizontal_deg,
+                    selection_reason_h,
+                    horizontal_limit,
+                    kld7_angle.confidence * 100,
                 )
 
-            if kld7_vertical or kld7_horizontal:
-                kld7_ms = (time.time() - kld7_start) * 1000
-                logger.info("[SERVER] K-LD7 processing: %.1fms", kld7_ms)
+    # Club angle / path
+    club_angle = None
+    if shot.club_speed_mph:
+        club_angle = tracker.get_club_angle(
+            club_speed_mph=shot.club_speed_mph,
+            shot_timestamp=shot_ts,
+        )
+        if orientation == "vertical":
+            if club_angle and club_angle.vertical_deg is not None:
+                candidate_aoa = -club_angle.vertical_deg
+                if -15.0 <= candidate_aoa <= 8.0:
+                    shot.club_angle_deg = candidate_aoa
+                    logger.info(
+                        "[SERVER] Club AoA: %.1f° (conf=%.0f%%)",
+                        shot.club_angle_deg,
+                        club_angle.confidence * 100,
+                    )
+                else:
+                    logger.warning(
+                        "[SERVER] Club AoA rejected: %.1f° outside plausible range",
+                        candidate_aoa,
+                    )
+        else:  # horizontal
+            if club_angle and club_angle.horizontal_deg is not None:
+                shot.club_path_deg = club_angle.horizontal_deg
+                logger.info(
+                    "[SERVER] Club path: %.1f° (conf=%.0f%%)",
+                    club_angle.horizontal_deg,
+                    club_angle.confidence * 100,
+                )
+
+    # Log buffer
+    if session_log and raw_buffer:
+        angle_field = "vertical_deg" if orientation == "vertical" else "horizontal_deg"
+        session_log.log_kld7_buffer(
+            shot_number=session_log.stats.get("shots_detected", 0) + 1,
+            shot_timestamp=shot_ts,
+            orientation=orientation,
+            buffer_frames=raw_buffer,
+            ball_angle=_kld7_angle_log_payload(
+                kld7_angle, angle_field, selection_details=selection_details
+            ),
+            club_angle=_kld7_angle_log_payload(club_angle, angle_field),
+            raw_payload_expected=raw_payload_expected,
+        )
+
+    tracker.reset()
+    return kld7_angle, club_angle
+
+
+def _stage_inclinometer_and_iwr(shot: Shot) -> Optional[float]:
+    """Stage 1: Capture enclosure orientation and process correlated IWR6843 angle."""
+    _snapshot_inclinometer_for_shot(shot)
+    return _process_iwr6843_angle(shot)
+
+
+def _stage_kld7(shot: Shot) -> Optional[float]:
+    """Stage 2: Process K-LD7 vertical and horizontal radar frames and derive spin axis."""
+    if shot.mode == "mock":
+        return None
+
+    state = get_app_state()
+    kv = getattr(sys.modules.get(__name__), "kld7_vertical", state.kld7_vertical)
+    kh = getattr(sys.modules.get(__name__), "kld7_horizontal", state.kld7_horizontal)
+
+    kld7_start = time.time()
+    shot_ts = shot.impact_timestamp or kld7_start
+    session_log = get_session_logger()
+    kld7_ms = None
+
+    try:
+        if kv or kh:
+            _maybe_wait_for_kld7_post_shot_frames(shot_ts)
+            raw_payload_expected = _experimental_kld7_raw_radc_logging_enabled()
+
+            if kv:
+                _process_kld7_orientation(
+                    shot,
+                    "vertical",
+                    kv,
+                    shot_ts,
+                    session_log,
+                    raw_payload_expected,
+                )
+
+            if kh:
+                tuning = getattr(
+                    sys.modules.get(__name__),
+                    "active_kld7_radc_tuning",
+                    state.active_kld7_radc_tuning,
+                )
+                exp_tuning = getattr(
+                    sys.modules.get(__name__),
+                    "experimental_kld7_radc_tuning",
+                    state.experimental_kld7_radc_tuning,
+                )
+                horizontal_limit = (
+                    float(tuning.get("radc_horizontal_angle_limit_deg", 15.0))
+                    if exp_tuning
+                    else 15.0
+                )
+                _process_kld7_orientation(
+                    shot,
+                    "horizontal",
+                    kh,
+                    shot_ts,
+                    session_log,
+                    raw_payload_expected,
+                    horizontal_limit=horizontal_limit,
+                )
+
+            kld7_ms = (time.time() - kld7_start) * 1000
+            logger.info("[SERVER] K-LD7 processing: %.1fms", kld7_ms)
+
+        # Derive spin axis from face angle (H. launch) minus club path
+        if (
+            shot.launch_angle_horizontal is not None
+            and shot.club_path_deg is not None
+            and (shot.launch_angle_horizontal_confidence or 0.0) >= SPIN_AXIS_MIN_CONFIDENCE
+        ):
+            shot.spin_axis_deg = round(shot.launch_angle_horizontal - shot.club_path_deg, 1)
+            logger.info(
+                "[SERVER] Spin axis: %+.1f° (face=%+.1f° - path=%+.1f°)",
+                shot.spin_axis_deg,
+                shot.launch_angle_horizontal,
+                shot.club_path_deg,
+            )
+
+        return kld7_ms
     except Exception as e:
-        # Covers K-LD7 processing AND the spin-axis derivation above, which
-        # reads club_path_deg regardless of whether it came from K-LD7 or
-        # IWR6843 -- so this is not necessarily a K-LD7-specific failure.
         logger.warning("[SERVER] Angle/spin-axis post-processing error: %s", e, exc_info=True)
         log_session_error(
             "Angle/spin-axis post-processing failed",
@@ -2649,48 +2716,60 @@ def on_shot_detected(shot: Shot):
             },
             exc=e,
         )
+        return None
 
-    # Try to get launch angle from camera BEFORE emitting shot
-    # Skip camera for mock shots — they already have simulated launch angle
-    # Skip if K-LD7 already provided vertical angle
-    camera_data = None
+
+def _stage_camera(shot: Shot) -> Optional[dict]:
+    """Stage 3: Attempt camera-based launch angle measurement if enabled."""
+    state = get_app_state()
+    cam_tracker = getattr(sys.modules.get(__name__), "camera_tracker", state.camera_tracker)
+    cam_enabled = getattr(sys.modules.get(__name__), "camera_enabled", state.camera_enabled)
+
+    if (
+        not cam_tracker
+        or not cam_enabled
+        or shot.mode == "mock"
+        or shot.launch_angle_vertical is not None
+    ):
+        return None
+
     try:
-        if (
-            camera_tracker
-            and camera_enabled
-            and shot.mode != "mock"
-            and shot.launch_angle_vertical is None
-        ):
-            launch_angle = camera_tracker.calculate_launch_angle()
-            if launch_angle:
-                # Update shot object with launch angle data
-                shot.launch_angle_vertical = launch_angle.vertical
-                shot.launch_angle_horizontal = launch_angle.horizontal
-                shot.launch_angle_confidence = launch_angle.confidence
-                shot.launch_angle_vertical_confidence = launch_angle.confidence
-                shot.launch_angle_horizontal_confidence = launch_angle.confidence
-                shot.launch_angle_vertical_source = "camera"
-                shot.launch_angle_horizontal_source = "camera"
-                shot.angle_source = "camera"
+        launch_angle = cam_tracker.calculate_launch_angle()
+        if launch_angle:
+            shot.launch_angle_vertical = launch_angle.vertical
+            shot.launch_angle_horizontal = launch_angle.horizontal
+            shot.launch_angle_confidence = launch_angle.confidence
+            shot.launch_angle_vertical_confidence = launch_angle.confidence
+            shot.launch_angle_horizontal_confidence = launch_angle.confidence
+            shot.launch_angle_vertical_source = "camera"
+            shot.launch_angle_horizontal_source = "camera"
+            shot.angle_source = "camera"
 
-                camera_data = {
-                    "launch_angle_vertical": launch_angle.vertical,
-                    "launch_angle_horizontal": launch_angle.horizontal,
-                    "launch_angle_confidence": launch_angle.confidence,
-                    "positions_tracked": len(launch_angle.positions),
-                    "launch_detected": camera_tracker.launch_detected,
-                }
-                logger.info(
-                    "[SERVER] Angle source: camera (%.1f° V, %.1f° H, conf=%.0f%%)",
-                    launch_angle.vertical,
-                    launch_angle.horizontal,
-                    launch_angle.confidence * 100,
-                )
+            camera_data = {
+                "launch_angle_vertical": launch_angle.vertical,
+                "launch_angle_horizontal": launch_angle.horizontal,
+                "launch_angle_confidence": launch_angle.confidence,
+                "positions_tracked": len(launch_angle.positions),
+                "launch_detected": cam_tracker.launch_detected,
+            }
+            logger.info(
+                "[SERVER] Angle source: camera (%.1f° V, %.1f° H, conf=%.0f%%)",
+                launch_angle.vertical,
+                launch_angle.horizontal,
+                launch_angle.confidence * 100,
+            )
+            cam_tracker.reset()
+            state.ball_detected = False
+            state.ball_detection_confidence = 0.0
+            setattr(sys.modules[__name__], "ball_detected", False)
+            setattr(sys.modules[__name__], "ball_detection_confidence", 0.0)
+            return camera_data
 
-            # Reset camera tracker for next shot
-            camera_tracker.reset()
-            ball_detected = False
-            ball_detection_confidence = 0.0
+        cam_tracker.reset()
+        state.ball_detected = False
+        state.ball_detection_confidence = 0.0
+        setattr(sys.modules[__name__], "ball_detected", False)
+        setattr(sys.modules[__name__], "ball_detection_confidence", 0.0)
     except Exception as e:
         logger.warning("[SERVER] Camera processing error: %s", e, exc_info=True)
         log_session_error(
@@ -2699,23 +2778,40 @@ def on_shot_detected(shot: Shot):
             context={"stage": "camera", "ball_speed_mph": shot.ball_speed_mph},
             exc=e,
         )
-        camera_data = None
+    return None
 
-    # Always emit user-facing launch angles. Radar/camera measurements win;
-    # rejected or missing axes fall back to conservative estimates.
+
+def _stage_launch_fallback(shot: Shot) -> None:
+    """Stage 4: Populate user-facing launch angles from model fallback if missing."""
     _ensure_user_facing_launch_angles(shot)
 
-    # Ball-speed cosine correction: the OPS reads the radial component of
-    # a ball departing at the launch angle. Applied AFTER the K-LD7 (which
-    # must anchor to the radial speed) and BEFORE carry/ballistics.
-    if ball_speed_correction_enabled and shot.launch_angle_vertical is not None:
+
+def _stage_speed_and_spin_adjustments(shot: Shot) -> None:
+    """Stage 5: Apply ball speed cosine correction and kinematic calculated spin."""
+    state = get_app_state()
+    speed_corr_enabled = getattr(
+        sys.modules.get(__name__),
+        "ball_speed_correction_enabled",
+        state.ball_speed_correction_enabled,
+    )
+    if speed_corr_enabled and shot.launch_angle_vertical is not None:
+        dist = getattr(
+            sys.modules.get(__name__),
+            "ball_speed_correction_distance_ft",
+            state.ball_speed_correction_distance_ft,
+        )
+        above = getattr(
+            sys.modules.get(__name__),
+            "ball_speed_correction_ball_above_radar_ft",
+            state.ball_speed_correction_ball_above_radar_ft,
+        )
         raw_speed = shot.ball_speed_mph
         shot.ball_speed_raw_mph = raw_speed
         shot.ball_speed_mph = correct_ball_speed(
             raw_speed,
             shot.launch_angle_vertical,
-            ball_speed_correction_distance_ft,
-            ball_speed_correction_ball_above_radar_ft,
+            dist,
+            above,
         )
         logger.info(
             "[SERVER] Ball speed cosine correction: %.1f -> %.1f mph (LA %.1f)",
@@ -2724,18 +2820,24 @@ def on_shot_detected(shot: Shot):
             shot.launch_angle_vertical,
         )
 
-    # Calculated spin runs AFTER the cosine correction (the model is
-    # calibrated on true ball speed) and BEFORE carry/ballistics.
-    if calculated_spin_enabled:
+    calc_spin_enabled = state.calculated_spin_enabled or getattr(
+        sys.modules.get(__name__), "calculated_spin_enabled", False
+    )
+    if calc_spin_enabled:
         _apply_calculated_spin(shot)
 
-    # Compute carry. Prefer the physics simulator (drag + Magnus, RK4) when
-    # ballistics is enabled and a vertical launch angle is available; fall
-    # back to the table estimator otherwise (either ballistics disabled or
-    # angle missing → resolve_launch returns None).
+
+def _stage_carry_and_ballistics(shot: Shot) -> None:
+    """Stage 6: Compute carry using ballistic simulator or table fallback."""
+    state = get_app_state()
+    ballistics_on = (
+        state.ballistics_enabled
+        if getattr(sys.modules.get(__name__), "ballistics_enabled", None) is None
+        else getattr(sys.modules.get(__name__), "ballistics_enabled", state.ballistics_enabled)
+    )
     _MIN_RELIABLE_SPIN_CONF = 0.6
     if shot.carry_spin_adjusted is None and shot.mode != "mock":
-        conditions = resolve_launch(shot) if ballistics_enabled else None
+        conditions = resolve_launch(shot) if ballistics_on else None
         if conditions is not None:
             trajectory = simulate(conditions)
             shot.carry_spin_adjusted = trajectory.carry_yards
@@ -2763,7 +2865,7 @@ def on_shot_detected(shot: Shot):
                 shot.club,
                 club_speed_mph=shot.club_speed_mph,
             )
-            reason = "ballistics disabled" if not ballistics_enabled else "no launch angle"
+            reason = "ballistics disabled" if not ballistics_on else "no launch angle"
             logger.info(
                 "[SERVER] Table carry (%s): %.0f yds (spin: %.0f rpm%s)",
                 reason,
@@ -2779,7 +2881,14 @@ def on_shot_detected(shot: Shot):
             "%.0f" % (shot.spin_peak_freq_hz * 60) if shot.spin_peak_freq_hz is not None else "N/A",
         )
 
-    # Log shot with all data (radar + spin + camera) in one entry
+
+def _stage_session_logging(
+    shot: Shot,
+    _camera_data: Optional[dict],
+    iwr6843_ms: Optional[float],
+    kld7_ms: Optional[float],
+) -> None:
+    """Stage 7: Log unified shot information to session logger."""
     try:
         session_log = get_session_logger()
         if session_log:
@@ -2840,10 +2949,14 @@ def on_shot_detected(shot: Shot):
             exc=e,
         )
 
-    # Emit shot with launch angle data included
+
+def _stage_dispatch_and_simulators(shot: Shot, camera_data: Optional[dict] = None) -> None:
+    """Stage 8: Broadcast shot via SocketIO and forward to simulator connectors."""
+    state = get_app_state()
+    mon = getattr(sys.modules.get(__name__), "monitor", state.monitor)
     try:
         shot_data = shot_to_dict(shot)
-        stats = monitor.get_session_stats() if monitor else {}
+        stats = mon.get_session_stats() if mon else {}
         socketio.emit("shot", {"shot": shot_data, "stats": stats})
 
         # Log shot info
@@ -2870,7 +2983,8 @@ def on_shot_detected(shot: Shot):
     _forward_shot_to_simulators(shot)
 
     # Debug logging (optional)
-    if debug_mode:
+    dbg_mode = getattr(sys.modules.get(__name__), "debug_mode", state.debug_mode)
+    if dbg_mode:
         try:
             debug_log_entry = {
                 "type": "shot",
@@ -2884,14 +2998,46 @@ def on_shot_detected(shot: Shot):
                 "camera": camera_data,
                 "club": shot_data["club"],
             }
-
-            if debug_log_file:
-                debug_log_file.write(json.dumps(debug_log_entry) + "\n")
-                debug_log_file.flush()
+            dbg_file = getattr(sys.modules.get(__name__), "debug_log_file", state.debug_log_file)
+            if dbg_file:
+                dbg_file.write(json.dumps(debug_log_entry) + "\n")
+                dbg_file.flush()
 
             socketio.emit("debug_shot", debug_log_entry)
         except Exception as e:
-            print(f"[WARN] Debug logging error: {e}")
+            logger.warning("[SERVER] Debug logging error: %s", e)
+
+
+def on_shot_detected(shot: Shot):
+    """Callback when a shot is detected - staged pipeline."""
+    state = get_app_state()
+    p_name = getattr(sys.modules.get(__name__), "current_player_name", state.current_player_name)
+    shot.player_name = p_name
+    logger.info("[SERVER] Shot callback: %.1f mph", shot.ball_speed_mph)
+
+    # Stage 1: Inclinometer & IWR6843
+    iwr6843_ms = _stage_inclinometer_and_iwr(shot)
+
+    # Stage 2: K-LD7 Vertical/Horizontal Radar & Spin Axis
+    kld7_ms = _stage_kld7(shot)
+
+    # Stage 3: Camera Processing (fallback/legacy)
+    camera_data = _stage_camera(shot)
+
+    # Stage 4: Launch Angle Model Fallback
+    _stage_launch_fallback(shot)
+
+    # Stage 5: Speed Cosine Correction & Calculated Spin
+    _stage_speed_and_spin_adjustments(shot)
+
+    # Stage 6: Ballistics & Carry Simulation
+    _stage_carry_and_ballistics(shot)
+
+    # Stage 7: Session Logging
+    _stage_session_logging(shot, camera_data, iwr6843_ms, kld7_ms)
+
+    # Stage 8: UI Dispatch & Simulator Fanout
+    _stage_dispatch_and_simulators(shot, camera_data)
 
 
 def swing_speed_to_dict(event: SwingSpeedEvent) -> dict:
@@ -3230,79 +3376,13 @@ class MockLaunchMonitor:
     """Mock launch monitor for UI development without radar hardware."""
 
     # TrackMan averages for amateur golfers: (avg_ball_speed, std_dev, smash_factor)
-    _CLUB_BALL_SPEEDS = {
-        ClubType.DRIVER: (143, 12, 1.45),
-        ClubType.WOOD_3: (135, 10, 1.42),
-        ClubType.WOOD_5: (128, 10, 1.40),
-        ClubType.WOOD_7: (122, 9, 1.40),
-        ClubType.HYBRID_3: (123, 9, 1.39),
-        ClubType.HYBRID_5: (118, 9, 1.37),
-        ClubType.HYBRID_7: (112, 8, 1.35),
-        ClubType.HYBRID_9: (106, 8, 1.33),
-        ClubType.IRON_2: (120, 9, 1.35),
-        ClubType.IRON_3: (118, 9, 1.35),
-        ClubType.IRON_4: (114, 8, 1.33),
-        ClubType.IRON_5: (110, 8, 1.31),
-        ClubType.IRON_6: (105, 7, 1.29),
-        ClubType.IRON_7: (100, 7, 1.27),
-        ClubType.IRON_8: (94, 6, 1.25),
-        ClubType.IRON_9: (88, 6, 1.23),
-        ClubType.PW: (82, 5, 1.21),
-        ClubType.GW: (76, 5, 1.20),
-        ClubType.SW: (73, 5, 1.19),
-        ClubType.LW: (70, 5, 1.18),
-        ClubType.UNKNOWN: (120, 15, 1.35),
-    }
+    _CLUB_BALL_SPEEDS = CLUB_BALL_SPEEDS
 
     # Spin rates (avg_rpm, std_dev) — drivers: low spin, wedges: high spin
-    _CLUB_SPIN = {
-        ClubType.DRIVER: (2700, 400),
-        ClubType.WOOD_3: (3200, 400),
-        ClubType.WOOD_5: (3700, 400),
-        ClubType.WOOD_7: (4200, 500),
-        ClubType.HYBRID_3: (3800, 400),
-        ClubType.HYBRID_5: (4200, 500),
-        ClubType.HYBRID_7: (4600, 500),
-        ClubType.HYBRID_9: (5000, 500),
-        ClubType.IRON_2: (3800, 400),
-        ClubType.IRON_3: (4100, 400),
-        ClubType.IRON_4: (4500, 500),
-        ClubType.IRON_5: (5000, 500),
-        ClubType.IRON_6: (5500, 600),
-        ClubType.IRON_7: (6000, 600),
-        ClubType.IRON_8: (7000, 700),
-        ClubType.IRON_9: (7800, 800),
-        ClubType.PW: (8500, 800),
-        ClubType.GW: (9200, 900),
-        ClubType.SW: (9800, 1000),
-        ClubType.LW: (10200, 1000),
-        ClubType.UNKNOWN: (5000, 800),
-    }
+    _CLUB_SPIN = CLUB_SPIN_DISTRIBUTIONS
 
     # Launch angles in degrees (avg, std_dev) — drivers: low, wedges: high
-    _CLUB_LAUNCH = {
-        ClubType.DRIVER: (11.0, 2.0),
-        ClubType.WOOD_3: (12.5, 2.0),
-        ClubType.WOOD_5: (14.0, 2.0),
-        ClubType.WOOD_7: (15.5, 2.0),
-        ClubType.HYBRID_3: (13.5, 2.0),
-        ClubType.HYBRID_5: (15.0, 2.0),
-        ClubType.HYBRID_7: (16.5, 2.0),
-        ClubType.HYBRID_9: (18.0, 2.5),
-        ClubType.IRON_2: (13.0, 2.0),
-        ClubType.IRON_3: (14.5, 2.0),
-        ClubType.IRON_4: (16.0, 2.0),
-        ClubType.IRON_5: (17.5, 2.0),
-        ClubType.IRON_6: (19.0, 2.5),
-        ClubType.IRON_7: (20.5, 2.5),
-        ClubType.IRON_8: (23.0, 3.0),
-        ClubType.IRON_9: (25.5, 3.0),
-        ClubType.PW: (28.0, 3.0),
-        ClubType.GW: (30.0, 3.5),
-        ClubType.SW: (32.0, 4.0),
-        ClubType.LW: (35.0, 4.0),
-        ClubType.UNKNOWN: (18.0, 3.0),
-    }
+    _CLUB_LAUNCH = CLUB_LAUNCH_DISTRIBUTIONS
 
     def __init__(self):
         """Initialize mock monitor."""

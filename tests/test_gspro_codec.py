@@ -1,4 +1,5 @@
 """Tests for gspro.codec — OpenConnectV1 wire serialization + inbound parsing."""
+
 import json
 
 from openflight.gspro.codec import GSProCodec
@@ -8,10 +9,18 @@ from openflight.sim.types import PlayerUpdate, ResolvedShot, ShotAck, SimError
 
 def _resolved(**kw) -> ResolvedShot:
     base = dict(
-        shot_number=1, ball_speed_mph=140.0, vla=12.0, hla=1.5,
-        total_spin_rpm=2500.0, spin_axis_deg=-3.0, back_spin_rpm=2496.6,
-        side_spin_rpm=-130.8, carry_yards=255.0, club_path_deg=0.5,
-        club=ClubType.DRIVER, club_speed_mph=110.0,
+        shot_number=1,
+        ball_speed_mph=140.0,
+        vla=12.0,
+        hla=1.5,
+        total_spin_rpm=2500.0,
+        spin_axis_deg=-3.0,
+        back_spin_rpm=2496.6,
+        side_spin_rpm=-130.8,
+        carry_yards=255.0,
+        club_path_deg=0.5,
+        club=ClubType.DRIVER,
+        club_speed_mph=110.0,
         provenance={},
     )
     base.update(kw)

@@ -61,7 +61,9 @@ def _reset():
 
 
 def _install(**kwargs):
-    with patch("openflight.gpio_factory._load_gpiozero", return_value=(FakeDevice, FakeLGPIOFactory)):
+    with patch(
+        "openflight.gpio_factory._load_gpiozero", return_value=(FakeDevice, FakeLGPIOFactory)
+    ):
         return ensure_lgpio_pin_factory(**kwargs)
 
 
@@ -75,8 +77,10 @@ class TestChipDetection:
             assert detect_gpio_chip() == 0
 
     def test_env_override_wins(self):
-        with patch.dict(os.environ, {GPIO_CHIP_ENV: "0"}), \
-             patch.object(os.path, "exists", lambda p: p == "/dev/gpiochip4"):
+        with (
+            patch.dict(os.environ, {GPIO_CHIP_ENV: "0"}),
+            patch.object(os.path, "exists", lambda p: p == "/dev/gpiochip4"),
+        ):
             assert detect_gpio_chip() == 0
 
     def test_bad_env_override_is_rejected_loudly(self):
@@ -160,10 +164,13 @@ class TestMonitorInstallsFactory:
                 pass
 
         monitor = self._monitor(tmp_path)
-        with patch(
-            "openflight.iwr6843.monitor.ensure_lgpio_pin_factory",
-            side_effect=lambda: calls.append("factory"),
-        ), patch.dict("sys.modules"):
+        with (
+            patch(
+                "openflight.iwr6843.monitor.ensure_lgpio_pin_factory",
+                side_effect=lambda: calls.append("factory"),
+            ),
+            patch.dict("sys.modules"),
+        ):
             import sys
             import types
 
@@ -191,9 +198,7 @@ class TestMonitorInstallsFactory:
                 pass
 
         monitor = self._monitor(tmp_path, button_factory=FakeButton)
-        with patch(
-            "openflight.iwr6843.monitor.ensure_lgpio_pin_factory"
-        ) as ensure:
+        with patch("openflight.iwr6843.monitor.ensure_lgpio_pin_factory") as ensure:
             monitor.start(armed=False)
         try:
             ensure.assert_not_called()

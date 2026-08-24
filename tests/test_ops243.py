@@ -189,10 +189,7 @@ class TestReadSpeedNonblocking:
         """When several lines arrive together, the newest valid reading wins."""
         radar = OPS243Radar.__new__(OPS243Radar)
         radar.serial = _ChunkedSpeedSerial(
-            [
-                '{"magnitude":21.0, "speed":-21.22}\n'
-                '{"magnitude":90.0, "speed":-44.07}\n'
-            ]
+            ['{"magnitude":21.0, "speed":-21.22}\n{"magnitude":90.0, "speed":-44.07}\n']
         )
         radar._json_mode = True
         radar._unit = "mph"
@@ -209,10 +206,7 @@ class TestReadSpeedNonblocking:
         """Multi-object JSON should expose all speed candidates."""
         radar = OPS243Radar.__new__(OPS243Radar)
         radar.serial = _ChunkedSpeedSerial(
-            [
-                '{"magnitude":[900.0, 120.0, 80.0], '
-                '"speed":[-55.0, -101.0, 42.0]}\n'
-            ]
+            ['{"magnitude":[900.0, 120.0, 80.0], "speed":[-55.0, -101.0, 42.0]}\n']
         )
         radar._json_mode = True
         radar._unit = "mph"
@@ -240,13 +234,21 @@ class TestPreparePersistedRollingBuffer:
         radar = OPS243Radar.__new__(OPS243Radar)
         radar.serial = FakeSerial()
 
-        monkeypatch.setattr(radar, "set_units", lambda unit: calls.append(("set_units", unit.value)))
-        monkeypatch.setattr(radar, "set_transmit_power", lambda value: calls.append(("set_transmit_power", value)))
-        monkeypatch.setattr(radar, "set_sample_rate", lambda value: calls.append(("set_sample_rate", value)))
+        monkeypatch.setattr(
+            radar, "set_units", lambda unit: calls.append(("set_units", unit.value))
+        )
+        monkeypatch.setattr(
+            radar, "set_transmit_power", lambda value: calls.append(("set_transmit_power", value))
+        )
+        monkeypatch.setattr(
+            radar, "set_sample_rate", lambda value: calls.append(("set_sample_rate", value))
+        )
         monkeypatch.setattr(
             radar,
             "rearm_rolling_buffer",
-            lambda pre_trigger_segments: calls.append(("rearm_rolling_buffer", pre_trigger_segments)),
+            lambda pre_trigger_segments: calls.append(
+                ("rearm_rolling_buffer", pre_trigger_segments)
+            ),
         )
         monkeypatch.setattr(
             radar,
@@ -282,8 +284,12 @@ class TestPreparePersistedRollingBuffer:
         radar = OPS243Radar.__new__(OPS243Radar)
         radar.serial = FakeSerial()
 
-        monkeypatch.setattr(radar, "set_units", lambda unit: calls.append(("set_units", unit.value)))
-        monkeypatch.setattr(radar, "set_transmit_power", lambda value: calls.append(("set_transmit_power", value)))
+        monkeypatch.setattr(
+            radar, "set_units", lambda unit: calls.append(("set_units", unit.value))
+        )
+        monkeypatch.setattr(
+            radar, "set_transmit_power", lambda value: calls.append(("set_transmit_power", value))
+        )
         monkeypatch.setattr(
             radar,
             "enter_rolling_buffer_mode",

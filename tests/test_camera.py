@@ -1,24 +1,24 @@
 """Tests for camera module."""
 
 import pytest
-import math
 
 # Mock numpy for testing
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
 
 from openflight.camera import (
+    CameraCalibration,
     CaptureConfig,
     CapturedFrame,
     CaptureResult,
-    MockCameraCapture,
     DetectedBall,
     DetectorConfig,
     LaunchAngles,
-    CameraCalibration,
+    MockCameraCapture,
 )
 
 
@@ -37,11 +37,7 @@ class TestCaptureConfig:
     def test_custom_config(self):
         """Custom config values should be respected."""
         config = CaptureConfig(
-            width=1280,
-            height=720,
-            framerate=60,
-            pre_trigger_frames=15,
-            post_trigger_frames=45
+            width=1280, height=720, framerate=60, pre_trigger_frames=15, post_trigger_frames=45
         )
         assert config.width == 1280
         assert config.height == 720
@@ -55,11 +51,7 @@ class TestCapturedFrame:
     def test_frame_creation(self):
         """Create a basic captured frame."""
         data = np.zeros((480, 640, 3), dtype=np.uint8)
-        frame = CapturedFrame(
-            data=data,
-            timestamp=12345.67,
-            frame_number=42
-        )
+        frame = CapturedFrame(data=data, timestamp=12345.67, frame_number=42)
         assert frame.timestamp == 12345.67
         assert frame.frame_number == 42
         assert frame.data.shape == (480, 640, 3)
@@ -81,17 +73,9 @@ class TestCaptureResult:
         frames = []
         for i in range(10):
             data = np.zeros((100, 100, 3), dtype=np.uint8)
-            frames.append(CapturedFrame(
-                data=data,
-                timestamp=float(i),
-                frame_number=i
-            ))
+            frames.append(CapturedFrame(data=data, timestamp=float(i), frame_number=i))
 
-        result = CaptureResult(
-            frames=frames,
-            trigger_time=5.0,
-            trigger_frame_index=5
-        )
+        result = CaptureResult(frames=frames, trigger_time=5.0, trigger_frame_index=5)
 
         assert len(result.pre_trigger_frames) == 5
         assert len(result.post_trigger_frames) == 5
@@ -148,12 +132,7 @@ class TestDetectedBall:
     def test_ball_creation(self):
         """Create a basic detected ball."""
         ball = DetectedBall(
-            x=320.0,
-            y=240.0,
-            radius=15.0,
-            confidence=0.85,
-            frame_number=10,
-            timestamp=12345.67
+            x=320.0, y=240.0, radius=15.0, confidence=0.85, frame_number=10, timestamp=12345.67
         )
         assert ball.x == 320.0
         assert ball.y == 240.0
@@ -163,24 +142,13 @@ class TestDetectedBall:
     def test_center_property(self):
         """Center property should return (x, y) tuple."""
         ball = DetectedBall(
-            x=100.5,
-            y=200.5,
-            radius=10.0,
-            confidence=0.9,
-            frame_number=0,
-            timestamp=0.0
+            x=100.5, y=200.5, radius=10.0, confidence=0.9, frame_number=0, timestamp=0.0
         )
         assert ball.center == (100.5, 200.5)
 
     def test_area_property(self):
         """Area property should calculate circle area."""
-        ball = DetectedBall(
-            x=0, y=0,
-            radius=10.0,
-            confidence=1.0,
-            frame_number=0,
-            timestamp=0.0
-        )
+        ball = DetectedBall(x=0, y=0, radius=10.0, confidence=1.0, frame_number=0, timestamp=0.0)
         # pi * r^2 = pi * 100 ≈ 314.159
         assert abs(ball.area - 314.159) < 1.0
 
@@ -199,10 +167,7 @@ class TestDetectorConfig:
     def test_custom_config(self):
         """Custom config values should be respected."""
         config = DetectorConfig(
-            brightness_threshold=180,
-            min_radius=3,
-            max_radius=60,
-            min_confidence=0.7
+            brightness_threshold=180, min_radius=3, max_radius=60, min_confidence=0.7
         )
         assert config.brightness_threshold == 180
         assert config.min_radius == 3
@@ -221,7 +186,7 @@ class TestLaunchAngles:
             initial_x=320.0,
             initial_y=400.0,
             velocity_x=2.5,
-            velocity_y=-15.0
+            velocity_y=-15.0,
         )
         assert angles.vertical_deg == 12.5
         assert angles.horizontal_deg == -2.3
@@ -262,6 +227,7 @@ class TestLaunchAngleCalculation:
     def test_calculator_creation(self):
         """Calculator should be creatable."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
         assert calc.min_detections == 3
         assert calc.max_frames == 10
@@ -270,6 +236,7 @@ class TestLaunchAngleCalculation:
     def test_insufficient_detections(self):
         """Should return None with too few detections."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         # Only 2 detections, need at least 3
@@ -285,6 +252,7 @@ class TestLaunchAngleCalculation:
     def test_upward_trajectory(self):
         """Ball moving up should have positive vertical angle."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         # Ball moving upward (y decreasing in image coords)
@@ -304,6 +272,7 @@ class TestLaunchAngleCalculation:
     def test_right_trajectory(self):
         """Ball moving right should have positive horizontal angle."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         # Ball moving right (x increasing)
@@ -322,6 +291,7 @@ class TestLaunchAngleCalculation:
     def test_handles_none_detections(self):
         """Should handle None values in detection list."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         # Some frames have no detection
@@ -341,6 +311,7 @@ class TestLaunchAngleCalculation:
     def test_with_radar_speed(self):
         """Calculate with radar-measured ball speed should work."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         detections = [
@@ -358,18 +329,17 @@ class TestLaunchAngleCalculation:
     def test_ball_distance_estimation(self):
         """Ball distance estimation from apparent size."""
         from openflight.camera import LaunchAngleCalculator
+
         calc = LaunchAngleCalculator()
 
         # Large ball (close)
         close_ball = DetectedBall(
-            x=320, y=240, radius=30,
-            confidence=0.9, frame_number=0, timestamp=0.0
+            x=320, y=240, radius=30, confidence=0.9, frame_number=0, timestamp=0.0
         )
 
         # Small ball (far)
         far_ball = DetectedBall(
-            x=320, y=240, radius=10,
-            confidence=0.9, frame_number=0, timestamp=0.0
+            x=320, y=240, radius=10, confidence=0.9, frame_number=0, timestamp=0.0
         )
 
         close_dist = calc.estimate_ball_distance(close_ball)

@@ -49,9 +49,7 @@ def synth_capture(
     )
     phase = 2 * np.pi * np.cumsum(inst_freq) / sample_rate
 
-    envelope = amplitude * (
-        1.0 + am_depth * np.sin(2 * np.pi * seam_hz * time_since_onset + 0.7)
-    )
+    envelope = amplitude * (1.0 + am_depth * np.sin(2 * np.pi * seam_hz * time_since_onset + 0.7))
     active = t >= onset_s
     if visible_ms is not None:
         active &= t < onset_s + visible_ms / 1000.0

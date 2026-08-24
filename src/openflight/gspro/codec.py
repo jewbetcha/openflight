@@ -46,9 +46,7 @@ class GSProCodec:
     GSPro, "opengolfsim" when this codec drives OGS over its OpenConnect plugin.
     """
 
-    def __init__(
-        self, device_id: str = "OpenFlight", units: str = "Yards", name: str = "gspro"
-    ):
+    def __init__(self, device_id: str = "OpenFlight", units: str = "Yards", name: str = "gspro"):
         self.name = name
         self.device_id = device_id
         self.units = units

@@ -296,7 +296,7 @@ class TestReplyReading:
         slow wire rate) for longer than one reader poll cycle.
         """
 
-        GAP_S = 0.08
+        GAP_S = 0.10
 
         def __init__(self, first: bytes, second: bytes):
             self.is_open = True
@@ -417,13 +417,22 @@ class TestBaudPlumbing:
     def test_server_exposes_ops_baud_flag(self):
         """--port is the radar device and --web-port the HTTP port, so the
         baud flag has to be discoverable in --help to be usable."""
+        import os
         import subprocess
         import sys
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[1]
+        env = dict(os.environ)
+        src_path = str(repo_root / "src")
+        env["PYTHONPATH"] = f"{src_path}{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         result = subprocess.run(
             [sys.executable, "-c", "from openflight.server import main; main()", "--help"],
             capture_output=True,
             text=True,
             check=False,
+            env=env,
+            cwd=str(repo_root),
         )
         assert "--ops-baud" in result.stdout

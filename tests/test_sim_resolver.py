@@ -1,26 +1,32 @@
 """Tests for sim.resolver — the shared fallback table + provenance."""
+
 import math
 from datetime import datetime
 
 import pytest
 
 from openflight.launch_monitor import ClubType, Shot
-from openflight.sim.resolver import resolve_shot, SPIN_MODEL_RPM
+from openflight.sim.resolver import SPIN_MODEL_RPM, resolve_shot
 from openflight.sim.types import IncompleteShotError, PlayerState
 
 
 def _shot(**kw) -> Shot:
-    base = dict(ball_speed_mph=140.0, timestamp=datetime(2026, 4, 26, 12, 0, 0),
-                club=ClubType.DRIVER)
+    base = dict(
+        ball_speed_mph=140.0, timestamp=datetime(2026, 4, 26, 12, 0, 0), club=ClubType.DRIVER
+    )
     base.update(kw)
     return Shot(**base)
 
 
 def test_full_measured_shot():
     shot = _shot(
-        club_speed_mph=110.0, launch_angle_vertical=12.0,
-        launch_angle_horizontal=1.5, spin_rpm=2500.0, spin_confidence=0.9,
-        spin_axis_deg=-3.0, club_path_deg=0.5,
+        club_speed_mph=110.0,
+        launch_angle_vertical=12.0,
+        launch_angle_horizontal=1.5,
+        spin_rpm=2500.0,
+        spin_confidence=0.9,
+        spin_axis_deg=-3.0,
+        club_path_deg=0.5,
     )
     r = resolve_shot(shot, PlayerState())
     assert r.ball_speed_mph == 140.0
@@ -32,8 +38,17 @@ def test_full_measured_shot():
     assert math.isclose(r.side_spin_rpm, 2500 * math.sin(math.radians(-3.0)), rel_tol=0.01)
     assert r.club_speed_mph == 110.0
     assert r.club_path_deg == 0.5
-    for f in ("ball_speed", "vla", "hla", "total_spin", "spin_axis",
-              "back_spin", "side_spin", "club_speed", "club_path"):
+    for f in (
+        "ball_speed",
+        "vla",
+        "hla",
+        "total_spin",
+        "spin_axis",
+        "back_spin",
+        "side_spin",
+        "club_speed",
+        "club_path",
+    ):
         assert r.provenance[f] == "measured", f
 
 
