@@ -154,8 +154,11 @@ React UI (WebSocket) ──► Flask Server ──► RollingBufferMonitor ─�
                               │                │
                               │                └── SoundTrigger (SEN-14262 → HOST_INT)
                               │
-                              ├── KLD7Tracker (vertical, RADC → launch angle)
-                              ├── KLD7Tracker (horizontal, RADC → aim direction)
+                              ├── IWR6843Runtime (optional, 60 GHz → launch angle & club path)
+                              ├── KLD7Tracker (vertical/horizontal, deprecated)
+                              ├── Ballistics Simulator (RK4 trajectory & carry)
+                              ├── SimConnectors (OpenGolfSim, GSPro, E6, etc.)
+                              ├── CloudSync (optional telemetry & session backup)
                               │
                               └── SessionLogger (JSONL files)
 ```
@@ -166,32 +169,38 @@ React UI (WebSocket) ──► Flask Server ──► RollingBufferMonitor ─�
 2. **OPS243Radar** (`ops243.py`) dumps rolling buffer I/Q data (4096 samples)
 3. **RollingBufferProcessor** (`rolling_buffer/processor.py`) runs FFT + mode-based speed extraction
 4. Creates `Shot` object with ball_speed, club_speed, spin, carry
-5. **KLD7Trackers** extract launch angle (vertical) and aim direction (horizontal) from RADC phase interferometry, filtered by OPS243 ball speed
-6. **Flask server** (`server.py`) emits WebSocket "shot" event
-7. **React UI** (`ui/src/`) renders shot data
+5. **IWR6843** (or legacy **KLD7Trackers**) extracts launch angle and club path from radar measurements
+6. **Ballistics engine** (`ballistics.py`) computes trajectory and carry distance
+7. **Flask server** (`server.py`) emits WebSocket "shot" event and forwards to connected simulator software
+8. **React UI** (`ui/src/`) renders shot data
 
 ### Key Modules
 
 - `ops243.py` - OPS243 radar driver, rolling buffer capture, I/Q processing
 - `launch_monitor.py` - Shot dataclass, ClubType enum, carry estimation
+- `ballistics.py` - Numerical ballistic trajectory simulation (drag + Magnus RK4)
+- `club_data.py` - Canonical club physics parameters, lofts, typical speeds, and optimal spin
+- `iwr6843/` - TI IWR6843 mmWave radar driver, L3 raw dump parser, LCMF-v1 launch angle & club path
+- `inclinometer.py` - LIS3DH accelerometer tilt compensation service
+- `sim/` - Simulator connectors (OpenGolfSim, GSPro, E6 Connect, Garmin) and network transports
+- `cloud/` - Telemetry, cloud configuration, session upload, and push error handling
 - `rolling_buffer/` - Trigger strategies, I/Q processor, spin detection
 - `kld7/` - K-LD7 angle radar (deprecated hardware): RADC streaming, phase interferometry, dual-radar support
 - `kld7/radc.py` - FFT, CFAR detection, per-bin angle extraction from raw ADC
-- `server.py` - Flask server, shot processing, K-LD7 correlation, carry estimation
+- `server.py` - Flask server, AppState runtime management, staged shot processing pipeline
 - `session_logger.py` - JSONL logging for post-session analysis
 
 ### Processing Mode
 
-**Rolling Buffer** is the default and only production mode. The OPS243-A continuously buffers I/Q data. When the sound trigger fires, the buffer is dumped and analyzed for ball speed, club speed, and spin rate. K-LD7 data is correlated via the OPS243 impact timestamp.
+**Rolling Buffer** is the default and only production mode. The OPS243-A continuously buffers I/Q data. When the sound trigger fires, the buffer is dumped and analyzed for ball speed, club speed, and spin rate. IWR6843 or legacy K-LD7 data is correlated via the OPS243 impact timestamp.
 
 ## Key Constants
 
 - Sample rate: 30,000 Hz
 - FFT window: 128 samples, zero-padded to 4096
-- CFAR threshold: SNR > 15.0
 - DC mask: 150 bins (~15 mph exclusion zone)
-- Shot timeout: 0.5 seconds
-- Min ball speed: 35 mph
+- Min ball speed: 15 mph (35 mph for speed-triggered mode)
+- K-LD7 OS-CFAR threshold factor: 8.0 (deprecated hardware)
 
 ## Session Logging
 

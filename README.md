@@ -22,7 +22,7 @@ Doppler radar, with an optional TI IWR6843 angle radar.
 
 ### What It Measures
 
-- **Ball Speed**: 35-200 mph range with ±0.5% accuracy (OPS243-A)
+- **Ball Speed**: 15-200 mph range with ±0.5% accuracy (OPS243-A)
 - **Club Speed**: Detected from pre-impact readings (OPS243-A)
 - **Smash Factor**: Ball speed / club speed ratio
 - **Launch Angle**: Measured by the IWR6843; estimated when no trusted radar angle is available
@@ -216,7 +216,7 @@ shares the OPS243 position.
 | Sample Rate    | 30 ksps                | Supports up to ~208 mph ball speed           |
 | Capture        | 4096 I/Q samples       | ~136 ms around impact                        |
 | Trigger        | Sound (SEN-14262)      | ~10 µs hardware latency via HOST_INT         |
-| Min Ball Speed | 35 mph                 | Filter club waggle and slow movements        |
+| Min Ball Speed | 15 mph                 | Minimum valid ball speed threshold (35 mph for speed-triggered mode) |
 | DC Mask        | ~15 mph exclusion zone | Reject body movement and environmental noise |
 
 These are applied automatically — the one-time flash configuration is handled
