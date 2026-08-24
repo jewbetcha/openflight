@@ -11,7 +11,7 @@ estimation from that capture remains experimental.
 4. An overlapping timeline separates the club, impact, and ball regions.
 5. An ungated multitaper estimator records an experimental spin candidate.
 
-The normal kiosk command uses this pipeline:
+The normal kiosk command uses this sound-trigger pipeline:
 
 ```bash
 scripts/start-kiosk.sh
@@ -31,6 +31,13 @@ uv run python scripts/hardware-test/test_rolling_buffer_persist.py --test
 The runtime then starts in the persisted `GC` rolling-buffer mode without
 re-entering it. See [Sound Trigger Wiring](sound-trigger-wiring.md) for the
 recommended direct hardware trigger.
+
+The OPS243 internal speed trigger is available as a separate, opt-in capture
+strategy. It requires OPS243-A firmware v1.3.1, uses the tested 30 ksps
+configuration, and defaults to `S#6`; see
+the [Internal Hardware Trigger guide](hardware-trigger.md) for its command
+ordering, re-arm behavior, and Raspberry Pi validation checklist. The sound
+path and its defaults remain unchanged.
 
 ## Current defaults
 
@@ -75,4 +82,5 @@ in the session JSONL logs described in the
 
 - [Raspberry Pi Setup](raspberry-pi-setup.md)
 - [Sound Trigger Wiring](sound-trigger-wiring.md)
+- [OPS243 Internal Hardware Trigger](hardware-trigger.md)
 - [Spin Replay and Diagnostics](spin-dechirp-replay.md)
