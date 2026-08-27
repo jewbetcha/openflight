@@ -110,6 +110,56 @@ def test_iwr6843_overrides_are_forwarded():
     assert "--iwr6843-capture-timeout 15" in command
 
 
+def test_camera_capture_flags_are_forwarded():
+    result = _dry_run(
+        "--camera-capture",
+        "--camera-capture-width",
+        "320",
+        "--camera-capture-height",
+        "240",
+        "--camera-capture-fps",
+        "300",
+        "--camera-capture-pre-ms",
+        "150",
+        "--camera-capture-post-ms",
+        "50",
+        "--camera-capture-exposure-us",
+        "1000",
+        "--camera-capture-gain",
+        "4",
+        "--camera-capture-mount-height-m",
+        "0.20955",
+        "--camera-capture-lateral-offset-m",
+        "0.0762",
+        "--camera-capture-horizontal-offset-deg",
+        "-0.45",
+        "--camera-capture-roll-deg",
+        "2.8",
+        "--camera-capture-stream",
+        "main-y",
+        "--camera-capture-scaler-crop",
+        "256,160,768,480",
+        "--camera-capture-rotate-180",
+    )
+    command = result.stdout.strip()
+
+    assert "--camera-capture" in command
+    assert "--camera-capture-width 320" in command
+    assert "--camera-capture-height 240" in command
+    assert "--camera-capture-fps 300" in command
+    assert "--camera-capture-pre-ms 150" in command
+    assert "--camera-capture-post-ms 50" in command
+    assert "--camera-capture-exposure-us 1000" in command
+    assert "--camera-capture-gain 4" in command
+    assert "--camera-capture-mount-height-m 0.20955" in command
+    assert "--camera-capture-lateral-offset-m 0.0762" in command
+    assert "--camera-capture-horizontal-offset-deg -0.45" in command
+    assert "--camera-capture-roll-deg 2.8" in command
+    assert "--camera-capture-stream main-y" in command
+    assert "--camera-capture-scaler-crop 256,160,768,480" in command
+    assert "--camera-capture-rotate-180" in command
+
+
 def test_ops_radar_port_is_forwarded_separately_from_web_port():
     result = _dry_run("--radar-port", "/dev/serial0", "--port", "9090")
     command = result.stdout.strip()
@@ -250,6 +300,25 @@ def test_startup_applies_kld7_latency_setup_before_server_start():
     assert "scripts/setup/setup_kld7_latency.sh" in script
     assert 'sudo -n "$setup_script" --latency 1' in script
     assert setup_idx < server_start_idx
+
+
+def test_camera_capture_uses_system_python_for_sync_and_server_start():
+    """Camera startup must keep system Python through sync and server launch."""
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+
+    sync_setup_idx = script.index("UV_SYNC_ARGS=(--quiet)")
+    camera_branch_idx = script.index('if [ "$CAMERA_CAPTURE" = true ]; then', sync_setup_idx)
+    camera_else_idx = script.index("\nelse\n", camera_branch_idx)
+    export_idx = script.index("export UV_PYTHON=/usr/bin/python3", camera_branch_idx)
+    camera_sync_idx = script.index('uv sync "${UV_SYNC_ARGS[@]}"', export_idx, camera_else_idx)
+    server_start_idx = script.index("uv run ${OPENFLIGHT_UV_RUN_ARGS:-} $SERVER_CMD &")
+
+    assert "uv venv --clear --system-site-packages --python /usr/bin/python3" in script
+    assert "UV_SYNC_ARGS+=(--extra camera)" in script
+    assert camera_branch_idx < export_idx < camera_sync_idx < camera_else_idx < server_start_idx
 
 
 def test_shutdown_requests_server_cleanup_before_forcing_process_exit():

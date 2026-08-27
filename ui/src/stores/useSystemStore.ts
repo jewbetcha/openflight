@@ -49,5 +49,5 @@ export const useSystemStore = create<SystemState>((set) => ({
     })),
   setServerClub: (serverClub) => set({ serverClub }),
   setServerPlayerName: (serverPlayerName) => set({ serverPlayerName }),
-  setPowerStatus: (powerStatus) => set({ powerStatus }),
+  setPowerStatus: (status) => set({ powerStatus: status }),
 }));

@@ -107,11 +107,48 @@ def test_shutdown_waits_for_iq8_pack_without_rearming():
     )
 
     shutdown = rearm.index("gHwaShutdownRequested")
-    pack = rearm.index("l3_packIq8CompletedFrame", shutdown)
+    pack = rearm.index("l3_waitForAllIq8Edma", shutdown)
     completion = rearm.index("Semaphore_post(gHwaFreezeSemaphore)", shutdown)
     restart = rearm.index("l3_restartCompletedHwaFrame", shutdown)
 
     assert shutdown < pack < completion < restart
+
+
+def test_iq8_edma_pack_compacts_int16_scratch_without_cpu_loop():
+    source = FIRMWARE.read_text(encoding="utf-8")
+    pack = _function_source(
+        source,
+        "static int32_t l3_startIq8EdmaPack",
+        "static void l3_waitForIq8EdmaScratch",
+    )
+    rearm = _function_source(
+        source,
+        "static void l3_hwaRearmTask",
+        "/* Fill the 20-byte fixed dump header",
+    )
+
+    assert "param->aCount = 1U" in pack
+    assert "param->bCount = (uint16_t)components" in pack
+    assert "param->sourceBindex = (int16_t)sizeof(int16_t)" in pack
+    assert "param->destinationBindex = 1" in pack
+    assert "EDMA_startDmaTransfer" in pack
+    assert "l3_restartCompletedHwaFrame" in rearm
+    assert "l3_startIq8EdmaPack" in rearm
+    assert rearm.count("l3_packIq8CompletedFrame") == 2
+    assert rearm.count("#else\n                    l3_packIq8CompletedFrame") == 1
+    assert rearm.count("#else\n                l3_packIq8CompletedFrame") == 1
+
+
+def test_iq8_edma_pack_waits_before_reusing_ping_pong_scratch():
+    source = FIRMWARE.read_text(encoding="utf-8")
+    rearm = _function_source(
+        source,
+        "static void l3_hwaRearmTask",
+        "/* Fill the 20-byte fixed dump header",
+    )
+
+    assert "l3_waitForIq8EdmaScratch(nextScratch)" in rearm
+    assert "l3_waitForAllIq8Edma()" in rearm
 
 
 def test_dump_header_rotates_from_oldest_completed_frame():
@@ -129,10 +166,11 @@ def test_production_build_uses_configurable_compression_and_single_release():
     assert "--define=CONFIGURABLE_CAPTURE=1" in target
     assert "--define=HYBRID_CADENCE_CAPTURE=1" in target
     assert "--define=L3_RING_IQ8=1" in target
-    assert "--define=L3_IQ8_SPARSE_SCALE=1" in target
+    assert "--define=L3_IQ8_EDMA_PACK=1" in target
+    assert "--define=L3_IQ8_SPARSE_SCALE=1" not in target
     assert "--define=LOOPS=" not in target
     assert "--define=RING_FRAMES=" not in target
-    assert "RELEASE_NAME ?= l3_dump_configurable_capture_20260816.bin" in source
+    assert "RELEASE_NAME ?= l3_dump_configurable_capture_20260818.bin" in source
     assert '"$(RELEASE_DIR)/$(RELEASE_NAME)"' in target
     assert source.count("\nbuild-native:") == 1
 

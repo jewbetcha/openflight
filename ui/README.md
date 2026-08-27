@@ -1,8 +1,8 @@
 # OpenFlight UI
 
 The OpenFlight dashboard: a React + TypeScript + Vite app that connects to the
-backend over `socket.io` and renders live shot data, session stats, camera ball
-detection, and a screen-mounted display mode.
+backend over `socket.io`. The kiosk is a tabbed instrument panel (Live, Stats,
+Shots, Camera, Players, Debug) plus a screen-mounted display mode at `/display`.
 
 This README covers frontend development. For the hardware, the radar pipeline,
 and how the whole system fits together, see the [root README](../README.md).
@@ -85,12 +85,52 @@ The app is entirely client-side. Everything flows through one socket connection.
 - **Shutdown** posts to `/api/shutdown` to stop the connected backend (stubbed
   as a no-op by the Node mock).
 
+**Kiosk shell.** Footer tabs switch views. The footer logo opens a sheet for
+units (MPH/YDS vs KMH/M), dark/light theme, language, simulator and
+ball-detection status. The footer power icon is always visible and opens a
+shutdown confirmation. Change club (or training implement) lives on the Live
+header. Tap a Live metric to pin it top-left while keeping all metrics visible.
+Camera-backed shots add a **Replay** action in the Live header and a play button
+in Shots. Selecting either action asks the backend to lazily create and cache a
+60 FPS MP4; no video conversion runs automatically after a shot. The full-screen
+player includes touch controls, a scrubber, an impact marker, and retryable
+preparation/playback errors.
+
+The pin is stored in
+`localStorage` under `openflight.hero-metric`. Theme is stored under
+`openflight.theme` (default dark).
+
 **Display mode** lives at `/display`: a compact, fullscreen-friendly dashboard
 for mounted screens and TVs. The [root README](../README.md#tv-display-mode)
 covers casting it.
 
-**Launch Daddy** is a hidden mode toggled by a tap area in the header. When on,
-new shots can fire an animated overlay.
+**Launch Daddy** is a hidden overlay. Five taps on the header connection LED
+and title toggle it. When on, new shots can fire an animation; tap the brand
+mark to turn it off.
+
+Touch and type conventions for the Pi kiosk are in [`AGENTS.md`](./AGENTS.md).
+
+## Languages
+
+UI copy lives in `src/i18n/`. English, Spanish, French, and Portuguese ship
+today. Pick a language from the footer menu (**Language** dropdown). The choice
+is stored in `localStorage` under `openflight.locale:v1`.
+
+### Add a language
+
+1. Copy `src/i18n/en.ts` to `src/i18n/<code>.ts` (use a short BCP 47 language
+   code such as `de` or `ja`).
+2. Translate every value. Keep the same keys; TypeScript will fail the build if
+   a key is missing.
+3. Register it in `src/i18n/index.ts`:
+   - Add the id to `LocaleId`.
+   - Add `{ id, nativeName, htmlLang }` to `LOCALES` (`nativeName` is the
+     language’s own name, shown in the dropdown).
+   - Import the catalog and add it to `catalogs`.
+4. Run `npm test` — a catalog that drifts from English keys fails.
+
+Do not translate player names, club tile codes (`7i`, `DR`), or unit
+abbreviations (`MPH` / `YDS`).
 
 ## Project layout
 
@@ -99,15 +139,21 @@ components carry co-located `.css` and `.test.tsx` files.
 
 ```text
 src/
-  App.tsx                 # navigation, view selection, display routing
-  main.tsx                # entry point
+  App.tsx                    # tabs, display routing, session wiring
+  main.tsx                   # entry point (applies stored theme)
+  i18n/                      # EN/ES/FR/PT catalogs
+  theme/                     # dark/light tokens
   services/socketService.ts  # socket connection, events, backend commands
-  hooks/useSocket.ts      # connects on mount
-  utils/serverOrigin.ts   # backend origin resolution
-  stores/                 # Zustand stores (shots, system, camera, …)
-  components/             # CameraFeed, ShotDisplay, StatsView, DebugPanel, …
-    LaunchDaddy/          # the hidden overlay mode
-mock-server/              # Node Socket.IO mock for frontend-only development
+  hooks/useSocket.ts         # connects on mount
+  utils/serverOrigin.ts      # backend origin resolution
+  stores/                    # Zustand (shots, system, camera, players, …)
+  components/
+    panel/                   # Live, Stats, Shots, Camera, Players, chrome
+    ui/                      # MetricCard, TabBar, Button, SegmentedControl
+    DisplayMode.tsx          # /display
+    DebugPanel.tsx
+    LaunchDaddy/             # hidden overlay
+mock-server/                 # Node Socket.IO mock for frontend-only development
 ```
 
 ## Troubleshooting

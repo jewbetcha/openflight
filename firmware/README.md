@@ -10,7 +10,7 @@ the L3 raw-dump format, and the flashing procedure.
 
 You do not need to build from source to use OpenFlight — a validated prebuilt
 image ships in [`releases/`](releases/), and the
-[IWR6843 Operator Guide](../docs/iwr6843/README.md) walks through flashing it.
+[IWR6843 Operator Guide](../docs/iwr6843/index.md) walks through flashing it.
 
 ## What's in this directory
 

@@ -4,6 +4,8 @@ import json
 import threading
 import time
 
+import pytest
+
 from openflight import session_logger as session_logger_module
 from openflight.kld7.radc import RADC_PAYLOAD_BYTES
 from openflight.session_logger import SessionLogger, log_session_error
@@ -244,6 +246,16 @@ class TestLogShot:
             launch_angle_horizontal_confidence=0.6,
             launch_angle_vertical_source="radar",
             launch_angle_horizontal_source="estimated",
+            experimental_attack_angle_deg=-4.9,
+            experimental_attack_angle_status="candidate_available",
+            experimental_club_path_deg=5.8,
+            experimental_club_path_status="rejected_phase_span",
+            iwr6843_horizontal_deg=17.9,
+            iwr6843_horizontal_confidence=0.8,
+            experimental_camera_horizontal_deg=0.6,
+            experimental_camera_horizontal_confidence=0.75,
+            experimental_camera_horizontal_status="camera_assisted_high",
+            experimental_camera_iwr_delta_deg=-17.3,
             impact_timestamp=1234567890.25,
         )
 
@@ -266,7 +278,39 @@ class TestLogShot:
         assert entry["launch_angle_horizontal_confidence"] == 0.6
         assert entry["launch_angle_vertical_source"] == "radar"
         assert entry["launch_angle_horizontal_source"] == "estimated"
+        assert entry["experimental_attack_angle_deg"] == -4.9
+        assert entry["experimental_attack_angle_status"] == "candidate_available"
+        assert entry["experimental_club_path_deg"] == 5.8
+        assert entry["experimental_club_path_status"] == "rejected_phase_span"
+        assert entry["iwr6843_horizontal_deg"] == 17.9
+        assert entry["iwr6843_horizontal_confidence"] == 0.8
+        assert entry["experimental_camera_horizontal_deg"] == 0.6
+        assert entry["experimental_camera_horizontal_confidence"] == 0.75
+        assert entry["experimental_camera_horizontal_status"] == "camera_assisted_high"
+        assert entry["experimental_camera_iwr_delta_deg"] == -17.3
         assert entry["impact_timestamp"] == 1234567890.25
+
+    def test_shot_logs_experimental_club_status_without_candidate(self, tmp_path):
+        logger = SessionLogger(log_dir=tmp_path, enabled=True)
+        logger.start_session(mode="rolling-buffer", trigger_type="sound")
+
+        logger.log_shot(
+            ball_speed_mph=100.0,
+            club_speed_mph=80.0,
+            smash_factor=1.25,
+            estimated_carry_yards=130,
+            club="9_iron",
+            peak_magnitude=None,
+            readings_count=0,
+            experimental_attack_angle_status="rejected_no_club_track",
+            experimental_club_path_status="rejected_no_pre_impact_frames",
+        )
+
+        entry = json.loads(logger.session_path.read_text().strip().split("\n")[-1])
+        assert "experimental_attack_angle_deg" not in entry
+        assert entry["experimental_attack_angle_status"] == "rejected_no_club_track"
+        assert "experimental_club_path_deg" not in entry
+        assert entry["experimental_club_path_status"] == "rejected_no_pre_impact_frames"
 
     def test_rolling_buffer_capture_logs_trigger_timing(self, tmp_path):
         """Rolling-buffer captures should preserve host trigger timing fields."""
@@ -297,6 +341,29 @@ class TestLogShot:
         assert entry["trigger_timestamp_delta_from_first_byte_ms"] == 0.0
         assert entry["clock_sync_offset_s"] == 1234567790.114
         assert entry["post_trigger_duration_ms"] == 68.0
+
+
+class TestLogCameraCapture:
+    """Tests for passive high-speed camera capture logging."""
+
+    def test_camera_capture_writes_path_and_timing(self, tmp_path):
+        logger = SessionLogger(log_dir=tmp_path, enabled=True)
+        logger.start_session(mode="rolling-buffer", trigger_type="sound")
+
+        logger.log_camera_capture(
+            shot_number=3,
+            shot_timestamp=100.0,
+            trigger_timestamp=100.012,
+            capture_path="/tmp/camera_003",
+            metadata={"frame_count": 48, "delivered_fps": 287.9},
+        )
+
+        entry = json.loads(logger.session_path.read_text().strip().split("\n")[-1])
+        assert entry["type"] == "camera_capture"
+        assert entry["shot_number"] == 3
+        assert entry["capture_path"] == "/tmp/camera_003"
+        assert entry["trigger_delta_ms"] == pytest.approx(12.0)
+        assert entry["metadata"]["frame_count"] == 48
 
 
 class TestLogKld7Buffer:

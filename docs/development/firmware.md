@@ -19,20 +19,20 @@ then choose a profile by passing its `.cfg` to OpenFlight.
 
 | Component | Current value |
 |---|---|
-| Flash image | `firmware/releases/l3_dump_configurable_capture_20260816.bin` |
+| Flash image | `firmware/releases/l3_dump_configurable_capture_20260818.bin` |
 | Default config | `config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` |
 | Dense config | `config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` |
 | Reference calibration | `config/iwr6843_calibration_reference.json` |
 | Native build | `make -C firmware build-native` |
 | Container build | `make -C firmware docker-build` |
-| Flash image size | 345,860 bytes |
-| Flash SHA-256 | `bd68db511b12f5a3236c0a88c70448dc2ff42a0525455329f33138e4a2aa88d5` |
+| Flash image size | 346,820 bytes |
+| Flash SHA-256 | `823ddd18a231d0004020de6262160d6863384cccac6674bae6f7d0fcea58f955` |
 | Dump format | Variable-width, timed complex range-FFT snapshots |
 
 Verify the checked-in image before flashing:
 
 ```bash
-sha256sum firmware/releases/l3_dump_configurable_capture_20260816.bin
+sha256sum firmware/releases/l3_dump_configurable_capture_20260818.bin
 ```
 
 ## Choose A Capture Profile
@@ -44,7 +44,7 @@ sha256sum firmware/releases/l3_dump_configurable_capture_20260816.bin
 | Frame spacing | 3 ms | 2 ms |
 | Movie duration | 72 ms | 72 ms |
 | Saved bins per frame | 53 | 53 |
-| Stored sample format | IQ16 | Block-scaled IQ8 |
+| Stored sample format | IQ16 | Fixed-scale IQ8 |
 | Payload bytes | 732,672 | 549,504 |
 | Primary goal | Robust ball flight | Dense impact sampling |
 
@@ -58,9 +58,9 @@ degree P90 absolute error.
 
 Use **dense/advanced** to test whether 2 ms temporal sampling improves impact
 and launch measurements. It preserves the same 53-bin range span as the wide
-profile and block-scales each frame to IQ8 so all 36 frames fit in L3. The 2 ms
-IQ8 packing path sustained 99.99% HWA frame coverage in hardware testing, with
-zero packing overruns or RF faults. The 53-bin dense profile still needs
+profile and uses fixed-scale IQ8 so all 36 frames fit in L3. Its EDMA packing
+path sustained 99.9911% HWA frame coverage in hardware cadence testing, with
+zero IQ8 overruns or EDMA errors. The 53-bin dense profile still needs
 source-of-truth TrackMan validation; horizontal launch and club metrics remain
 experimental.
 
@@ -80,7 +80,7 @@ RF chirp
   -> ADCBUF
   -> HWA 128-point range FFT
   -> EDMA copies the configured moving range window
-  -> IQ16 is stored directly, or sparse-preview block scaling packs IQ8
+  -> IQ16 is stored directly, or EDMA compacts HWA-scaled IQ8 into L3
   -> circular frame ring in L3 RAM
   -> sound trigger freezes the completed pre/post-impact movie
   -> header, timing/window metadata, scale table, and IQ payload stream to Pi
@@ -92,11 +92,11 @@ horizontal direction of arrival. Every frame carries its absolute range-window
 start, bin count, and measured time delta. IQ8 frames also carry their scale,
 allowing the host to restore the physical sample amplitude before processing.
 
-The sparse IQ8 preview examines both I/Q components from every eighth complex
-sample to select a power-of-two frame scale, then performs one complete packing
-pass. This removes most of the old scale-search work while recording clipped
-components and missed HWA starts in `stats` rather than silently hiding cadence
-failures.
+For IQ8, `iq8Scale` selects a fixed power-of-two scale before `sensorStart`.
+The HWA applies that scale, then EDMA copies the compact byte from each signed
+component into L3 without a CPU packing loop. Firmware `stats` report completed
+EDMA packs, waits, errors, clipped components, and missed HWA starts rather than
+silently hiding cadence failures.
 
 ## Firmware And Host Contract
 
@@ -182,7 +182,7 @@ Docker runs the same `build-native` recipe under `linux/amd64` and writes the
 release artifact back into the host worktree at:
 
 ```text
-firmware/releases/l3_dump_configurable_capture_20260816.bin
+firmware/releases/l3_dump_configurable_capture_20260818.bin
 ```
 
 Use the UTM workflow below only when Docker emulation is unavailable.
@@ -286,7 +286,7 @@ The target performs the application build, generates the flashable TI
 meta-image, and copies the production image into `firmware/releases/`:
 
 ```text
-firmware/releases/l3_dump_configurable_capture_20260816.bin
+firmware/releases/l3_dump_configurable_capture_20260818.bin
 ```
 
 Generated `.xer4f`, `.map`, and intermediate `.bin` files stay under
@@ -371,7 +371,7 @@ Leave the board in flash mode and run:
 
 ```bash
 uv run python firmware/flash_iwr6843.py \
-  firmware/releases/l3_dump_configurable_capture_20260816.bin \
+  firmware/releases/l3_dump_configurable_capture_20260818.bin \
   --port /dev/ttyUSB0
 ```
 
@@ -385,7 +385,7 @@ Expected completion:
 Erasing existing SFLASH...
 Opening firmware image...
 Writing firmware...
-Writing: 100% (345,860/345,860 bytes)
+Writing: 100% (346,820/346,820 bytes)
 Closing and verifying firmware...
 
 Flash verified by the IWR6843 ROM bootloader.
@@ -433,6 +433,7 @@ The runtime config controls the capture without rebuilding firmware:
 |---|---|
 | `frameCfg` | TDM loop count and RF frame period |
 | `captureFormat iq16\|iq8` | L3 sample representation |
+| `iq8Scale 16\|32\|64\|128\|256` | Fixed power-of-two IQ8 quantization scale used by EDMA packing |
 | `phaseCaptureCfg` | Pre/impact/ball window starts, widths, counts, and stride |
 
 Before increasing loops, frames, transmitters, or bins, calculate the ring:
@@ -448,8 +449,12 @@ fails the build if they overflow.
 
 The firmware rejects invalid windows, frame plans, and L3 budgets at
 `sensorStart`. The dense IQ8 profile also has only about 380 microseconds
-between its 1.62 ms RF burst and the next 2 ms frame, so memory fit alone does
-not prove the HWA and packer can sustain a new profile.
+between its 1.62 ms RF burst and the next 2 ms frame. Its EDMA packer moves the
+low byte of each HWA-scaled IQ16 component into the compact ring without a CPU
+copy loop. Cadence testing at scale `128` reduced the observed HWA miss rate
+from 28.2% with CPU packing to 0.0089% with EDMA packing, with no IQ8 overruns
+or EDMA errors. That proves scheduling headroom, but ball-signal fidelity and
+launch-angle accuracy must still be validated against the IQ16 baseline.
 
 ## Validation Before Flashing A New Variant
 
@@ -487,9 +492,9 @@ Also check:
 | Probe receives no ROM response | Wrong CP2105 interface or RESET timing | Use Enhanced/UARTA, type `READY`, then RESET only when prompted |
 | Flash fails after erase | Image transfer was interrupted | Leave flash mode enabled and rerun the full flash command; the ROM bootloader remains available |
 | No CLI after flashing | Board remains in flash mode or was not reset | Restore functional switches and press RESET |
-| Server rejects `captureFormat` or `phaseCaptureCfg` | Older firmware is flashed | Flash `l3_dump_configurable_capture_20260816.bin`, reset in functional mode, and retry |
+| Server rejects `captureFormat`, `iq8Scale`, or `phaseCaptureCfg` | Older firmware is flashed | Flash `l3_dump_configurable_capture_20260818.bin`, reset in functional mode, and retry |
 | Dump length differs from the selected profile | Wrong config, interrupted UART transfer, or stale process | Verify firmware SHA-256, use Enhanced/UARTA, stop serial owners, reset, and retry |
-| Dense profile reports `hwa_missed` or `iq8_overrun` | The requested cadence exceeds processing time | Return to the wide profile and inspect `stats`; do not trust descriptor cadence from a missed-frame run |
+| Dense profile reports sustained `hwa_missed`, `iq8_overrun`, or `iq8_edma_err` | The requested cadence exceeds processing time or EDMA packing failed | Return to the wide profile and inspect `stats`; do not trust descriptor cadence from a missed-frame run |
 | First run works but restart hangs | Retired v1 image or incomplete shutdown | Flash the current release image and reset in functional mode |
 
 ## Historical Context

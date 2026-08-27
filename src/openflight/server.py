@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from flask import Flask, Response, send_from_directory
+from flask import Flask, Response, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -128,6 +128,11 @@ experimental_kld7_raw_radc_logging: bool = False
 # TI IWR6843 L3 rolling-buffer capture + LCMF-v1 launch angle.
 iwr6843_runtime = None
 iwr6843_runtime_config: dict = {"enabled": False}
+camera_capture_runtime = None
+camera_capture_config: dict = {"enabled": False}
+camera_replay_manager = None
+camera_reference_ball_tracker = None
+camera_ball_flight_reference_tracker = None
 
 # Optional LIS3DH enclosure orientation used to compensate TI mount tilt.
 inclinometer_service = None
@@ -211,6 +216,8 @@ def _cleanup_hardware_for_shutdown() -> bool:
         _run_shutdown_step("IWR6843 stop", iwr6843_runtime.stop)
     if power_monitor:
         _run_shutdown_step("battery monitor stop", power_monitor.stop)
+    if camera_capture_runtime:
+        _run_shutdown_step("camera capture stop", camera_capture_runtime.stop)
 
     _run_shutdown_step("camera thread stop", stop_camera_thread)
     if camera:
@@ -602,7 +609,7 @@ def _select_horizontal_radar_launch(kld7_angle, horizontal_limit: float) -> tupl
 
 
 def _ensure_user_facing_launch_angles(shot: Shot) -> None:
-    """Guarantee emitted shots have launch angles without overwriting measurements."""
+    """Provide a vertical estimate without inventing a horizontal measurement."""
     estimated: tuple[float, float] | None = None
 
     if shot.launch_angle_vertical is None:
@@ -624,6 +631,12 @@ def _ensure_user_facing_launch_angles(shot: Shot) -> None:
         )
 
     if shot.launch_angle_horizontal is None:
+        camera_capture_enabled = bool(camera_capture_config.get("enabled"))
+        if iwr6843_runtime is not None or camera_capture_enabled:
+            logger.info("[SERVER] Horizontal angle unavailable; no measured trajectory")
+            return
+        # Preserve the legacy neutral estimate for installations that have no
+        # horizontal-capable TI/camera pipeline at all.
         shot.launch_angle_horizontal = 0.0
         if shot.launch_angle_horizontal_confidence is None:
             if estimated is None:
@@ -863,6 +876,7 @@ def _session_start_config() -> dict:
         "radc_tuning_params": dict(active_kld7_radc_tuning),
     }
     config["iwr6843"] = dict(iwr6843_runtime_config)
+    config["camera_capture"] = dict(camera_capture_config)
     config["inclinometer"] = dict(inclinometer_runtime_config)
     config["power"] = {
         "enabled": battery_provider is not None,
@@ -906,6 +920,28 @@ def shot_to_dict(shot: Shot) -> dict:
         "angle_source": shot.angle_source,
         "club_angle_deg": shot.club_angle_deg,
         "club_path_deg": shot.club_path_deg,
+        "experimental_attack_angle_deg": shot.experimental_attack_angle_deg,
+        "experimental_attack_angle_status": shot.experimental_attack_angle_status,
+        "experimental_club_path_deg": shot.experimental_club_path_deg,
+        "experimental_club_path_status": shot.experimental_club_path_status,
+        "experimental_fused_attack_angle_deg": shot.experimental_fused_attack_angle_deg,
+        "experimental_fused_club_path_deg": shot.experimental_fused_club_path_deg,
+        "experimental_fused_status": shot.experimental_fused_status,
+        "experimental_fused_attack_angle_confidence": (
+            shot.experimental_fused_attack_angle_confidence
+        ),
+        "experimental_fused_club_path_confidence": (shot.experimental_fused_club_path_confidence),
+        "experimental_camera_trace_deg": shot.experimental_camera_trace_deg,
+        "experimental_aoa_offset_source": shot.experimental_aoa_offset_source,
+        "iwr6843_horizontal_deg": shot.iwr6843_horizontal_deg,
+        "iwr6843_horizontal_confidence": shot.iwr6843_horizontal_confidence,
+        "experimental_camera_horizontal_deg": shot.experimental_camera_horizontal_deg,
+        "experimental_camera_horizontal_confidence": (
+            shot.experimental_camera_horizontal_confidence
+        ),
+        "experimental_camera_horizontal_status": shot.experimental_camera_horizontal_status,
+        "experimental_camera_iwr_delta_deg": shot.experimental_camera_iwr_delta_deg,
+        "camera_replay": dict(shot.camera_replay) if shot.camera_replay else None,
         "spin_axis_deg": shot.spin_axis_deg,
         "inclinometer": shot.inclinometer,
         # Spin data from rolling buffer mode
@@ -1051,6 +1087,113 @@ def init_camera(
         return False
 
 
+def init_camera_capture(
+    *,
+    output_dir: str | Path,
+    gpio_pin: int,
+    width: int,
+    height: int,
+    fps: float,
+    pre_ms: float,
+    post_ms: float,
+    exposure_us: int,
+    gain: float,
+    stream: str,
+    rotate_180: bool,
+    mirror_horizontal: bool,
+    roll_correction_deg: float,
+    scaler_crop: tuple[int, int, int, int] | None,
+    mount_height_m: float,
+    lateral_offset_m: float,
+    horizontal_offset_deg: float,
+    use_gpio_trigger: bool,
+) -> bool:
+    """Initialize passive high-speed camera capture for offline alignment."""
+    global camera_capture_runtime, camera_capture_config  # pylint: disable=global-statement
+    global camera_replay_manager  # pylint: disable=global-statement
+    global camera_reference_ball_tracker  # pylint: disable=global-statement
+    global camera_ball_flight_reference_tracker  # pylint: disable=global-statement
+    try:
+        from .camera.capture_runtime import CameraCaptureRuntime, CameraCaptureSettings
+
+        settings = CameraCaptureSettings(
+            width=width,
+            height=height,
+            fps=fps,
+            pre_ms=pre_ms,
+            post_ms=post_ms,
+            exposure_us=exposure_us,
+            gain=gain,
+            stream=stream,
+            rotate_180=rotate_180,
+            mirror_horizontal=mirror_horizontal,
+            roll_correction_deg=roll_correction_deg,
+            scaler_crop=scaler_crop,
+            gpio_pin=gpio_pin,
+            auto_exposure_state_path=(
+                Path.home() / ".config" / "openflight" / "camera-exposure.json"
+            ),
+        )
+        camera_capture_runtime = CameraCaptureRuntime(
+            output_dir=output_dir,
+            settings=settings,
+            use_gpio_trigger=use_gpio_trigger,
+        )
+        camera_capture_runtime.start()
+        settings = camera_capture_runtime.settings
+        from .camera.replay import CameraReplayManager
+
+        camera_replay_manager = CameraReplayManager(output_dir)
+        from openflight.camera.club_delivery import (  # noqa: PLC0415
+            ReferenceBallTracker,
+        )
+
+        camera_reference_ball_tracker = ReferenceBallTracker()
+        camera_ball_flight_reference_tracker = ReferenceBallTracker()
+        camera_capture_config = {
+            "enabled": True,
+            "output_dir": str(Path(output_dir).expanduser()),
+            "gpio_pin_bcm": gpio_pin,
+            "trigger_source": "gpio" if use_gpio_trigger else "iwr6843_fanout",
+            "width": settings.width,
+            "height": settings.height,
+            "fps": settings.fps,
+            "pre_ms": settings.pre_ms,
+            "post_ms": settings.post_ms,
+            "pre_frames": settings.pre_frames,
+            "post_frames": settings.post_frames,
+            "exposure_us": settings.exposure_us,
+            "gain": settings.gain,
+            "auto_exposure_enabled": settings.auto_exposure,
+            "stream": settings.stream,
+            "rotate_180": settings.rotate_180,
+            "mirror_horizontal": settings.mirror_horizontal,
+            "roll_correction_deg": settings.roll_correction_deg,
+            "scaler_crop": settings.scaler_crop,
+            "mount_height_m": mount_height_m,
+            "lateral_offset_m": lateral_offset_m,
+            "horizontal_offset_deg": horizontal_offset_deg,
+            "alignment_x_pct": 50.0,
+            "alignment_y_pct": 50.0,
+        }
+        logger.info("[SERVER] Camera capture initialized: %s", camera_capture_config)
+        return True
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.warning("[SERVER] Camera capture initialization failed: %s", error, exc_info=True)
+        log_session_error(
+            "Camera capture initialization failed",
+            component="camera_capture",
+            context={"output_dir": str(output_dir)},
+            exc=error,
+        )
+        camera_capture_runtime = None
+        camera_replay_manager = None
+        camera_reference_ball_tracker = None
+        camera_ball_flight_reference_tracker = None
+        camera_capture_config = {"enabled": False, "error": str(error)}
+        return False
+
+
 def init_iwr6843(
     *,
     port: str | None,
@@ -1098,6 +1241,11 @@ def init_iwr6843(
             port=port,
             gpio_pin=trigger_pin,
             save_dumps=save_dumps,
+            trigger_observers=(
+                [camera_capture_runtime.notify_trigger]
+                if camera_capture_runtime is not None
+                else None
+            ),
         )
         # OPS initialization can pulse the shared sound gate. Configure TI now,
         # but do not accept edges until the OPS trigger path is fully running.
@@ -1415,6 +1563,198 @@ def camera_stream():
     return Response(generate_mjpeg(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
+@app.route("/api/camera/preview.jpg")
+def camera_capture_preview():
+    """Single still from the capture runtime's concurrent main stream.
+
+    Served from the processed YUV stream while the raw rolling buffer keeps
+    running, so shots are never missed while the camera tab polls this.
+    """
+    if camera_capture_runtime is None:
+        return "Camera capture not enabled", 404
+    jpeg = camera_capture_runtime.capture_preview_jpeg()
+    if jpeg is None:
+        return "Camera not running", 503
+    return Response(jpeg, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@app.route("/api/camera/exposure-quality")
+def camera_capture_exposure_quality():
+    """Automatic exposure state derived from the latest impact-zone pixels."""
+    if camera_capture_runtime is None:
+        return jsonify({"sample_available": False, "status": "unavailable"}), 404
+    quality = camera_capture_runtime.exposure_quality()
+    quality["auto_exposure"] = camera_capture_runtime.auto_exposure_status()
+    return jsonify(quality)
+
+
+@app.route("/api/camera/replays/<replay_id>/prepare", methods=["GET", "POST"])
+def prepare_camera_replay(replay_id: str):
+    """Create a cached MP4 only after an explicit replay interaction."""
+    from .camera.replay import ReplayNotFoundError, ReplayPreparationError
+
+    if request.method != "POST":
+        return jsonify({"error": "Use POST to prepare a camera replay"}), 405
+    if camera_replay_manager is None:
+        return jsonify({"error": "Camera replay was not found"}), 404
+    try:
+        prepared = camera_replay_manager.prepare(replay_id)
+    except ReplayNotFoundError as error:
+        return jsonify({"error": str(error)}), 404
+    except ReplayPreparationError as error:
+        logger.warning("[CAMERA] Could not prepare replay %s: %s", replay_id, error)
+        log_session_error(
+            "Camera replay preparation failed",
+            component="camera_capture",
+            context={"replay_id": replay_id},
+            exc=error,
+        )
+        return jsonify({"error": str(error)}), 503
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.exception("[CAMERA] Unexpected replay preparation failure for %s", replay_id)
+        log_session_error(
+            "Camera replay preparation failed",
+            component="camera_capture",
+            context={"replay_id": replay_id},
+            exc=error,
+        )
+        return jsonify({"error": "Camera replay could not be prepared"}), 500
+
+    payload = dict(prepared.payload)
+    payload["video_url"] = f"/api/camera/replays/{replay_id}/video"
+    return jsonify(payload)
+
+
+@app.route("/api/camera/replays/<replay_id>/video")
+def camera_replay_video(replay_id: str):  # pylint: disable=too-many-return-statements
+    """Stream a previously prepared replay with HTTP range support."""
+    from .camera.replay import (
+        ReplayNotFoundError,
+        ReplayNotReadyError,
+        ReplayPreparationError,
+    )
+
+    if camera_replay_manager is None:
+        return jsonify({"error": "Camera replay was not found"}), 404
+    try:
+        video_path = camera_replay_manager.video_path(replay_id)
+    except ReplayNotFoundError as error:
+        return jsonify({"error": str(error)}), 404
+    except ReplayNotReadyError as error:
+        return jsonify({"error": str(error)}), 409
+    except ReplayPreparationError as error:
+        logger.warning("[CAMERA] Could not read replay %s: %s", replay_id, error)
+        return jsonify({"error": str(error)}), 503
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.exception("[CAMERA] Unexpected replay lookup failure for %s", replay_id)
+        log_session_error(
+            "Camera replay lookup failed",
+            component="camera_capture",
+            context={"replay_id": replay_id},
+            exc=error,
+        )
+        return jsonify({"error": "Camera replay video is unavailable"}), 500
+    try:
+        return send_file(video_path, mimetype="video/mp4", conditional=True, etag=True)
+    except OSError as error:
+        logger.warning("[CAMERA] Could not stream replay %s: %s", replay_id, error)
+        return jsonify({"error": "Camera replay video is unavailable"}), 503
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.exception("[CAMERA] Unexpected replay streaming failure for %s", replay_id)
+        log_session_error(
+            "Camera replay streaming failed",
+            component="camera_capture",
+            context={"replay_id": replay_id},
+            exc=error,
+        )
+        return jsonify({"error": "Camera replay video is unavailable"}), 500
+
+
+def _camera_capture_settings_payload() -> dict:
+    """Return camera controls and capture state for the Camera tab."""
+    payload = dict(camera_capture_config)
+    payload["available"] = camera_capture_runtime is not None
+    payload.setdefault("alignment_x_pct", 50.0)
+    payload.setdefault("alignment_y_pct", 50.0)
+    if camera_capture_runtime is not None:
+        payload.update(camera_capture_runtime.status())
+        payload.update(camera_capture_runtime.vertical_crop_status())
+        payload["exposure_us"] = getattr(
+            camera_capture_runtime.settings,
+            "exposure_us",
+            payload.get("exposure_us"),
+        )
+        payload["gain"] = getattr(
+            camera_capture_runtime.settings,
+            "gain",
+            payload.get("gain"),
+        )
+        frame_period_us = round(1_000_000 / camera_capture_runtime.settings.fps)
+        payload["max_exposure_us"] = frame_period_us - 1
+    return payload
+
+
+@socketio.on("get_camera_capture_settings")
+def handle_get_camera_capture_settings():
+    """Send current high-speed capture settings to the requesting UI."""
+    socketio.emit("camera_capture_settings", _camera_capture_settings_payload())
+
+
+@socketio.on("set_camera_capture_settings")
+def handle_set_camera_capture_settings(data):
+    """Apply live-safe camera controls and alignment-guide position."""
+    if camera_capture_runtime is None:
+        socketio.emit(
+            "camera_capture_settings_error",
+            {"error": "High-speed camera capture is not running"},
+        )
+        return
+    if not isinstance(data, dict):
+        socketio.emit(
+            "camera_capture_settings_error",
+            {"error": "Camera settings must be an object"},
+        )
+        return
+
+    try:
+        if "exposure_us" in data or "gain" in data:
+            raise ValueError("Camera exposure and gain are managed automatically")
+        alignment_x_pct = float(
+            data.get("alignment_x_pct", camera_capture_config.get("alignment_x_pct", 50.0))
+        )
+        alignment_y_pct = float(
+            data.get("alignment_y_pct", camera_capture_config.get("alignment_y_pct", 50.0))
+        )
+        if not 0.0 <= alignment_x_pct <= 100.0:
+            raise ValueError("horizontal alignment must be between 0 and 100 percent")
+        if not 0.0 <= alignment_y_pct <= 100.0:
+            raise ValueError("vertical alignment must be between 0 and 100 percent")
+
+        crop_update = {}
+        if "vertical_offset_px" in data:
+            crop_update = camera_capture_runtime.update_vertical_crop(
+                int(data["vertical_offset_px"])
+            )
+
+        camera_capture_config.update(
+            {
+                **crop_update,
+                "alignment_x_pct": alignment_x_pct,
+                "alignment_y_pct": alignment_y_pct,
+            }
+        )
+        session_log = get_session_logger()
+        if session_log:
+            session_log.log_config_change(
+                {"camera_capture": dict(camera_capture_config)},
+                source="camera_ui",
+            )
+        socketio.emit("camera_capture_settings", _camera_capture_settings_payload())
+    except (KeyError, TypeError, ValueError, RuntimeError) as error:
+        logger.warning("[SERVER] Camera settings update rejected: %s", error)
+        socketio.emit("camera_capture_settings_error", {"error": str(error)})
+
+
 @socketio.on("toggle_camera")
 def handle_toggle_camera():
     """Toggle camera on/off."""
@@ -1606,6 +1946,38 @@ def _get_trigger_status() -> dict:
     }
 
 
+def _current_club_id() -> str:
+    """Club id the kiosk should restore after a reload."""
+    if monitor is None:
+        return ClubType.DRIVER.value
+    club = getattr(monitor, "_current_club", None)
+    if club is None:
+        return ClubType.DRIVER.value
+    return club.value if hasattr(club, "value") else str(club)
+
+
+def _session_state_payload(*, include_runtime_meta: bool = False) -> dict:
+    """Build the session_state event the UI applies on connect and refresh."""
+    payload = {
+        "stats": monitor.get_session_stats() if monitor else {},
+        "shots": _session_shots(),
+        "player_name": current_player_name,
+        "club": _current_club_id(),
+    }
+    if include_runtime_meta:
+        payload.update(
+            {
+                "mock_mode": mock_mode,
+                "debug_mode": debug_mode,
+                "camera_available": camera is not None,
+                "camera_enabled": camera_enabled,
+                "camera_streaming": camera_streaming,
+                "ball_detected": ball_detected,
+            }
+        )
+    return payload
+
+
 def _session_shots() -> list[dict]:
     """Return current session rows in the UI's shot-shaped payload format."""
     from .swing_speed import SwingSpeedMonitor  # pylint: disable=import-outside-toplevel
@@ -1615,6 +1987,18 @@ def _session_shots() -> list[dict]:
     if isinstance(monitor, (SwingSpeedMonitor, MockSwingSpeedMonitor)):
         return [swing_speed_to_shot_dict(event) for event in monitor.get_events()]
     return [shot_to_dict(shot) for shot in monitor.get_shots()]
+
+
+def _unregister_camera_replay(shot: Shot) -> None:
+    """Revoke live replay access while preserving the session artifacts."""
+    replay = getattr(shot, "camera_replay", None)
+    replay_id = replay.get("id") if isinstance(replay, dict) else None
+    if not replay_id or camera_replay_manager is None:
+        return
+    try:
+        camera_replay_manager.unregister(replay_id)
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.warning("[CAMERA] Could not unregister replay %s: %s", replay_id, error)
 
 
 def _delete_session_row(timestamp: str) -> bool:
@@ -1639,6 +2023,7 @@ def _delete_session_row(timestamp: str) -> bool:
         return False
     for index, shot in enumerate(shots):
         if shot.timestamp.isoformat() == timestamp:
+            _unregister_camera_replay(shot)
             del shots[index]
             return True
     return False
@@ -1699,21 +2084,7 @@ def handle_connect():
     if power_monitor and power_monitor.status:
         socketio.emit("power_status", power_monitor.status.to_dict())
     if monitor:
-        stats = monitor.get_session_stats()
-        socketio.emit(
-            "session_state",
-            {
-                "stats": stats,
-                "shots": _session_shots(),
-                "mock_mode": mock_mode,
-                "debug_mode": debug_mode,
-                "camera_available": camera is not None,
-                "camera_enabled": camera_enabled,
-                "camera_streaming": camera_streaming,
-                "ball_detected": ball_detected,
-                "player_name": current_player_name,
-            },
-        )
+        socketio.emit("session_state", _session_state_payload(include_runtime_meta=True))
         socketio.emit("trigger_status", _get_trigger_status())
 
 
@@ -1770,12 +2141,63 @@ def handle_set_training_implement(data):
     )
 
 
-@socketio.on("clear_session")
-def handle_clear_session():
-    """Clear all recorded shots."""
-    if monitor:
+def _normalize_player_name(name) -> str:
+    """Match UI player scoping: trim, default Player 1, case-insensitive."""
+    text = str(name).strip() if name is not None else ""
+    return (text or "Player 1").lower()
+
+
+def _player_matches(stored_name, player_name: str) -> bool:
+    """True when a shot/event belongs to player_name."""
+    return _normalize_player_name(stored_name) == _normalize_player_name(player_name)
+
+
+def _clear_player_rows(player_name: str) -> None:
+    """Remove one player's shots or swing-speed reps from the active monitor."""
+    from .swing_speed import SwingSpeedMonitor  # pylint: disable=import-outside-toplevel
+
+    if not monitor:
+        return
+
+    if isinstance(monitor, (SwingSpeedMonitor, MockSwingSpeedMonitor)):
+        events = getattr(monitor, "_events", None)
+        if events is not None:
+            events[:] = [
+                event for event in events if not _player_matches(event.player_name, player_name)
+            ]
+        return
+
+    shots = getattr(monitor, "_shots", None)
+    if shots is not None:
+        removed = [
+            shot
+            for shot in shots
+            if _player_matches(getattr(shot, "player_name", None), player_name)
+        ]
+        shots[:] = [
+            shot
+            for shot in shots
+            if not _player_matches(getattr(shot, "player_name", None), player_name)
+        ]
+        for shot in removed:
+            _unregister_camera_replay(shot)
+        return
+
+    if hasattr(monitor, "clear_session"):
         monitor.clear_session()
-        socketio.emit("session_cleared")
+
+
+@socketio.on("clear_session")
+def handle_clear_session(data=None):
+    """Clear recorded shots for the active player only."""
+    raw_name = data.get("player_name") if isinstance(data, dict) else None
+    player_name = str(raw_name).strip()[:40] if raw_name else current_player_name
+    player_name = player_name or current_player_name
+    _clear_player_rows(player_name)
+    socketio.emit(
+        "session_cleared",
+        {"player_name": player_name, "shots": _session_shots()},
+    )
 
 
 @socketio.on("upload_cloud")
@@ -1788,11 +2210,7 @@ def handle_upload_cloud():
 def handle_get_session():
     """Get current session data."""
     if monitor:
-        stats = monitor.get_session_stats()
-        socketio.emit(
-            "session_state",
-            {"stats": stats, "shots": _session_shots(), "player_name": current_player_name},
-        )
+        socketio.emit("session_state", _session_state_payload())
 
 
 @socketio.on("delete_shot")
@@ -1805,11 +2223,7 @@ def handle_delete_shot(data):
         socketio.emit("delete_shot_error", {"error": "Shot not found"})
         return
 
-    stats = monitor.get_session_stats() if monitor else {}
-    socketio.emit(
-        "session_state",
-        {"stats": stats, "shots": _session_shots(), "player_name": current_player_name},
-    )
+    socketio.emit("session_state", _session_state_payload())
 
 
 @socketio.on("simulate_shot")
@@ -2246,6 +2660,8 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
         capture = shot_result.capture
         measurement = shot_result.measurement
         club_path = getattr(shot_result, "club_path", None)
+        if measurement is not None:
+            shot.iwr6843_ball_range_evidence = getattr(measurement, "range_evidence", None)
         session_log = get_session_logger()
         if session_log:
             session_log.log_iwr6843_capture(
@@ -2305,10 +2721,12 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
             horizontal_confidence = getattr(measurement, "horizontal_confidence", None)
             horizontal_status = getattr(measurement, "horizontal_status", None)
             if horizontal_deg is not None:
-                shot.launch_angle_horizontal = horizontal_deg
-                shot.launch_angle_horizontal_confidence = horizontal_confidence_from(
+                shot.iwr6843_horizontal_deg = horizontal_deg
+                shot.iwr6843_horizontal_confidence = horizontal_confidence_from(
                     horizontal_confidence
                 )
+                shot.launch_angle_horizontal = horizontal_deg
+                shot.launch_angle_horizontal_confidence = shot.iwr6843_horizontal_confidence
                 shot.launch_angle_horizontal_source = "radar"
                 logger.info(
                     "[SERVER] IWR6843 TX2 horizontal proxy: %.2f° (coherence %.0f%%, status=%s)",
@@ -2341,18 +2759,43 @@ def _process_iwr6843_angle(shot: Shot) -> float | None:
                 reason=measurement.status,
             )
 
-        # Club path is independent of the ball measurement's acceptance --
-        # it is derived from the club track and OPS club speed, not from
-        # LCMF-v1's vertical angle -- so it is published whenever the
-        # runtime produced one, even if the ball angle above was withheld.
-        if club_path is not None and club_path.accepted:
-            shot.club_path_deg = round(club_path.path_deg, 1)
-            logger.info(
-                "[SERVER] IWR6843 club path: %.2f° (confidence %.2f, %d frames)",
-                club_path.path_deg,
-                club_path.confidence or 0.0,
-                club_path.n_frames,
+        # IWR club path/AoA remain experimental even when their internal
+        # quality gates accept them. Publish them through the normal UI path,
+        # but never populate the canonical club fields or silently label them
+        # as production radar measurements.
+        if club_path is not None:
+            shot.iwr6843_club_range_evidence = getattr(club_path, "range_evidence", None)
+            accepted_path = club_path.path_deg if club_path.accepted else None
+            candidate_path = (
+                accepted_path
+                if accepted_path is not None
+                else getattr(club_path, "candidate_path_deg", None)
             )
+            candidate_attack = getattr(club_path, "candidate_attack_angle_deg", None)
+            candidate_path_status = getattr(club_path, "candidate_path_status", None)
+            shot.experimental_club_path_status = (
+                club_path.status
+                if accepted_path is not None
+                else (
+                    candidate_path_status
+                    if candidate_path_status not in (None, "candidate_available")
+                    else club_path.status
+                )
+            )
+            shot.experimental_attack_angle_status = (
+                getattr(club_path, "attack_angle_status", None) or club_path.status
+            )
+            if candidate_path is not None:
+                shot.experimental_club_path_deg = round(candidate_path, 1)
+            if candidate_attack is not None:
+                shot.experimental_attack_angle_deg = round(candidate_attack, 1)
+            if accepted_path is not None:
+                logger.info(
+                    "[SERVER] Experimental IWR6843 club path: %.2f° (confidence %.2f, %d frames)",
+                    accepted_path,
+                    club_path.confidence or 0.0,
+                    club_path.n_frames,
+                )
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.warning("[SERVER] IWR6843 processing error: %s", error, exc_info=True)
         log_session_error(
@@ -2389,6 +2832,292 @@ def _emit_iwr6843_trigger_status(
     )
 
 
+_CAMERA_ARCHIVE_UNSET = object()
+
+
+def _load_camera_capture_archive(camera_capture) -> dict[str, object] | None:
+    """Load one camera clip into memory for all per-shot estimators."""
+    if camera_capture is None or not camera_capture.valid or not camera_capture.path:
+        return None
+    frames_path = Path(camera_capture.path) / "frames.npz"
+    if not frames_path.exists():
+        return None
+
+    import numpy as np  # noqa: PLC0415  pylint: disable=import-outside-toplevel
+
+    try:
+        with np.load(frames_path) as archive:
+            return {name: archive[name] for name in archive.files}
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.warning("[SERVER] Camera capture archive could not be loaded: %s", error)
+        return None
+
+
+def _fuse_camera_club_delivery(
+    shot: Shot,
+    camera_capture,
+    camera_archive=_CAMERA_ARCHIVE_UNSET,
+) -> None:
+    """Impact-centered camera + IWR depth club delivery, experimentally."""
+    try:
+        from openflight.camera.club_delivery import (  # noqa: PLC0415
+            CameraDeliveryGeometry,
+            ChainedDelivery,
+            estimate_chained_delivery,
+        )
+
+        fused = ChainedDelivery(status="rejected_no_camera_capture")
+        if camera_capture is not None and camera_capture.valid and camera_capture.path:
+            frames_path = Path(camera_capture.path) / "frames.npz"
+            if frames_path.exists():
+                archive = (
+                    _load_camera_capture_archive(camera_capture)
+                    if camera_archive is _CAMERA_ARCHIVE_UNSET
+                    else camera_archive
+                )
+                if archive is None:
+                    fused = ChainedDelivery(status="rejected_missing_camera_frames")
+                else:
+                    trigger_index = (
+                        int(archive["pre_trigger_count"]) - 1
+                        if "pre_trigger_count" in archive
+                        else None
+                    )
+                    if iwr6843_runtime is None:
+                        fused = ChainedDelivery(status="rejected_no_iwr_runtime")
+                    else:
+                        calibration = iwr6843_runtime.calibration
+                        if calibration.tee_range_m is None:
+                            fused = ChainedDelivery(status="rejected_missing_tee_geometry")
+                        else:
+                            fused = estimate_chained_delivery(
+                                archive["frames"],
+                                archive["host_timestamp_ns"],
+                                trigger_index=trigger_index,
+                                range_evidence=shot.iwr6843_club_range_evidence,
+                                geometry=CameraDeliveryGeometry(
+                                    camera_height_m=float(camera_capture_config["mount_height_m"]),
+                                    radar_height_m=calibration.radar_height_m,
+                                    tee_range_m=float(calibration.tee_range_m),
+                                    ball_height_m=calibration.tee_ball_height_m,
+                                    camera_lateral_offset_m=float(
+                                        camera_capture_config.get("lateral_offset_m", 0.0)
+                                    ),
+                                    image_width_px=int(camera_capture_config["width"]),
+                                    image_height_px=int(camera_capture_config["height"]),
+                                    horizontal_pixel_sign=(
+                                        -1.0
+                                        if camera_capture_config.get("mirror_horizontal")
+                                        else 1.0
+                                    ),
+                                    roll_correction_deg=float(
+                                        camera_capture_config.get("roll_correction_deg", 0.0)
+                                    ),
+                                ),
+                                ops_club_speed_mph=shot.club_speed_mph,
+                                ball_tracker=camera_reference_ball_tracker,
+                            )
+            else:
+                fused = ChainedDelivery(status="rejected_missing_camera_frames")
+        shot.experimental_fused_attack_angle_deg = fused.attack_angle_deg
+        shot.experimental_fused_club_path_deg = fused.club_path_deg
+        shot.experimental_fused_status = fused.status
+        shot.experimental_fused_attack_angle_confidence = fused.attack_confidence_tier
+        shot.experimental_fused_club_path_confidence = fused.path_confidence_tier
+        shot.experimental_camera_trace_deg = None
+        shot.experimental_aoa_offset_source = "none_chained_3d"
+        logger.info(
+            "[SERVER] Camera/IWR chained club delivery: AoA %s path %s "
+            "(status=%s, features=%d, speed_ratio=%s, velocity_mad=%s mph, "
+            "path_windows=%d, path_mad=%s deg, impact_frame=%s)",
+            fused.attack_angle_deg,
+            fused.club_path_deg,
+            fused.status,
+            fused.n_features,
+            fused.speed_ratio_ops,
+            fused.velocity_mad_mph,
+            fused.path_window_count,
+            fused.path_window_mad_deg,
+            fused.impact_frame,
+        )
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        shot.experimental_fused_status = "error"
+        logger.warning("[SERVER] Camera club-delivery fusion error: %s", error, exc_info=True)
+        log_session_error(
+            "Camera club-delivery fusion failed",
+            component="camera_capture",
+            context={"stage": "club_delivery_fusion", "ball_speed_mph": shot.ball_speed_mph},
+            exc=error,
+        )
+
+
+def _fuse_camera_ball_flight(
+    shot: Shot,
+    camera_capture,
+    camera_archive=_CAMERA_ARCHIVE_UNSET,
+) -> None:
+    """Select experimental camera horizontal while preserving IWR fallback."""
+    try:
+        from openflight.camera.ball_flight import (  # noqa: PLC0415
+            CameraBallEstimate,
+            CameraBallGeometry,
+            estimate_camera_ball_flight,
+            select_camera_assisted_horizontal,
+        )
+
+        estimate = CameraBallEstimate(status="rejected_no_camera_capture")
+        if camera_capture is not None and camera_capture.valid and camera_capture.path:
+            frames_path = Path(camera_capture.path) / "frames.npz"
+            if not frames_path.exists():
+                estimate = CameraBallEstimate(status="rejected_missing_camera_frames")
+            elif iwr6843_runtime is None:
+                estimate = CameraBallEstimate(status="rejected_no_iwr_runtime")
+            else:
+                calibration = iwr6843_runtime.calibration
+                if calibration.tee_range_m is None:
+                    estimate = CameraBallEstimate(status="rejected_missing_tee_geometry")
+                else:
+                    archive = (
+                        _load_camera_capture_archive(camera_capture)
+                        if camera_archive is _CAMERA_ARCHIVE_UNSET
+                        else camera_archive
+                    )
+                    if archive is None:
+                        estimate = CameraBallEstimate(status="rejected_missing_camera_frames")
+                    else:
+                        trigger_ns = int(archive["trigger_host_timestamp_ns"])
+                        estimate = estimate_camera_ball_flight(
+                            archive["frames"],
+                            archive["host_timestamp_ns"],
+                            trigger_ns=trigger_ns,
+                            range_evidence=shot.iwr6843_ball_range_evidence,
+                            geometry=CameraBallGeometry(
+                                camera_height_m=float(camera_capture_config["mount_height_m"]),
+                                radar_height_m=calibration.radar_height_m,
+                                tee_range_m=float(calibration.tee_range_m),
+                                ball_height_m=calibration.tee_ball_height_m,
+                                camera_lateral_offset_m=float(
+                                    camera_capture_config.get("lateral_offset_m", 0.0)
+                                ),
+                                horizontal_offset_deg=float(
+                                    camera_capture_config.get("horizontal_offset_deg", 0.0)
+                                ),
+                                roll_correction_deg=float(
+                                    camera_capture_config.get("roll_correction_deg", 0.0)
+                                ),
+                                horizontal_pixel_sign=(
+                                    -1.0 if camera_capture_config.get("mirror_horizontal") else 1.0
+                                ),
+                                image_width_px=int(camera_capture_config["width"]),
+                                image_height_px=int(camera_capture_config["height"]),
+                            ),
+                            ops_ball_speed_mph=shot.ball_speed_raw_mph or shot.ball_speed_mph,
+                            iwr_vertical_deg=shot.launch_angle_vertical,
+                            ball_tracker=camera_ball_flight_reference_tracker,
+                        )
+
+        decision = select_camera_assisted_horizontal(
+            estimate,
+            iwr_horizontal_deg=shot.iwr6843_horizontal_deg,
+            iwr_confidence=shot.iwr6843_horizontal_confidence,
+        )
+        shot.experimental_camera_horizontal_deg = decision.camera_horizontal_deg
+        shot.experimental_camera_horizontal_confidence = (
+            decision.confidence
+            if decision.source in ("camera_assisted_experimental", "camera_only_experimental")
+            else None
+        )
+        shot.experimental_camera_horizontal_status = (
+            decision.status
+            if estimate.confidence_tier != "withheld"
+            else f"{decision.status}:{estimate.status}"
+        )
+        shot.experimental_camera_iwr_delta_deg = decision.camera_iwr_delta_deg
+        if decision.selected_deg is not None:
+            shot.launch_angle_horizontal = decision.selected_deg
+            shot.launch_angle_horizontal_confidence = decision.confidence
+            shot.launch_angle_horizontal_source = decision.source
+        logger.info(
+            "[SERVER] Camera-assisted horizontal: selected=%s camera=%s IWR=%s "
+            "delta=%s status=%s support=%d/27",
+            decision.selected_deg,
+            decision.camera_horizontal_deg,
+            decision.iwr_horizontal_deg,
+            decision.camera_iwr_delta_deg,
+            decision.status,
+            estimate.support,
+        )
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        shot.experimental_camera_horizontal_status = "error"
+        logger.warning("[SERVER] Camera ball-flight fusion error: %s", error, exc_info=True)
+        log_session_error(
+            "Camera ball-flight fusion failed",
+            component="camera_capture",
+            context={"stage": "ball_flight_fusion", "ball_speed_mph": shot.ball_speed_mph},
+            exc=error,
+        )
+
+
+def _fuse_camera_measurements(shot: Shot, camera_capture) -> None:
+    """Decode one camera clip and share it across all live estimators."""
+    captured_auto_exposure = (
+        camera_capture.metadata.get("auto_exposure")
+        if camera_capture is not None
+        and isinstance(getattr(camera_capture, "metadata", None), dict)
+        else None
+    )
+    analysis_eligible = (
+        bool(captured_auto_exposure.get("analysis_eligible"))
+        if isinstance(captured_auto_exposure, dict)
+        else (
+            camera_capture_runtime.camera_analysis_eligible
+            if camera_capture_runtime is not None
+            else True
+        )
+    )
+    if not analysis_eligible:
+        shot.experimental_camera_horizontal_status = "rejected_lighting_quality"
+        shot.experimental_camera_horizontal_deg = None
+        shot.experimental_camera_horizontal_confidence = None
+        shot.experimental_camera_iwr_delta_deg = None
+        shot.experimental_fused_attack_angle_deg = None
+        shot.experimental_fused_club_path_deg = None
+        shot.experimental_fused_status = "rejected_lighting_quality"
+        shot.experimental_fused_attack_angle_confidence = "withheld"
+        shot.experimental_fused_club_path_confidence = "withheld"
+        logger.warning(
+            "[SERVER] Camera analysis withheld for lighting quality; using radar fallback"
+        )
+        return
+    camera_archive = _load_camera_capture_archive(camera_capture)
+    _fuse_camera_ball_flight(shot, camera_capture, camera_archive)
+    _fuse_camera_club_delivery(shot, camera_capture, camera_archive)
+
+
+def _attach_camera_replay(shot: Shot, camera_capture) -> None:
+    """Expose a matched raw clip without doing any video conversion."""
+    if (
+        camera_replay_manager is None
+        or camera_capture is None
+        or not camera_capture.valid
+        or not camera_capture.path
+    ):
+        return
+    try:
+        shot.camera_replay = camera_replay_manager.register(
+            camera_capture.path,
+            camera_capture.metadata,
+        )
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.warning("[CAMERA] Replay registration failed: %s", error)
+        log_session_error(
+            "Camera replay registration failed",
+            component="camera_capture",
+            context={"stage": "replay_registration"},
+            exc=error,
+        )
+
+
 def on_shot_detected(shot: Shot):
     """Callback when a shot is detected - emit to all clients."""
     global ball_detected, ball_detection_confidence  # pylint: disable=global-statement
@@ -2401,6 +3130,7 @@ def on_shot_detected(shot: Shot):
     _snapshot_inclinometer_for_shot(shot)
     iwr6843_ms = _process_iwr6843_angle(shot)
     kld7_ms = None
+    camera_capture_ms = None
     # Process K-LD7 angle radars (vertical = launch angle, horizontal = club path)
     try:
         if shot.mode != "mock":
@@ -2701,6 +3431,62 @@ def on_shot_detected(shot: Shot):
         )
         camera_data = None
 
+    camera_capture = None
+    try:
+        if camera_capture_runtime is not None and shot.mode != "mock":
+            camera_capture_start = time.time()
+            camera_capture = camera_capture_runtime.capture_for_shot(
+                shot.impact_timestamp,
+                timeout_s=2.0,
+            )
+            camera_capture_ms = (time.time() - camera_capture_start) * 1000.0
+            session_log = get_session_logger()
+            if session_log:
+                shot_number = session_log.stats.get("shots_detected", 0) + 1
+                if camera_capture is not None:
+                    session_log.log_camera_capture(
+                        shot_number=shot_number,
+                        shot_timestamp=shot.impact_timestamp,
+                        trigger_timestamp=camera_capture.trigger_timestamp,
+                        capture_path=str(camera_capture.path) if camera_capture.path else None,
+                        metadata=camera_capture.metadata,
+                        capture_error=camera_capture.error,
+                    )
+                    if camera_capture.valid:
+                        logger.info(
+                            "[SERVER] Camera capture #%d matched -> %s",
+                            camera_capture.sequence,
+                            camera_capture.path,
+                        )
+                    else:
+                        logger.warning(
+                            "[SERVER] Camera capture #%d failed: %s",
+                            camera_capture.sequence,
+                            camera_capture.error,
+                        )
+                else:
+                    session_log.log_camera_capture(
+                        shot_number=shot_number,
+                        shot_timestamp=shot.impact_timestamp,
+                        trigger_timestamp=None,
+                        capture_path=None,
+                        capture_error="no_matching_camera_capture",
+                    )
+                    logger.warning("[SERVER] No camera capture matched this shot")
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.warning("[SERVER] Camera capture matching error: %s", error, exc_info=True)
+        log_session_error(
+            "Camera capture matching failed",
+            component="camera_capture",
+            context={"stage": "camera_capture_match", "ball_speed_mph": shot.ball_speed_mph},
+            exc=error,
+        )
+
+    _attach_camera_replay(shot, camera_capture)
+
+    if shot.mode != "mock":
+        _fuse_camera_measurements(shot, camera_capture)
+
     # Always emit user-facing launch angles. Radar/camera measurements win;
     # rejected or missing axes fall back to conservative estimates.
     _ensure_user_facing_launch_angles(shot)
@@ -2822,6 +3608,29 @@ def on_shot_detected(shot: Shot):
                 angle_source=shot.angle_source,
                 club_angle_deg=shot.club_angle_deg,
                 club_path_deg=shot.club_path_deg,
+                experimental_attack_angle_deg=shot.experimental_attack_angle_deg,
+                experimental_attack_angle_status=shot.experimental_attack_angle_status,
+                experimental_club_path_deg=shot.experimental_club_path_deg,
+                experimental_club_path_status=shot.experimental_club_path_status,
+                experimental_fused_attack_angle_deg=shot.experimental_fused_attack_angle_deg,
+                experimental_fused_club_path_deg=shot.experimental_fused_club_path_deg,
+                experimental_fused_status=shot.experimental_fused_status,
+                experimental_fused_attack_angle_confidence=(
+                    shot.experimental_fused_attack_angle_confidence
+                ),
+                experimental_fused_club_path_confidence=(
+                    shot.experimental_fused_club_path_confidence
+                ),
+                experimental_camera_trace_deg=shot.experimental_camera_trace_deg,
+                experimental_aoa_offset_source=shot.experimental_aoa_offset_source,
+                iwr6843_horizontal_deg=shot.iwr6843_horizontal_deg,
+                iwr6843_horizontal_confidence=shot.iwr6843_horizontal_confidence,
+                experimental_camera_horizontal_deg=shot.experimental_camera_horizontal_deg,
+                experimental_camera_horizontal_confidence=(
+                    shot.experimental_camera_horizontal_confidence
+                ),
+                experimental_camera_horizontal_status=(shot.experimental_camera_horizontal_status),
+                experimental_camera_iwr_delta_deg=shot.experimental_camera_iwr_delta_deg,
                 spin_axis_deg=shot.spin_axis_deg,
                 impact_timestamp=shot.impact_timestamp,
                 player_name=shot.player_name,
@@ -2829,6 +3638,9 @@ def on_shot_detected(shot: Shot):
                 pipeline_ms={
                     "iwr6843": (round(iwr6843_ms, 1) if iwr6843_ms is not None else None),
                     "kld7": round(kld7_ms, 1) if kld7_ms is not None else None,
+                    "camera_capture": (
+                        round(camera_capture_ms, 1) if camera_capture_ms is not None else None
+                    ),
                 },
             )
     except Exception as e:
@@ -3001,7 +3813,7 @@ def start_monitor(
         debug: Enable verbose debug output
         ops_baud: Target UART baud when the OPS243 is on the GPIO header
     """
-    global monitor, mock_mode, mock_swing_speed_mode, radar_config  # pylint: disable=global-statement
+    global monitor, mock_mode, mock_swing_speed_mode, debug_mode, radar_config
 
     # Stop any existing monitor first
     if monitor is not None:
@@ -3009,9 +3821,9 @@ def start_monitor(
         stop_monitor()
 
     mock_mode = mock
-    mock_swing_speed_mode = mock and swing_speed_mode
-
-    if mock_swing_speed_mode:
+    mock_swing_speed_mode = bool(mock and swing_speed_mode)
+    debug_mode = debug
+    if mock and swing_speed_mode:
         monitor = MockSwingSpeedMonitor(**(swing_speed_kwargs or {}))
         print("[MODE] Mock swing speed training mode")
     elif mock:
@@ -3064,8 +3876,12 @@ def start_monitor(
         session_logger.start_session(
             radar_port=port if not mock else "mock",
             firmware_version=radar_info.get("Version"),
-            camera_enabled=camera is not None,
-            camera_model="hough" if (camera_tracker and camera_tracker.use_hough) else None,
+            camera_enabled=camera is not None or camera_capture_runtime is not None,
+            camera_model=(
+                "capture"
+                if camera_capture_runtime is not None
+                else ("hough" if (camera_tracker and camera_tracker.use_hough) else None)
+            ),
             config=_session_start_config(),
             mode="swing-speed" if swing_speed_mode else ("mock" if mock else "rolling-buffer"),
             trigger_type=None if swing_speed_mode or mock else trigger_type,
@@ -3633,6 +4449,82 @@ def main():
         "--no-camera", action="store_true", help="Disable camera (auto-enabled if available)"
     )
     parser.add_argument(
+        "--camera-capture",
+        action="store_true",
+        help=(
+            "Enable passive high-speed camera rolling-buffer capture for offline "
+            "OPS/IWR/camera alignment. Does not run the legacy camera angle tracker."
+        ),
+    )
+    parser.add_argument("--camera-capture-width", type=int, default=640)
+    parser.add_argument("--camera-capture-height", type=int, default=400)
+    parser.add_argument("--camera-capture-fps", type=float, default=300.0)
+    parser.add_argument("--camera-capture-pre-ms", type=float, default=150.0)
+    parser.add_argument("--camera-capture-post-ms", type=float, default=50.0)
+    parser.add_argument(
+        "--camera-capture-exposure-us",
+        type=int,
+        default=1000,
+        help="Manual exposure fallback; the Camera tab can switch out of automatic mode.",
+    )
+    parser.add_argument(
+        "--camera-capture-gain",
+        type=float,
+        default=4.0,
+        help="Manual gain fallback; the Camera tab can switch out of automatic mode.",
+    )
+    parser.add_argument(
+        "--camera-capture-mount-height-m",
+        type=float,
+        default=0.20955,
+        help="Camera optical-center height above the hitting surface (default: 8.25 in).",
+    )
+    parser.add_argument(
+        "--camera-capture-horizontal-offset-deg",
+        type=float,
+        default=0.0,
+        help="Measured camera target-line correction added to horizontal launch angles.",
+    )
+    parser.add_argument(
+        "--camera-capture-lateral-offset-m",
+        type=float,
+        default=0.0,
+        help=(
+            "Camera optical-center lateral position relative to radar center in meters; "
+            "positive is target-right when looking downrange."
+        ),
+    )
+    parser.add_argument(
+        "--camera-capture-roll-deg",
+        type=float,
+        default=0.0,
+        help=(
+            "Clockwise image-roll correction applied to camera preview and geometry "
+            "without modifying saved raw frames."
+        ),
+    )
+    parser.add_argument(
+        "--camera-capture-stream",
+        choices=("raw", "main-y"),
+        default="raw",
+        help="Camera stream to persist (raw preserves OV9281 R8 detail; main-y is smaller).",
+    )
+    parser.add_argument(
+        "--camera-capture-scaler-crop",
+        default=None,
+        help="Optional Picamera2 ScalerCrop as X,Y,W,H.",
+    )
+    parser.add_argument(
+        "--camera-capture-rotate-180",
+        action="store_true",
+        help="Rotate saved camera frames 180 degrees.",
+    )
+    parser.add_argument(
+        "--camera-capture-mirror-horizontal",
+        action="store_true",
+        help="Mirror saved frames left-to-right after mount rotation.",
+    )
+    parser.add_argument(
         "--camera-model",
         default=None,
         help="Path to YOLO model for ball detection (uses Hough by default)",
@@ -3844,8 +4736,12 @@ def main():
     parser.add_argument(
         "--iwr6843-capture-timeout",
         type=float,
-        default=12.0,
-        help="Maximum seconds an OPS shot waits for its TI UART dump (default: 12)",
+        default=16.0,
+        help=(
+            "Maximum seconds an OPS shot waits for its TI UART dump "
+            "(default: 16). A 25-frame ring is 763,200 bytes, which takes "
+            "7.4 s at the saturated 1,041,667 baud link."
+        ),
     )
     parser.add_argument(
         "--iwr6843-output-dir",
@@ -3858,8 +4754,9 @@ def main():
         default=0.0,
         help=(
             "Azimuth of the radar boresight relative to the target line, in degrees. "
-            "Positive means boresight points right of the target line. Added to the "
-            "measured club path; 0 reports club path relative to boresight."
+            "Positive means boresight points right of the target line. Added to "
+            "measured horizontal launch and club path; 0 reports both relative "
+            "to boresight."
         ),
     )
     parser.add_argument(
@@ -4062,10 +4959,31 @@ def main():
         parser.error("--inclinometer requires --iwr6843")
     if args.iwr6843 and args.mock:
         parser.error("--iwr6843 cannot be used with --mock")
+    if args.camera_capture and args.mock:
+        parser.error("--camera-capture cannot be used with --mock")
     if args.iwr6843 and args.trigger == "sound-gpio":
         parser.error("--iwr6843 already owns BCM GPIO; use the default --trigger sound")
     if args.iwr6843 and (args.iwr6843_tee_m <= 0 or args.iwr6843_net_m <= 0):
         parser.error("--iwr6843-tee-m and --iwr6843-net-m must be positive")
+    if args.camera_capture and (
+        args.camera_capture_width <= 0
+        or args.camera_capture_height <= 0
+        or args.camera_capture_fps <= 0
+        or args.camera_capture_pre_ms <= 0
+        or args.camera_capture_post_ms <= 0
+        or args.camera_capture_exposure_us <= 0
+        or args.camera_capture_gain <= 0
+        or args.camera_capture_mount_height_m <= 0
+    ):
+        parser.error("--camera-capture dimensions, timing, exposure, and gain must be positive")
+    camera_capture_scaler_crop = None
+    if args.camera_capture_scaler_crop:
+        try:
+            from .camera.capture_runtime import parse_scaler_crop
+
+            camera_capture_scaler_crop = parse_scaler_crop(args.camera_capture_scaler_crop)
+        except ValueError as exc:
+            parser.error(f"--camera-capture-scaler-crop: {exc}")
     # The radar can only be moved to a rate it has an API command for, so an
     # unsupported value is refused by the hardware and leaves the link at
     # whatever answered -- a silent slow link, which presents as an
@@ -4156,8 +5074,39 @@ def main():
         "rejected_cooldown_ms": args.swing_speed_rejected_cooldown_ms,
     }
 
+    if args.camera_capture:
+        camera_capture_base = (
+            Path(args.log_dir).expanduser() if args.log_dir else Path.home() / "openflight_sessions"
+        )
+        camera_capture_output_dir = camera_capture_base / args.session_location / "camera"
+        if not init_camera_capture(
+            output_dir=camera_capture_output_dir,
+            gpio_pin=args.iwr6843_trigger_pin,
+            width=args.camera_capture_width,
+            height=args.camera_capture_height,
+            fps=args.camera_capture_fps,
+            pre_ms=args.camera_capture_pre_ms,
+            post_ms=args.camera_capture_post_ms,
+            exposure_us=args.camera_capture_exposure_us,
+            gain=args.camera_capture_gain,
+            mount_height_m=args.camera_capture_mount_height_m,
+            lateral_offset_m=args.camera_capture_lateral_offset_m,
+            horizontal_offset_deg=args.camera_capture_horizontal_offset_deg,
+            roll_correction_deg=args.camera_capture_roll_deg,
+            stream=args.camera_capture_stream,
+            rotate_180=args.camera_capture_rotate_180,
+            mirror_horizontal=args.camera_capture_mirror_horizontal,
+            scaler_crop=camera_capture_scaler_crop,
+            use_gpio_trigger=not args.iwr6843,
+        ):
+            print("Camera capture unavailable - running without high-speed camera capture")
+        else:
+            print(f"Camera capture enabled: {camera_capture_output_dir}")
+
     # Initialize camera BEFORE starting monitor (so session log is accurate)
-    if not args.no_camera:
+    if args.camera_capture and not args.no_camera:
+        print("Legacy camera tracker disabled because --camera-capture is enabled")
+    elif not args.no_camera:
         # Determine if we should use Hough (default) or YOLO
         use_hough = args.camera_model is None and args.roboflow_model is None
 

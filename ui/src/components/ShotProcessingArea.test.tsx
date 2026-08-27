@@ -12,6 +12,8 @@ describe('ShotProcessingArea', () => {
 
     expect(html).toContain('Shot captured');
     expect(html).toContain('Calculating metrics…');
+    expect(html).toContain('shot-processing-overlay');
+    expect(html).toContain('progress-indicator--dialog');
     expect(html).toContain('current-shot-metrics');
     expect(html).toContain('145.2 mph · 258 yds');
   });

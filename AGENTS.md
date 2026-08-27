@@ -111,6 +111,8 @@ uv run ruff format --check src/openflight/
 
 ### React UI (in /ui directory)
 
+Kiosk / touch conventions for agents: see `ui/AGENTS.md`.
+
 ```bash
 npm run dev      # Development server with hot reload
 npm run build    # Production build

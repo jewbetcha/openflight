@@ -1,4 +1,13 @@
-export type SpinQuality = 'high' | 'medium' | 'low' | 'experimental';
+export type SpinQuality = 'high' | 'medium' | 'low' | 'experimental' | 'withheld';
+
+export interface CameraReplay {
+  id: string;
+  frame_count: number;
+  trigger_frame: number;
+  playback_fps: number;
+  duration_seconds: number;
+  display_mirror_horizontal: boolean;
+}
 
 export interface Shot {
   mode?: 'rolling-buffer' | 'mock' | 'swing-speed';
@@ -15,9 +24,30 @@ export interface Shot {
   launch_angle_vertical: number | null;
   launch_angle_horizontal: number | null;
   launch_angle_confidence: number | null;
+  launch_angle_vertical_confidence?: number | null;
+  launch_angle_horizontal_confidence?: number | null;
+  launch_angle_vertical_source?: string | null;
+  launch_angle_horizontal_source?: string | null;
   angle_source: 'radar' | 'camera' | 'estimated' | null;
   club_angle_deg: number | null;
   club_path_deg: number | null;
+  experimental_attack_angle_deg?: number | null;
+  experimental_attack_angle_status?: string | null;
+  experimental_club_path_deg?: number | null;
+  experimental_club_path_status?: string | null;
+  experimental_fused_attack_angle_deg?: number | null;
+  experimental_fused_club_path_deg?: number | null;
+  experimental_fused_status?: string | null;
+  experimental_fused_attack_angle_confidence?: 'high' | 'medium' | 'low' | 'withheld' | null;
+  experimental_fused_club_path_confidence?: 'high' | 'medium' | 'low' | 'withheld' | null;
+  experimental_camera_trace_deg?: number | null;
+  experimental_aoa_offset_source?: string | null;
+  iwr6843_horizontal_deg?: number | null;
+  iwr6843_horizontal_confidence?: number | null;
+  experimental_camera_horizontal_deg?: number | null;
+  experimental_camera_horizontal_confidence?: number | null;
+  experimental_camera_horizontal_status?: string | null;
+  experimental_camera_iwr_delta_deg?: number | null;
   spin_axis_deg: number | null;
   // Rolling buffer mode spin data
   spin_rpm: number | null;
@@ -32,6 +62,7 @@ export interface Shot {
   swing_speed_trigger_mph?: number;
   training_implement?: string;
   training_implement_label?: string;
+  camera_replay?: CameraReplay | null;
 }
 
 export interface SessionStats {
@@ -52,6 +83,7 @@ export interface SessionStats {
 export interface SessionState {
   stats: SessionStats;
   shots: Shot[];
+  club?: string;
 }
 
 export interface TriggerDiagnostic {
@@ -126,21 +158,27 @@ function normalizePlayerName(playerName: string | null | undefined): string {
   return (playerName?.trim() || 'Player 1').toLowerCase();
 }
 
+export function filterShotsByPlayer(shots: Shot[], playerName: string): Shot[] {
+  const normalized = normalizePlayerName(playerName);
+  return shots.filter((shot) => normalizePlayerName(shot.player_name) === normalized);
+}
+
+export function excludeShotsByPlayer(shots: Shot[], playerName: string): Shot[] {
+  const normalized = normalizePlayerName(playerName);
+  return shots.filter((shot) => normalizePlayerName(shot.player_name) !== normalized);
+}
+
 function normalizeToken(value: string | null | undefined): string {
   return (value?.trim() || '').toLowerCase();
 }
 
 export function filterSwingSpeedShots(shots: Shot[], filter: SwingSpeedStatsFilter = {}): Shot[] {
-  const playerName = normalizePlayerName(filter.playerName);
+  const scoped = filter.playerName ? filterShotsByPlayer(shots, filter.playerName) : shots;
   const trainingImplement = normalizeToken(filter.trainingImplement);
   const club = normalizeToken(filter.club);
 
-  return shots.filter((shot) => {
+  return scoped.filter((shot) => {
     if (!isSwingSpeedShot(shot)) {
-      return false;
-    }
-
-    if (filter.playerName && normalizePlayerName(shot.player_name) !== playerName) {
       return false;
     }
 

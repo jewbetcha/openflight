@@ -76,12 +76,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   removePlayer: (name) => {
     const current = get();
+    if (current.selectedPlayer === name) return;
     const remaining = current.players.filter((player) => player !== name);
     const nextPlayers = remaining.length ? remaining : [DEFAULT_PLAYER];
-    const selectedPlayer = current.selectedPlayer === name ? nextPlayers[0] : current.selectedPlayer;
     savePlayers(nextPlayers);
-    saveSelectedPlayer(selectedPlayer);
-    set({ players: nextPlayers, selectedPlayer });
+    saveSelectedPlayer(current.selectedPlayer);
+    set({ players: nextPlayers, selectedPlayer: current.selectedPlayer });
   },
   selectPlayer: (name) => {
     const playerName = cleanPlayerName(name) || DEFAULT_PLAYER;

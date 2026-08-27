@@ -44,5 +44,24 @@ describe('DisplayMode', () => {
     expect(html).toContain('261');
     expect(html).toContain('Socket connected');
     expect(html).toContain('display-shot-chip__number');
+    expect(html).toContain('metric-card--emphasis');
+    expect(html).not.toContain('display-metric');
+  });
+
+  it('shows rejection details for status-only experimental club metrics', () => {
+    const rejectedShot: Shot = {
+      ...shot,
+      club_angle_deg: null,
+      club_path_deg: null,
+      experimental_attack_angle_status: 'rejected_no_club_track',
+      experimental_club_path_status: 'rejected_no_pre_impact_frames',
+    };
+
+    const html = renderToString(
+      <DisplayMode connected cameraStatus={cameraStatus} latestShot={rejectedShot} shots={[rejectedShot]} />
+    );
+
+    expect(html).toContain('experimental · rejected: no club track');
+    expect(html).toContain('experimental · rejected: no pre impact frames');
   });
 });

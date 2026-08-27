@@ -87,6 +87,7 @@ export class MockSession {
       stats: this.getStats(),
       shots: this.shots,
       player_name: this.playerName,
+      club: this.club,
     };
     if (!includeMeta) {
       return base;
@@ -136,6 +137,13 @@ export class MockSession {
     this.triggersTotal += 1;
     this.triggersAccepted += 1;
     return { shot, stats: this.getStats() };
+  }
+
+  clearPlayer(playerName: string): void {
+    const key = (playerName.trim() || 'Player 1').toLowerCase();
+    this.shots = this.shots.filter(
+      (shot) => (shot.player_name?.trim() || 'Player 1').toLowerCase() !== key
+    );
   }
 
   clear(): void {

@@ -28,12 +28,12 @@ Flash one configurable firmware image, then select one of two runtime profiles:
 
 | Component | Current file or value |
 |---|---|
-| Firmware | `firmware/releases/l3_dump_configurable_capture_20260816.bin` |
+| Firmware | `firmware/releases/l3_dump_configurable_capture_20260818.bin` |
 | Wide/default config | `config/iwr6843_l3dump_wide_24f3ms_53bin_iq16.cfg` |
 | Dense/advanced config | `config/iwr6843_l3dump_dense_36f2ms_53bin_iq8.cfg` |
 | Reference array calibration | `config/iwr6843_calibration_reference.json` |
-| Firmware size | 345,860 bytes |
-| Firmware SHA-256 | `bd68db511b12f5a3236c0a88c70448dc2ff42a0525455329f33138e4a2aa88d5` |
+| Firmware size | 346,820 bytes |
+| Firmware SHA-256 | `823ddd18a231d0004020de6262160d6863384cccac6674bae6f7d0fcea58f955` |
 | Transmitters / receivers | 3 TX / 4 RX |
 | Loops | 12 per frame |
 | Movie duration | 72 ms |
@@ -44,7 +44,7 @@ Flash one configurable firmware image, then select one of two runtime profiles:
 |---|---:|---:|
 | Frames and spacing | 24 at 3 ms | 36 at 2 ms |
 | Saved window | 53 bins | 53 bins |
-| Storage | IQ16 | Block-scaled IQ8 |
+| Storage | IQ16 | Fixed-scale IQ8 |
 | Complete dump | 732,812 bytes | 549,764 bytes |
 | Choose it for | Ball flight and setup tolerance | Dense impact sampling |
 
@@ -54,8 +54,9 @@ fidelity. Its live inclinometer-adjusted LCMF output measured 0.86 degree MAE
 across all 59 matched 9-iron and 7-iron shots in an August 9 TrackMan session,
 with 0.70 degree P50 and 1.75 degree P90 absolute error. Select
 **dense/advanced** when temporal density around impact is the priority. It now
-preserves the same 53-bin range span while using IQ8 to fit 36 frames in L3.
-The 2 ms IQ8 transport has passed hardware cadence testing, but the 53-bin
+preserves the same 53-bin range span while using fixed-scale IQ8 and EDMA
+packing to fit 36 frames in L3. The 2 ms IQ8 transport has passed hardware
+cadence testing with a 0.0089% HWA miss rate and no EDMA errors, but the 53-bin
 dense profile still needs source-of-truth TrackMan MAE validation; its
 horizontal and club metrics remain experimental.
 
@@ -69,7 +70,7 @@ the mirrored sign and collapse the vertical two8 channel.
 On the Pi, verify the checked-in image with:
 
 ```bash
-sha256sum firmware/releases/l3_dump_configurable_capture_20260816.bin
+sha256sum firmware/releases/l3_dump_configurable_capture_20260818.bin
 ```
 
 ## Before You Start

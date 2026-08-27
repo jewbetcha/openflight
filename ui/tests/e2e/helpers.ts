@@ -63,8 +63,120 @@ export async function waitForEvent<T>(socket: Socket, event: string, timeoutMs =
   });
 }
 
+export async function resetSession(socket: Socket) {
+  const statePromise = waitForEvent<{ shots?: Array<{ player_name?: string }> }>(socket, 'session_state');
+  socket.emit('get_session');
+  const state = await statePromise;
+  const names = [
+    ...new Set((state.shots ?? []).map((shot) => shot.player_name?.trim() || 'Player 1')),
+  ];
+  if (names.length === 0) {
+    const cleared = waitForEvent(socket, 'session_cleared');
+    socket.emit('clear_session');
+    await cleared;
+    return;
+  }
+  for (const playerName of names) {
+    const changed = waitForEvent(socket, 'player_changed');
+    socket.emit('set_player', { player_name: playerName });
+    await changed;
+    const cleared = waitForEvent(socket, 'session_cleared');
+    socket.emit('clear_session', { player_name: playerName });
+    await cleared;
+  }
+}
+
 export async function gotoApp(page: Page, path = '/') {
   await page.goto(`${UI_URL}${path}`);
+}
+
+/** Production kiosk sizes the Live grid must fit. */
+export const KIOSK_VIEWPORTS = [
+  { width: 800, height: 400 },
+  { width: 800, height: 480 },
+  { width: 1024, height: 600 },
+] as const;
+
+/**
+ * Widest Live value we format (wedge spin with a thousands separator).
+ * Applied after a real shot so units, estimated marks, and captions stay.
+ */
+export const WIDEST_LIVE_METRIC_VALUE = '10,000';
+
+export async function liveMetricValueFontSizes(page: Page): Promise<number[]> {
+  await page.evaluate(() => document.fonts.ready);
+  return page.locator('.live-panel__grid .metric-card__value').evaluateAll((values) =>
+    values.map((value) => parseFloat(getComputedStyle(value).fontSize))
+  );
+}
+
+export async function overflowingLiveMetricValues(page: Page): Promise<string[]> {
+  await page.evaluate(() => document.fonts.ready);
+
+  return page.locator('.live-panel__grid .metric-card').evaluateAll((cards) => {
+    const slop = 2;
+    const overflows: string[] = [];
+
+    for (const card of cards) {
+      const value = card.querySelector('.metric-card__value');
+      const row = card.querySelector('.metric-card__value-row');
+      if (!(value instanceof HTMLElement) || !(row instanceof HTMLElement)) {
+        continue;
+      }
+
+      const cardRect = card.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      const label = card.querySelector('.metric-card__label');
+      const meta = card.querySelector('.metric-card__meta');
+      const range = document.createRange();
+      range.selectNodeContents(value);
+      const textRect = range.getBoundingClientRect();
+      const unit = card.querySelector('.metric-card__unit');
+      const unitOverlapsValue =
+        unit instanceof HTMLElement &&
+        (() => {
+          const unitRange = document.createRange();
+          unitRange.selectNodeContents(unit);
+          return textRect.right > unitRange.getBoundingClientRect().left + slop;
+        })();
+      const unitOverflowsCard =
+        unit instanceof HTMLElement &&
+        (() => {
+          const unitRange = document.createRange();
+          unitRange.selectNodeContents(unit);
+          const unitInk = unitRange.getBoundingClientRect();
+          return (
+            unitInk.right > cardRect.right + slop ||
+            unitInk.left < cardRect.left - slop ||
+            unit.scrollWidth > unit.clientWidth + slop
+          );
+        })();
+      const valueOverflowsCard =
+        textRect.right > cardRect.right + slop ||
+        textRect.left < cardRect.left - slop ||
+        textRect.bottom > cardRect.bottom + slop ||
+        textRect.top < cardRect.top - slop;
+      const rowOverflowsCard = rowRect.right > cardRect.right + slop || row.scrollWidth > row.clientWidth + slop;
+      const overlapsLabel =
+        label instanceof HTMLElement && rowRect.top < label.getBoundingClientRect().bottom - slop;
+      const overlapsMeta =
+        meta instanceof HTMLElement && rowRect.bottom > meta.getBoundingClientRect().top + slop;
+
+      if (
+        valueOverflowsCard ||
+        rowOverflowsCard ||
+        overlapsLabel ||
+        overlapsMeta ||
+        unitOverlapsValue ||
+        unitOverflowsCard
+      ) {
+        const labelText = card.querySelector('.metric-card__label')?.textContent?.trim() ?? 'unknown';
+        overflows.push(`${labelText} (${value.textContent?.trim() ?? ''})`);
+      }
+    }
+
+    return overflows;
+  });
 }
 
 export { expect };

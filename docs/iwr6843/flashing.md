@@ -69,7 +69,7 @@ command will ask for another RESET after it opens the UART.
 
 ```bash
 uv run python firmware/flash_iwr6843.py \
-  firmware/releases/l3_dump_configurable_capture_20260816.bin \
+  firmware/releases/l3_dump_configurable_capture_20260818.bin \
   --port /dev/ttyUSB0
 ```
 

@@ -1,0 +1,25 @@
+.shot-processing-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--color-bg) 45%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.shot-processing-card {
+  width: min(360px, calc(100% - 32px));
+  padding: 28px 24px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 42%);
+}
+
+@media (max-height: 500px) {
+  .shot-processing-card {
+    padding: 20px 22px;
+  }
+}

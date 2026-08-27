@@ -29,6 +29,16 @@ export function registerHandlers(io: Server, session: MockSession): void {
     socket.emit('trigger_status', session.triggerStatus());
     socket.emit('radar_config', session.radarConfig);
     socket.emit('camera_status', session.cameraStatus());
+    socket.emit('power_status', {
+      available: true,
+      provider: 'mock',
+      state: 'on_battery',
+      battery_percent: 78,
+      battery_voltage_v: 3.91,
+      external_power: false,
+      updated_at: new Date().toISOString(),
+      error: null,
+    });
 
     socket.on('get_session', () => {
       socket.emit('session_state', session.sessionStatePayload(true));
@@ -54,9 +64,13 @@ export function registerHandlers(io: Server, session: MockSession): void {
     });
 
     socket.on('simulate_shot', () => {
-      const { shot, stats } = session.simulateShot();
-      io.emit('shot', { shot, stats });
-      io.emit('trigger_status', session.triggerStatus());
+      io.emit('shot_processing', { state: 'capturing' });
+      setTimeout(() => io.emit('shot_processing', { state: 'calculating' }), 350);
+      setTimeout(() => {
+        const { shot, stats } = session.simulateShot();
+        io.emit('shot', { shot, stats });
+        io.emit('trigger_status', session.triggerStatus());
+      }, 1400);
     });
 
     socket.on('set_club', (data: { club?: string }) => {
@@ -77,9 +91,13 @@ export function registerHandlers(io: Server, session: MockSession): void {
       });
     });
 
-    socket.on('clear_session', () => {
-      session.clear();
-      io.emit('session_cleared');
+    socket.on('clear_session', (data?: { player_name?: string }) => {
+      const playerName =
+        typeof data?.player_name === 'string' && data.player_name.trim()
+          ? data.player_name
+          : session.playerName;
+      session.clearPlayer(playerName);
+      io.emit('session_cleared', { player_name: playerName, shots: session.shots });
       io.emit('session_state', session.sessionStatePayload(true));
     });
 

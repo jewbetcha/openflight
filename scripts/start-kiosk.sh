@@ -17,6 +17,22 @@ MOCK_SWING_SPEED=false
 RADAR_LOG=false
 DEBUG_MODE=false
 NO_CAMERA=true  # Camera disabled by default (K-LD7 radar handles angle)
+CAMERA_CAPTURE=false
+CAMERA_CAPTURE_WIDTH=""
+CAMERA_CAPTURE_HEIGHT=""
+CAMERA_CAPTURE_FPS=""
+CAMERA_CAPTURE_PRE_MS=""
+CAMERA_CAPTURE_POST_MS=""
+CAMERA_CAPTURE_EXPOSURE_US=""
+CAMERA_CAPTURE_GAIN=""
+CAMERA_CAPTURE_MOUNT_HEIGHT_M=""
+CAMERA_CAPTURE_LATERAL_OFFSET_M=""
+CAMERA_CAPTURE_HORIZONTAL_OFFSET_DEG=""
+CAMERA_CAPTURE_ROLL_DEG=""
+CAMERA_CAPTURE_STREAM=""
+CAMERA_CAPTURE_SCALER_CROP=""
+CAMERA_CAPTURE_ROTATE_180=false
+CAMERA_CAPTURE_MIRROR_HORIZONTAL=false
 TRACKMAN_TEST=false
 SESSION_LOCATION=""
 DRY_RUN=false
@@ -129,6 +145,70 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-camera)
             NO_CAMERA=true
+            shift
+            ;;
+        --camera-capture)
+            CAMERA_CAPTURE=true
+            shift
+            ;;
+        --camera-capture-width)
+            CAMERA_CAPTURE_WIDTH="$2"
+            shift 2
+            ;;
+        --camera-capture-height)
+            CAMERA_CAPTURE_HEIGHT="$2"
+            shift 2
+            ;;
+        --camera-capture-fps)
+            CAMERA_CAPTURE_FPS="$2"
+            shift 2
+            ;;
+        --camera-capture-pre-ms)
+            CAMERA_CAPTURE_PRE_MS="$2"
+            shift 2
+            ;;
+        --camera-capture-post-ms)
+            CAMERA_CAPTURE_POST_MS="$2"
+            shift 2
+            ;;
+        --camera-capture-exposure-us)
+            CAMERA_CAPTURE_EXPOSURE_US="$2"
+            shift 2
+            ;;
+        --camera-capture-gain)
+            CAMERA_CAPTURE_GAIN="$2"
+            shift 2
+            ;;
+        --camera-capture-mount-height-m)
+            CAMERA_CAPTURE_MOUNT_HEIGHT_M="$2"
+            shift 2
+            ;;
+        --camera-capture-lateral-offset-m)
+            CAMERA_CAPTURE_LATERAL_OFFSET_M="$2"
+            shift 2
+            ;;
+        --camera-capture-horizontal-offset-deg)
+            CAMERA_CAPTURE_HORIZONTAL_OFFSET_DEG="$2"
+            shift 2
+            ;;
+        --camera-capture-roll-deg)
+            CAMERA_CAPTURE_ROLL_DEG="$2"
+            shift 2
+            ;;
+        --camera-capture-stream)
+            CAMERA_CAPTURE_STREAM="$2"
+            shift 2
+            ;;
+        --camera-capture-scaler-crop)
+            CAMERA_CAPTURE_SCALER_CROP="$2"
+            shift 2
+            ;;
+        --camera-capture-rotate-180)
+            CAMERA_CAPTURE_ROTATE_180=true
+            shift
+            ;;
+        --camera-capture-mirror-horizontal)
+            CAMERA_CAPTURE_MIRROR_HORIZONTAL=true
             shift
             ;;
         --mode)
@@ -552,6 +632,25 @@ if [ "$BALLISTICS" = false ]; then
     SERVER_CMD="$SERVER_CMD --no-ballistics"
 fi
 
+if [ "$CAMERA_CAPTURE" = true ]; then
+    SERVER_CMD="$SERVER_CMD --camera-capture"
+    [ -n "$CAMERA_CAPTURE_WIDTH" ] && SERVER_CMD="$SERVER_CMD --camera-capture-width $CAMERA_CAPTURE_WIDTH"
+    [ -n "$CAMERA_CAPTURE_HEIGHT" ] && SERVER_CMD="$SERVER_CMD --camera-capture-height $CAMERA_CAPTURE_HEIGHT"
+    [ -n "$CAMERA_CAPTURE_FPS" ] && SERVER_CMD="$SERVER_CMD --camera-capture-fps $CAMERA_CAPTURE_FPS"
+    [ -n "$CAMERA_CAPTURE_PRE_MS" ] && SERVER_CMD="$SERVER_CMD --camera-capture-pre-ms $CAMERA_CAPTURE_PRE_MS"
+    [ -n "$CAMERA_CAPTURE_POST_MS" ] && SERVER_CMD="$SERVER_CMD --camera-capture-post-ms $CAMERA_CAPTURE_POST_MS"
+    [ -n "$CAMERA_CAPTURE_EXPOSURE_US" ] && SERVER_CMD="$SERVER_CMD --camera-capture-exposure-us $CAMERA_CAPTURE_EXPOSURE_US"
+    [ -n "$CAMERA_CAPTURE_GAIN" ] && SERVER_CMD="$SERVER_CMD --camera-capture-gain $CAMERA_CAPTURE_GAIN"
+    [ -n "$CAMERA_CAPTURE_MOUNT_HEIGHT_M" ] && SERVER_CMD="$SERVER_CMD --camera-capture-mount-height-m $CAMERA_CAPTURE_MOUNT_HEIGHT_M"
+    [ -n "$CAMERA_CAPTURE_LATERAL_OFFSET_M" ] && SERVER_CMD="$SERVER_CMD --camera-capture-lateral-offset-m $CAMERA_CAPTURE_LATERAL_OFFSET_M"
+    [ -n "$CAMERA_CAPTURE_HORIZONTAL_OFFSET_DEG" ] && SERVER_CMD="$SERVER_CMD --camera-capture-horizontal-offset-deg $CAMERA_CAPTURE_HORIZONTAL_OFFSET_DEG"
+    [ -n "$CAMERA_CAPTURE_ROLL_DEG" ] && SERVER_CMD="$SERVER_CMD --camera-capture-roll-deg $CAMERA_CAPTURE_ROLL_DEG"
+    [ -n "$CAMERA_CAPTURE_STREAM" ] && SERVER_CMD="$SERVER_CMD --camera-capture-stream $CAMERA_CAPTURE_STREAM"
+    [ -n "$CAMERA_CAPTURE_SCALER_CROP" ] && SERVER_CMD="$SERVER_CMD --camera-capture-scaler-crop $CAMERA_CAPTURE_SCALER_CROP"
+    [ "$CAMERA_CAPTURE_ROTATE_180" = true ] && SERVER_CMD="$SERVER_CMD --camera-capture-rotate-180"
+    [ "$CAMERA_CAPTURE_MIRROR_HORIZONTAL" = true ] && SERVER_CMD="$SERVER_CMD --camera-capture-mirror-horizontal"
+fi
+
 # Simulator connectors: off unless --sim; targets come from config/sim.json
 if [ "$SIM" = true ]; then
     SERVER_CMD="$SERVER_CMD --sim"
@@ -721,7 +820,21 @@ if ! command -v uv >/dev/null 2>&1; then
     error "uv not found. Install it: https://docs.astral.sh/uv/"
     exit 1
 fi
-uv sync --quiet
+UV_SYNC_ARGS=(--quiet)
+if [ "$CAMERA_CAPTURE" = true ]; then
+    # Picamera2 is supplied by Raspberry Pi OS and must remain visible inside
+    # the project environment; the camera extra supplies portable OpenCV. Keep
+    # this selection through the final `uv run`: .python-version pins 3.11,
+    # while libcamera's native extension is built for the OS Python ABI.
+    export UV_PYTHON=/usr/bin/python3
+    if [ ! -x .venv/bin/python ] || ! .venv/bin/python -c "import picamera2" >/dev/null 2>&1; then
+        uv venv --clear --system-site-packages --python /usr/bin/python3
+    fi
+    UV_SYNC_ARGS+=(--extra camera)
+    uv sync "${UV_SYNC_ARGS[@]}"
+else
+    uv sync "${UV_SYNC_ARGS[@]}"
+fi
 
 configure_kld7_latency
 
@@ -793,7 +906,7 @@ else
     log "Ballistic carry model disabled (using legacy table)"
 fi
 
-uv run $SERVER_CMD &
+uv run ${OPENFLIGHT_UV_RUN_ARGS:-} $SERVER_CMD &
 SERVER_PID=$!
 
 # Wait for server to be ready
