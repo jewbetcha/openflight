@@ -179,4 +179,47 @@ export async function overflowingLiveMetricValues(page: Page): Promise<string[]>
   });
 }
 
+export async function overflowingLiveMetricMetadata(page: Page): Promise<string[]> {
+  await page.evaluate(() => document.fonts.ready);
+
+  return page.locator('.live-panel__grid .metric-card').evaluateAll((cards) => {
+    const slop = 2;
+    const overflows: string[] = [];
+
+    for (const card of cards) {
+      const cardRect = card.getBoundingClientRect();
+      const meta = card.querySelector('.metric-card__meta');
+      if (!(meta instanceof HTMLElement)) {
+        continue;
+      }
+
+      const overflowingText = [...meta.querySelectorAll('.metric-card__confidence-label')].find((label) => {
+        if (!(label instanceof HTMLElement)) {
+          return false;
+        }
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const textRects = [...range.getClientRects()];
+        return (
+          label.scrollWidth > label.clientWidth + slop ||
+          textRects.some(
+            (rect) =>
+              rect.left < cardRect.left - slop ||
+              rect.right > cardRect.right + slop ||
+              rect.top < cardRect.top - slop ||
+              rect.bottom > cardRect.bottom + slop
+          )
+        );
+      });
+
+      if (overflowingText) {
+        const labelText = card.querySelector('.metric-card__label')?.textContent?.trim() ?? 'unknown';
+        overflows.push(`${labelText} (${overflowingText.textContent?.trim() ?? ''})`);
+      }
+    }
+
+    return overflows;
+  });
+}
+
 export { expect };

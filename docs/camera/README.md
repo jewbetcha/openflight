@@ -238,16 +238,10 @@ inside the configured frame period.
 At startup, the controller begins with the last good setting saved for the same
 resolution and frame rate. If that setting is not usable, it can jump several
 steps and recheck after `300 ms`, rather than waiting through one five-second
-step at a time. It makes at most three fast startup adjustments.
-
-After startup, the controller:
-
-- Samples the latest stable frame every five seconds.
-- Requires two consecutive bad samples before changing a setting.
-- Moves only one validated step during normal operation.
-- Waits ten seconds after a steady-state adjustment.
-- Defers changes while a triggered post-impact camera tail is being collected.
-- Recovers automatically when lighting improves.
+step at a time. It makes at most three fast startup adjustments before shot
+capture is armed. The selected manual exposure and gain are then locked for the
+life of that camera runtime, so every replay in the session uses the same image
+controls. There is no periodic exposure monitoring after startup.
 
 The last good setting is stored at:
 
@@ -260,7 +254,8 @@ stop the camera. Preview and raw frame capture continue, but camera-assisted
 horizontal launch, Club Path, and Attack Angle are withheld for that shot.
 Horizontal launch falls back to the IWR6843 path. The Camera tab reports
 **Lighting needed** and **Radar fallback active** so the operator can add or
-redirect light without restarting the session.
+redirect light. Restart OpenFlight after changing the lighting so startup
+calibration can select and lock a new setting.
 
 The standalone calibration sweep remains useful when diagnosing an unusual
 lighting installation:

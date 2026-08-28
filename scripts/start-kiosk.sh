@@ -36,6 +36,16 @@ CAMERA_CAPTURE_MIRROR_HORIZONTAL=false
 TRACKMAN_TEST=false
 SESSION_LOCATION=""
 DRY_RUN=false
+STARTUP_SPLASH=false
+STARTUP_SPLASH_PORT=""
+STARTUP_RUNTIME_DIR=""
+STARTUP_STATUS_FILE=""
+STARTUP_DISMISS_FILE=""
+STARTUP_LOG_PATH="${OPENFLIGHT_STARTUP_LOG:-$HOME/openflight_sessions/terminal_logs/}"
+SPLASH_PID=""
+BROWSER_PID=""
+BROWSER_LAUNCHED=false
+SERVER_PID=""
 # Rolling buffer mode is the only mode (streaming mode removed)
 TRIGGER="sound"  # Default: hardware sound trigger (SEN-14262 → HOST_INT)
 SOUND_PRE_TRIGGER=""
@@ -138,6 +148,14 @@ while [[ $# -gt 0 ]]; do
         --dry-run)
             DRY_RUN=true
             shift
+            ;;
+        --startup-splash)
+            STARTUP_SPLASH=true
+            shift
+            ;;
+        --startup-splash-port)
+            STARTUP_SPLASH_PORT="$2"
+            shift 2
             ;;
         --session-location|-l)
             SESSION_LOCATION="$2"
@@ -487,6 +505,144 @@ error() {
     echo -e "${RED}[OpenFlight]${NC} $1"
 }
 
+launch_kiosk_browser() {
+    local url="$1"
+    local chrome_flags="--kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic"
+
+    log "Launching kiosk browser..."
+    if command -v chromium-browser &> /dev/null; then
+        DISPLAY=:0 chromium-browser $chrome_flags "$url" &
+    elif command -v chromium &> /dev/null; then
+        DISPLAY=:0 chromium $chrome_flags "$url" &
+    elif command -v google-chrome &> /dev/null; then
+        DISPLAY=:0 google-chrome $chrome_flags "$url" &
+    elif command -v firefox &> /dev/null; then
+        DISPLAY=:0 firefox --kiosk "$url" &
+    else
+        warn "No supported browser found. Open $url manually."
+        warn "Supported browsers: chromium-browser, chromium, google-chrome, firefox"
+        return 1
+    fi
+
+    BROWSER_PID=$!
+    BROWSER_LAUNCHED=true
+}
+
+stop_startup_splash_server() {
+    if [ -n "$SPLASH_PID" ] && kill -0 "$SPLASH_PID" 2>/dev/null; then
+        kill "$SPLASH_PID" 2>/dev/null || true
+        wait "$SPLASH_PID" 2>/dev/null || true
+    fi
+    SPLASH_PID=""
+
+    if [ -n "$STARTUP_RUNTIME_DIR" ] && [ -d "$STARTUP_RUNTIME_DIR" ]; then
+        rm -f "$STARTUP_RUNTIME_DIR/startup-splash.html"
+        rm -f "$STARTUP_RUNTIME_DIR/openflightlogo.svg"
+        rm -f "$STARTUP_RUNTIME_DIR/status.json"
+        rm -f "$STARTUP_RUNTIME_DIR/dismissed"
+        rmdir "$STARTUP_RUNTIME_DIR" 2>/dev/null || true
+    fi
+}
+
+start_startup_splash() {
+    if [ "$STARTUP_SPLASH" != true ]; then
+        return 0
+    fi
+
+    local splash_port="${STARTUP_SPLASH_PORT:-$((PORT + 1))}"
+    local splash_assets="$PROJECT_DIR/ui/public"
+    local splash_path="$splash_assets/startup-splash.html"
+    local target_query="http%3A%2F%2F${HOST}%3A${PORT}"
+    local splash_url="http://127.0.0.1:${splash_port}/startup-splash.html?target=${target_query}"
+    local splash_log="${XDG_RUNTIME_DIR:-/tmp}/openflight-startup-splash-${PORT}.log"
+
+    if [ ! -f "$splash_path" ]; then
+        warn "Startup splash asset is missing; continuing with normal browser launch"
+        return 0
+    fi
+
+    if curl -fsS --max-time 1 "http://127.0.0.1:${splash_port}/" >/dev/null 2>&1; then
+        warn "Startup splash port $splash_port is already in use; continuing with normal browser launch"
+        return 0
+    fi
+
+    mkdir -p "$STARTUP_RUNTIME_DIR"
+    cp "$splash_path" "$STARTUP_RUNTIME_DIR/startup-splash.html"
+    cp "$splash_assets/openflightlogo.svg" "$STARTUP_RUNTIME_DIR/openflightlogo.svg"
+    local status_options=()
+    if [ "$MOCK_MODE" = true ] || [ "$MOCK_SWING_SPEED" = true ]; then
+        status_options+=(--mock)
+    fi
+    if [ "$CAMERA_CAPTURE" = true ] || [ "$NO_CAMERA" != true ]; then
+        status_options+=(--camera)
+    fi
+    [ "$IWR6843" = true ] && status_options+=(--iwr6843)
+    [ "$INCLINOMETER" = true ] && status_options+=(--inclinometer)
+    [ "$KLD7" = true ] && status_options+=(--kld7)
+    [ "$KLD7_HORIZONTAL" = true ] && status_options+=(--kld7-horizontal)
+    [ -n "$BATTERY_PROVIDER" ] && status_options+=(--battery)
+    [ "$SIM" = true ] && status_options+=(--simulators)
+    if ! PYTHONPATH="$PROJECT_DIR/src" python3 -m openflight.startup_status \
+        initialize "$STARTUP_STATUS_FILE" "${status_options[@]}"; then
+        printf '%s\n' '{"version":1,"overall":"starting","message":"Preparing OpenFlight server","components":[{"id":"server","label":"OpenFlight server","state":"starting"},{"id":"ops","label":"OPS radar","state":"waiting"}]}' > "$STARTUP_STATUS_FILE"
+    fi
+
+    log "Starting startup splash on port $splash_port..."
+    python3 "$PROJECT_DIR/scripts/startup_splash_server.py" \
+        --port "$splash_port" --bind 127.0.0.1 \
+        --directory "$STARTUP_RUNTIME_DIR" --dismiss-file "$STARTUP_DISMISS_FILE" \
+        >"$splash_log" 2>&1 &
+    SPLASH_PID=$!
+
+    for _ in {1..20}; do
+        if curl -fsS --max-time 1 "$splash_url" >/dev/null 2>&1; then
+            launch_kiosk_browser "$splash_url" || true
+            return 0
+        fi
+        if ! kill -0 "$SPLASH_PID" 2>/dev/null; then
+            break
+        fi
+        sleep 0.1
+    done
+
+    warn "Startup splash failed to start; continuing with normal browser launch"
+    stop_startup_splash_server
+}
+
+show_startup_failure() {
+    local component_id="$1"
+    local message="$2"
+    local recovery="$3"
+    local exit_code="${4:-1}"
+    local preserve_existing="${5:-false}"
+
+    error "$message"
+    if [ -n "$STARTUP_STATUS_FILE" ] && [ -f "$STARTUP_STATUS_FILE" ]; then
+        local status_args=(
+            fail "$STARTUP_STATUS_FILE"
+            --message "$message"
+            --recovery "$recovery"
+            --log-path "$STARTUP_LOG_PATH"
+        )
+        [ -n "$component_id" ] && status_args+=(--component "$component_id")
+        [ "$preserve_existing" = true ] && status_args+=(--preserve-existing)
+        PYTHONPATH="$PROJECT_DIR/src" python3 -m openflight.startup_status "${status_args[@]}" || true
+    fi
+
+    shutdown_server
+
+    if [ "$BROWSER_LAUNCHED" = true ] && [ -n "$SPLASH_PID" ] && kill -0 "$SPLASH_PID" 2>/dev/null; then
+        log "Startup stopped. Use Return to desktop on the splash to close it."
+        while [ ! -f "$STARTUP_DISMISS_FILE" ]; do
+            if ! kill -0 "$SPLASH_PID" 2>/dev/null; then
+                break
+            fi
+            sleep 0.25
+        done
+    fi
+    cleanup "$exit_code"
+}
+
 # Mount tilt has no safe default (a wrong value silently biases the launch
 # angle), so it must be provided whenever the K-LD7 radars are enabled. Set
 # KLD7_MOUNT_TILT or pass --kld7-mount-tilt; measure it with a phone
@@ -538,17 +694,19 @@ shutdown_server() {
 }
 
 cleanup() {
+    local exit_code="${1:-0}"
     # Prevent a second signal from re-entering cleanup while hardware drains.
     trap - SIGINT SIGTERM
     log "Shutting down..."
     shutdown_server
+    stop_startup_splash_server
     if [ -n "$BROWSER_PID" ]; then
         kill "$BROWSER_PID" 2>/dev/null || true
     fi
     # Chromium forks child processes that survive kill — clean them all
     pkill -f "chromium.*--kiosk" 2>/dev/null || true
     pkill -f "chrome.*--kiosk" 2>/dev/null || true
-    exit 0
+    exit "$exit_code"
 }
 
 configure_kld7_latency() {
@@ -591,8 +749,18 @@ trap cleanup SIGINT SIGTERM
 
 cd "$PROJECT_DIR"
 
+if [ "$STARTUP_SPLASH" = true ]; then
+    STARTUP_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}/openflight-startup-splash-${PORT}-$$"
+    STARTUP_STATUS_FILE="$STARTUP_RUNTIME_DIR/status.json"
+    STARTUP_DISMISS_FILE="$STARTUP_RUNTIME_DIR/dismissed"
+fi
+
 # Build server command
 SERVER_CMD="openflight-server --web-port $PORT"
+
+if [ -n "$STARTUP_STATUS_FILE" ]; then
+    SERVER_CMD="$SERVER_CMD --startup-status-file $STARTUP_STATUS_FILE"
+fi
 
 if [ "$MOCK_MODE" = true ] && [ "$SWING_SPEED" = true ]; then
     MOCK_SWING_SPEED=true
@@ -814,12 +982,17 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
+start_startup_splash
+
 # Ensure the environment is in sync (uv recreates/repairs .venv as needed,
 # so a moved project dir self-heals instead of failing with "command not found")
 if ! command -v uv >/dev/null 2>&1; then
-    error "uv not found. Install it: https://docs.astral.sh/uv/"
-    exit 1
+    show_startup_failure \
+        "server" \
+        "OpenFlight preparation failed" \
+        "The uv command is unavailable. Ask a technician to repair the OpenFlight installation."
 fi
+
 UV_SYNC_ARGS=(--quiet)
 if [ "$CAMERA_CAPTURE" = true ]; then
     # Picamera2 is supplied by Raspberry Pi OS and must remain visible inside
@@ -828,12 +1001,21 @@ if [ "$CAMERA_CAPTURE" = true ]; then
     # while libcamera's native extension is built for the OS Python ABI.
     export UV_PYTHON=/usr/bin/python3
     if [ ! -x .venv/bin/python ] || ! .venv/bin/python -c "import picamera2" >/dev/null 2>&1; then
-        uv venv --clear --system-site-packages --python /usr/bin/python3
+        if ! uv venv --clear --system-site-packages --python /usr/bin/python3; then
+            show_startup_failure \
+                "server" \
+                "OpenFlight preparation failed" \
+                "Camera environment preparation failed. Check the terminal log, then relaunch OpenFlight."
+        fi
     fi
     UV_SYNC_ARGS+=(--extra camera)
-    uv sync "${UV_SYNC_ARGS[@]}"
-else
-    uv sync "${UV_SYNC_ARGS[@]}"
+fi
+
+if ! uv sync "${UV_SYNC_ARGS[@]}"; then
+    show_startup_failure \
+        "server" \
+        "OpenFlight preparation failed" \
+        "Dependency preparation failed. Check the terminal log, then relaunch OpenFlight."
 fi
 
 configure_kld7_latency
@@ -842,8 +1024,13 @@ configure_kld7_latency
 if [ ! -d "ui/dist" ]; then
     warn "UI not built. Building now..."
     cd ui
-    npm install
-    npm run build
+    if ! npm install || ! npm run build; then
+        cd ..
+        show_startup_failure \
+            "server" \
+            "OpenFlight interface build failed" \
+            "Check the terminal log or network connection, then relaunch OpenFlight."
+    fi
     cd ..
 fi
 
@@ -915,41 +1102,44 @@ for i in {1..30}; do
     if curl -s "http://$HOST:$PORT" > /dev/null 2>&1; then
         break
     fi
+    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+        break
+    fi
     sleep 0.5
 done
 
 if ! curl -s "http://$HOST:$PORT" > /dev/null 2>&1; then
-    error "Server failed to start"
-    cleanup
-    exit 1
+    if kill -0 "$SERVER_PID" 2>/dev/null; then
+        show_startup_failure \
+            "server" \
+            "OpenFlight server timed out" \
+            "Wait a moment, then return to the desktop and relaunch OpenFlight." \
+            1 \
+            true
+    else
+        wait "$SERVER_PID" 2>/dev/null || true
+        SERVER_PID=""
+        show_startup_failure \
+            "server" \
+            "OpenFlight server exited during startup" \
+            "Check the connected radar hardware and terminal log, then relaunch OpenFlight." \
+            1 \
+            true
+    fi
+fi
+
+if [ -n "$STARTUP_STATUS_FILE" ]; then
+    uv run --no-sync python -m openflight.startup_status ready "$STARTUP_STATUS_FILE" || \
+        warn "Could not mark startup splash ready; continuing to OpenFlight"
 fi
 
 log "Server is running!"
 
-# Launch browser in kiosk mode
-log "Launching kiosk browser..."
-
 KIOSK_URL="http://$HOST:$PORT"
-
-# Try different browsers in order of preference
-# DISPLAY=:0 allows running on Pi's display when SSHed in
-# --password-store=basic disables the keyring unlock prompt
-CHROME_FLAGS="--kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic"
-if command -v chromium-browser &> /dev/null; then
-    DISPLAY=:0 chromium-browser $CHROME_FLAGS "$KIOSK_URL" &
-    BROWSER_PID=$!
-elif command -v chromium &> /dev/null; then
-    DISPLAY=:0 chromium $CHROME_FLAGS "$KIOSK_URL" &
-    BROWSER_PID=$!
-elif command -v google-chrome &> /dev/null; then
-    DISPLAY=:0 google-chrome $CHROME_FLAGS "$KIOSK_URL" &
-    BROWSER_PID=$!
-elif command -v firefox &> /dev/null; then
-    DISPLAY=:0 firefox --kiosk "$KIOSK_URL" &
-    BROWSER_PID=$!
+if [ "$STARTUP_SPLASH" != true ] || [ "$BROWSER_LAUNCHED" != true ]; then
+    launch_kiosk_browser "$KIOSK_URL" || true
 else
-    warn "No supported browser found. Open $KIOSK_URL manually."
-    warn "Supported browsers: chromium-browser, chromium, google-chrome, firefox"
+    log "Startup splash will continue to OpenFlight"
 fi
 
 log "OpenFlight is running! Press Ctrl+C to stop."

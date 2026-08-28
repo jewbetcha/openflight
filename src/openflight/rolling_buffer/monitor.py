@@ -272,6 +272,7 @@ class RollingBufferMonitor:
         self._diagnostic_callback: Optional[Callable[[dict], None]] = None
         self._processing_callback: Optional[Callable[[str], None]] = None
         self._shots: List[Shot] = []
+        self._shot_sequence_number = 0
         self._current_club: ClubType = ClubType.DRIVER
 
     def connect(self) -> bool:
@@ -542,6 +543,8 @@ class RollingBufferMonitor:
                 shot = self._create_shot(processed)
 
                 if shot:
+                    self._shot_sequence_number += 1
+                    shot.shot_number = self._shot_sequence_number
                     self._shots.append(shot)
                     logger.info(
                         "[MONITOR] Shot detected: ball=%.1f mph, club=%s, spin=%s",
@@ -562,11 +565,9 @@ class RollingBufferMonitor:
                     # Log raw I/Q data and trigger events to session logger
                     session_logger = get_session_logger()
                     if session_logger:
-                        shot_number = len(self._shots)
-
                         # Log raw I/Q data for offline analysis
                         session_logger.log_rolling_buffer_capture(
-                            shot_number=shot_number,
+                            shot_number=shot.shot_number,
                             sample_time=capture.sample_time,
                             trigger_time=capture.trigger_time,
                             i_samples=capture.i_samples,
@@ -737,7 +738,7 @@ class RollingBufferMonitor:
                         logger.info(
                             "[SHOT] #%d: ball=%.1f mph, club=%s, carry=%s yds | "
                             "trigger=%.0fms, process=%.0fms, callback=%.0fms, total=%.0fms",
-                            len(self._shots),
+                            shot.shot_number,
                             shot.ball_speed_mph,
                             "%.1f" % shot.club_speed_mph if shot.club_speed_mph else "N/A",
                             "%.0f" % shot.estimated_carry_yards

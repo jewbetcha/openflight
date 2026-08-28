@@ -41,7 +41,7 @@ export interface CameraCaptureSettings {
 
 export interface CameraAutoExposureStatus {
   enabled: boolean;
-  status: 'calibrating' | 'ready' | 'adjusting' | 'lighting_required' | 'unavailable';
+  status: 'ready' | 'adjusting' | 'lighting_required' | 'unavailable';
   analysis_eligible: boolean;
   message: string;
   motion_blur_risk: 'low' | 'elevated' | 'high';

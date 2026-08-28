@@ -160,8 +160,88 @@ reboot. Run the device wizard, then follow the legacy guide:
 ```
 
 The wizard also installs the required FTDI low-latency rule. See
-[Legacy K-LD7 Setup](../legacy/index.md) for mounting and startup, and
-[K-LD7 Troubleshooting](../legacy/troubleshooting.md) for serial failures.
+[Legacy K-LD7 Setup](kld7.md) for mounting and startup, and
+[K-LD7 Troubleshooting](kld7-troubleshooting.md) for serial failures.
+
+### Desktop Launcher And Startup Splash
+
+OpenFlight can display component progress immediately after a desktop launch
+without opening a terminal window. Install or refresh the user-local wrapper
+and desktop entry with:
+
+```bash
+cd ~/openflight
+scripts/setup/install_desktop_launcher.sh
+```
+
+The installer uses checkout-specific launcher and desktop filenames, preserving
+multiple OpenFlight installations on the same Pi. Machine-specific device paths
+and calibration remain outside Git. See the
+[Startup Splash Screen](splash-screen.md) guide for configuration, screenshots,
+error recovery, updating existing launchers, and rollback.
+
+### Auto-Start on Boot
+
+The setup script installs and enables a systemd service configured for your
+username and install path.
+
+<details>
+<summary>Manual steps and service management</summary>
+
+```bash
+# Install (adjust User= and paths in the file if your username isn't the default)
+sudo cp ~/openflight/scripts/setup/openflight.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable openflight
+sudo systemctl start openflight
+```
+
+Management:
+
+```bash
+sudo systemctl status openflight --no-pager   # Check status
+journalctl -u openflight -f                   # View logs
+sudo systemctl stop openflight                # Stop
+sudo systemctl restart openflight             # Restart
+sudo systemctl disable openflight             # Disable auto-start
+```
+
+To modify the service:
+
+```bash
+sudo nano /etc/systemd/system/openflight.service
+sudo systemctl daemon-reload
+sudo systemctl restart openflight
+```
+
+</details>
+
+## Running OpenFlight
+
+### Kiosk Mode (Fullscreen — Recommended)
+
+```bash
+./scripts/start-kiosk.sh        # Default: rolling buffer + sound trigger
+./scripts/start-kiosk.sh --mock # Mock mode (no hardware needed)
+```
+
+Use the [IWR6843 Operator Guide](iwr6843/README.md#start-openflight) or
+[Legacy K-LD7 Setup](kld7.md) for angle-radar startup commands.
+
+### Manual Start
+
+```bash
+openflight-server                # With radar
+openflight-server --mock         # No hardware
+```
+
+Then open `http://localhost:8080`.
+
+### Running Over SSH
+
+```bash
+DISPLAY=:0 ./scripts/start-kiosk.sh
+```
 
 ## Observability (Grafana Cloud)
 

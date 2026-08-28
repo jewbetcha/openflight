@@ -171,14 +171,14 @@ describe('buildLiveMetrics', () => {
     expect(byId(metrics, 'club_aoa')).toMatchObject({
       value: '-4.2',
       unit: '°',
-      subtext: 'camera fused (experimental)',
+      subtext: 'camera fused',
       confidence: 'medium',
       confidenceLabel: 'experimental',
     });
     expect(byId(metrics, 'club_path')).toMatchObject({
       value: '+3.1',
       unit: '°',
-      subtext: 'camera fused (experimental)',
+      subtext: 'camera fused',
       confidence: 'high',
       confidenceLabel: 'experimental',
     });
@@ -216,7 +216,10 @@ describe('buildLiveMetrics', () => {
       emptySwingStats
     );
 
-    expect(byId(metrics, 'launch_h').subtext).toBe('camera assisted (experimental)');
+    expect(byId(metrics, 'launch_h')).toMatchObject({
+      subtext: 'camera assisted',
+      confidenceLabel: 'experimental',
+    });
   });
 
   it('marks estimated launch and spin with a flag, not provenance subtext', () => {

@@ -35,6 +35,16 @@ def make_frame(index: int, interval_ns: int = 4_000_000) -> CameraFrame:
     )
 
 
+def make_good_exposure_image() -> np.ndarray:
+    """Create a frame with usable contrast in the impact-area ROI."""
+    image = np.full((200, 320), 110, dtype=np.uint8)
+    image[100:175, 90:230] = np.tile(
+        np.linspace(45, 185, 140, dtype=np.uint8),
+        (75, 1),
+    )
+    return image
+
+
 def test_ring_freezes_latest_pre_frames_and_post_tail():
     ring = TriggeredFrameBuffer(pre_trigger_frames=3, post_trigger_frames=2)
     for index in range(5):
@@ -365,11 +375,7 @@ def test_auto_exposure_acceptable_frame_enables_camera_analysis(tmp_path):
     )
     runtime._camera = object()
     runtime._running = True
-    image = np.full((200, 320), 110, dtype=np.uint8)
-    image[100:175, 90:230] = np.tile(
-        np.linspace(45, 185, 140, dtype=np.uint8),
-        (75, 1),
-    )
+    image = make_good_exposure_image()
     runtime._ring.add_frame(
         CameraFrame(
             image=image,
@@ -386,6 +392,97 @@ def test_auto_exposure_acceptable_frame_enables_camera_analysis(tmp_path):
     assert decision.status == "ready"
     assert runtime.camera_analysis_eligible is True
     assert runtime.auto_exposure_status()["observation"]["status"] == "good"
+
+
+def test_auto_exposure_locks_first_acceptable_startup_setting(tmp_path):
+    class FakeCamera:
+        def __init__(self):
+            self.controls = []
+
+        def set_controls(self, controls):
+            self.controls.append(controls)
+
+    runtime = CameraCaptureRuntime(
+        output_dir=tmp_path,
+        settings=CameraCaptureSettings(fps=488.0, exposure_us=500, gain=12.0),
+    )
+    runtime._camera = FakeCamera()
+    runtime._running = True
+    runtime._ring.add_frame(
+        CameraFrame(
+            image=make_good_exposure_image(),
+            sensor_timestamp_ns=1,
+            host_timestamp_ns=2,
+            exposure_us=500,
+            analogue_gain=12.0,
+        )
+    )
+    startup_decision = runtime._run_auto_exposure_cycle()
+
+    runtime._ring.add_frame(
+        CameraFrame(
+            image=np.full((200, 320), 18, dtype=np.uint8),
+            sensor_timestamp_ns=3,
+            host_timestamp_ns=4,
+            exposure_us=500,
+            analogue_gain=12.0,
+        )
+    )
+    later_decision = runtime._run_auto_exposure_cycle()
+
+    assert startup_decision is not None
+    assert startup_decision.status == "ready"
+    assert later_decision == startup_decision
+    assert runtime._camera.controls == []
+    assert (runtime.settings.exposure_us, runtime.settings.gain) == (500, 12.0)
+
+
+def test_auto_exposure_startup_calibration_is_synchronous(tmp_path, monkeypatch):
+    calibration_started = threading.Event()
+    allow_calibration_to_finish = threading.Event()
+    startup_returned = threading.Event()
+    runtime = CameraCaptureRuntime(output_dir=tmp_path)
+
+    def calibrate():
+        calibration_started.set()
+        assert allow_calibration_to_finish.wait(timeout=1.0)
+
+    monkeypatch.setattr(runtime, "_auto_exposure_loop", calibrate)
+
+    def start_auto_exposure():
+        runtime._start_auto_exposure()
+        startup_returned.set()
+
+    startup_thread = threading.Thread(target=start_auto_exposure)
+    startup_thread.start()
+    assert calibration_started.wait(timeout=1.0)
+    returned_before_calibration = startup_returned.wait(timeout=0.05)
+    allow_calibration_to_finish.set()
+    startup_thread.join(timeout=1.0)
+
+    assert returned_before_calibration is False
+    assert startup_returned.is_set()
+
+
+def test_auto_exposure_discards_calibration_frames_before_arming(tmp_path, monkeypatch):
+    runtime = CameraCaptureRuntime(
+        output_dir=tmp_path,
+        settings=CameraCaptureSettings(fps=100.0, pre_ms=20.0, post_ms=10.0),
+    )
+    runtime._ring.add_frame(make_frame(1))
+    runtime._ring.add_frame(make_frame(2))
+    calibration_ring = runtime._ring
+    buffered_when_refill_started = []
+    monkeypatch.setattr(
+        runtime,
+        "_wait_for_prebuffer",
+        lambda: buffered_when_refill_started.append(runtime._ring.buffered_frames),
+    )
+
+    runtime._refill_locked_exposure_prebuffer()
+
+    assert runtime._ring is not calibration_ring
+    assert buffered_when_refill_started == [0]
 
 
 def test_auto_exposure_restores_last_good_controls_for_same_camera_mode(tmp_path):
@@ -467,11 +564,7 @@ def test_auto_exposure_persists_good_controls(tmp_path):
     )
     runtime._camera = object()
     runtime._running = True
-    image = np.full((200, 320), 110, dtype=np.uint8)
-    image[100:175, 90:230] = np.tile(
-        np.linspace(45, 185, 140, dtype=np.uint8),
-        (75, 1),
-    )
+    image = make_good_exposure_image()
     runtime._ring.add_frame(
         CameraFrame(
             image=image,

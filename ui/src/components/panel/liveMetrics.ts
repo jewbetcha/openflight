@@ -76,6 +76,7 @@ function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[
   const carry = shot.carry_spin_adjusted ?? shot.estimated_carry_yards;
   const angleConfidence = launchAngleQuality(shot.launch_angle_confidence);
   const angleEstimated = shot.angle_source === 'estimated';
+  const horizontalLaunchIsCameraAssisted = shot.launch_angle_horizontal_source === 'camera_assisted_experimental';
   const fusedDeliveryAttempted = shot.experimental_fused_status != null;
   const attackAngle =
     shot.club_angle_deg ??
@@ -139,12 +140,10 @@ function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[
       label: t('metric.hLaunch'),
       value: formatOptionalAngle(shot.launch_angle_horizontal, true),
       unit: angleUnit(shot.launch_angle_horizontal),
-      subtext:
-        shot.launch_angle_horizontal_source === 'camera_assisted_experimental'
-          ? 'camera assisted (experimental)'
-          : undefined,
+      subtext: horizontalLaunchIsCameraAssisted ? 'camera assisted' : undefined,
       estimated: markEstimated(shot.launch_angle_horizontal !== null && angleEstimated),
       confidence: shot.launch_angle_horizontal === null ? null : angleConfidence,
+      confidenceLabel: horizontalLaunchIsCameraAssisted ? 'experimental' : undefined,
     },
     {
       id: 'spin',
@@ -171,7 +170,7 @@ function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[
           ? undefined
           : fusedDeliveryAttempted
             ? shot.experimental_fused_club_path_deg != null
-              ? 'camera fused (experimental)'
+              ? 'camera fused'
               : experimentalStatus(shot.experimental_fused_status)
             : clubPathIsExperimental
               ? experimentalStatus(shot.experimental_club_path_status)
@@ -189,7 +188,7 @@ function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[
           ? undefined
           : fusedDeliveryAttempted
             ? shot.experimental_fused_attack_angle_deg != null
-              ? 'camera fused (experimental)'
+              ? 'camera fused'
               : experimentalStatus(shot.experimental_fused_status)
             : attackIsExperimental
               ? experimentalStatus(shot.experimental_attack_angle_status)

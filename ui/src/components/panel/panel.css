@@ -629,6 +629,21 @@
   max-width: 100%;
 }
 
+.live-panel__grid .metric-card__subtext {
+  display: block;
+  font-size: clamp(0.6875rem, 1.2vw, 0.75rem);
+  line-height: 1.15;
+  letter-spacing: 0.06em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.live-panel__grid .metric-card__confidence {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .live-panel__grid .metric-card__value-row {
   width: 100%;
   min-width: 0;

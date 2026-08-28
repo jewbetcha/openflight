@@ -39,9 +39,7 @@ CameraCaptureStream = Literal["raw", "main-y"]
 
 RASPBERRY_PI_DIST_PACKAGES = Path("/usr/lib/python3/dist-packages")
 OV9281_VERTICAL_OFFSET_PATH = Path("/sys/module/ov9282/parameters/strip_y_offset")
-AUTO_EXPOSURE_SAMPLE_INTERVAL_S = 5.0
 AUTO_EXPOSURE_STARTUP_SETTLE_S = 0.3
-AUTO_EXPOSURE_ADJUSTMENT_COOLDOWN_S = 10.0
 
 
 def vertical_crop_limits(width: int, height: int) -> dict[str, int] | None:
@@ -175,7 +173,6 @@ class CameraCaptureRuntime:
         self._reconfigure_lock = threading.Lock()
         self._auto_exposure_policy = AutoExposurePolicy(fps=self.settings.fps)
         self._auto_exposure_stop = threading.Event()
-        self._auto_exposure_worker: threading.Thread | None = None
         self._auto_exposure_lock = threading.Lock()
         self._auto_exposure_decision = AutoExposureDecision(
             status="unavailable",
@@ -235,6 +232,7 @@ class CameraCaptureRuntime:
             self._wait_for_prebuffer()
             if self.settings.auto_exposure:
                 self._start_auto_exposure()
+                self._refill_locked_exposure_prebuffer()
             if self._use_gpio_trigger:
                 self._start_gpio_trigger()
         except Exception:
@@ -254,9 +252,6 @@ class CameraCaptureRuntime:
         """Stop camera capture and release hardware resources."""
         self._running = False
         self._auto_exposure_stop.set()
-        if self._auto_exposure_worker is not None:
-            self._auto_exposure_worker.join(timeout=3.0)
-            self._auto_exposure_worker = None
         if self._button is not None:
             self._button.close()
             self._button = None
@@ -538,35 +533,43 @@ class CameraCaptureRuntime:
                 f"{self._ring.buffered_frames}/{self.settings.pre_frames} pre-trigger frames"
             )
 
+    def _refill_locked_exposure_prebuffer(self) -> None:
+        """Discard calibration frames and refill the ring at locked controls."""
+        self._ring = TriggeredFrameBuffer(
+            self.settings.pre_frames,
+            self.settings.post_frames,
+        )
+        self._wait_for_prebuffer()
+
     def _start_auto_exposure(self) -> None:
-        """Start non-blocking exposure calibration and monitoring."""
+        """Calibrate once before arming shot capture, then lock the controls."""
         self._auto_exposure_policy.reset()
         self._auto_exposure_stop.clear()
-        self._auto_exposure_worker = threading.Thread(
-            target=self._auto_exposure_loop,
-            name="camera-auto-exposure",
-            daemon=True,
-        )
-        self._auto_exposure_worker.start()
+        self._auto_exposure_loop()
 
     def _auto_exposure_loop(self) -> None:
-        delay_s = 0.0
-        while self._running and not self._auto_exposure_stop.wait(delay_s):
+        """Converge startup controls and return without steady-state monitoring."""
+        while self._running and not self._auto_exposure_stop.is_set():
             try:
                 decision = self._run_auto_exposure_cycle()
             except Exception:  # pylint: disable=broad-exception-caught
-                logger.warning("[CAMERA] Automatic exposure check failed", exc_info=True)
-                delay_s = AUTO_EXPOSURE_SAMPLE_INTERVAL_S
-                continue
+                logger.warning("[CAMERA] Startup exposure calibration failed", exc_info=True)
+                return
 
             if decision is None:
-                delay_s = 0.1
-            elif decision.should_apply and self._auto_exposure_policy.startup:
-                delay_s = AUTO_EXPOSURE_STARTUP_SETTLE_S
-            elif decision.should_apply:
-                delay_s = AUTO_EXPOSURE_ADJUSTMENT_COOLDOWN_S
-            else:
-                delay_s = AUTO_EXPOSURE_SAMPLE_INTERVAL_S
+                if self._auto_exposure_stop.wait(0.1):
+                    return
+                continue
+            if not decision.should_apply:
+                logger.info(
+                    "[CAMERA] Startup exposure locked: %dus gain %.1f (%s)",
+                    self.settings.exposure_us,
+                    self.settings.gain,
+                    decision.status,
+                )
+                return
+            if self._auto_exposure_stop.wait(AUTO_EXPOSURE_STARTUP_SETTLE_S):
+                return
 
     def _run_auto_exposure_cycle(self) -> AutoExposureDecision | None:
         """Measure one stable frame and apply the policy's requested control step."""

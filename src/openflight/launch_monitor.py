@@ -205,6 +205,7 @@ class Shot:
         club_speed_mph: Peak club head speed detected (mph), if available
         smash_factor: Ratio of ball speed to club speed (typically 1.4-1.5 for driver)
         timestamp: When the shot was detected
+        shot_number: Stable session sequence assigned when the server receives the shot
         impact_timestamp: Epoch timestamp aligned to impact/OPS trigger time
         impact_timestamp_kld7: Ball-contact instant used by the K-LD7
             geometry launch-angle estimator. This currently mirrors the
@@ -247,6 +248,7 @@ class Shot:
 
     ball_speed_mph: float
     timestamp: datetime
+    shot_number: Optional[int] = None
     impact_timestamp: Optional[float] = None
     impact_timestamp_kld7: Optional[float] = None
     club_speed_mph: Optional[float] = None

@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -28,6 +29,19 @@ from openflight.server import (
     swing_speed_to_shot_dict,
 )
 from openflight.swing_speed import SwingSpeedEvent
+
+
+def _wait_for_shot_finalization_idle(timeout_s: float = 2.0) -> None:
+    """Wait until the asynchronous ordered finalizer has published every shot."""
+    with server_module._shot_finalization_condition:
+        idle = server_module._shot_finalization_condition.wait_for(
+            lambda: (
+                not server_module._shot_finalization_order
+                and not server_module._shot_finalization_running
+            ),
+            timeout=timeout_s,
+        )
+    assert idle, "shot finalization coordinator did not become idle"
 
 
 class TestCameraCaptureSettings:
@@ -212,6 +226,7 @@ class TestCameraCaptureSettings:
                 {"error": "horizontal alignment must be between 0 and 100 percent"},
             )
         ]
+
 
 class TestCameraReplayAPI:
     """Camera replay is prepared only through the explicit HTTP action."""
@@ -1080,6 +1095,7 @@ class TestSessionErrorLogging:
             club=ClubType.DRIVER,
         )
         on_shot_detected(shot)
+        _wait_for_shot_finalization_idle()
 
         assert logged_errors
         assert logged_errors[0][0] == "Angle/spin-axis post-processing failed"
@@ -2731,6 +2747,650 @@ class TestKLD7PostShotCaptureDelay:
 class TestOnShotDetected:
     """Tests for live shot processing in the server."""
 
+    @pytest.fixture(autouse=True)
+    def _reset_ordered_pipeline(self):
+        server_module._reset_shot_sequence()
+        yield
+        _wait_for_shot_finalization_idle()
+
+    class RecordingSessionLog:
+        def __init__(self):
+            self.stats = {"shots_detected": 0}
+            self.shots = []
+            self.rolling_buffer_captures = []
+            self.iwr6843_captures = []
+            self.camera_captures = []
+            self.all_shots_logged = threading.Event()
+
+        def log_shot(self, **shot_data):
+            self.stats["shots_detected"] += 1
+            shot_data.setdefault("shot_number", self.stats["shots_detected"])
+            self.shots.append(shot_data)
+            if len(self.shots) == 4:
+                self.all_shots_logged.set()
+
+        def log_iwr6843_capture(self, **capture_data):
+            self.iwr6843_captures.append(capture_data)
+
+        def log_rolling_buffer_capture(self, **capture_data):
+            self.rolling_buffer_captures.append(capture_data)
+
+        def log_camera_capture(self, **capture_data):
+            self.camera_captures.append(capture_data)
+
+    @staticmethod
+    def _shot(second: int = 0) -> Shot:
+        return Shot(
+            ball_speed_mph=150.0 + second,
+            club_speed_mph=100.0,
+            timestamp=datetime(2026, 8, 26, 12, 0, second),
+            impact_timestamp=100.0 + second,
+            club=ClubType.DRIVER,
+        )
+
+    @staticmethod
+    def _enrichment_queue():
+        return server_module.queue.Queue(maxsize=server_module._SHOT_ENRICHMENT_QUEUE_CAPACITY)
+
+    def _record_finalization(self, monkeypatch):
+        emitted = []
+        session_log = self.RecordingSessionLog()
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "kld7_vertical", None)
+        monkeypatch.setattr(server_module, "kld7_horizontal", None)
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "camera_capture_runtime", None)
+        monkeypatch.setattr(server_module, "ball_speed_correction_enabled", False)
+        monkeypatch.setattr(server_module, "calculated_spin_enabled", False)
+        monkeypatch.setattr(server_module, "ballistics_enabled", False)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "sim_connectors", [])
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: session_log)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
+        return emitted, session_log
+
+    @staticmethod
+    def _final_update_payloads(emitted):
+        return [
+            payload
+            for event, payload in emitted
+            if event == "shot_update" and payload.get("enrichment", {}).get("status") != "skipped"
+        ]
+
+    @classmethod
+    def _assert_finalized_once(cls, emitted, session_log):
+        updates = cls._final_update_payloads(emitted)
+        assert len(updates) == 1
+        assert updates[0]["shot"]["launch_angle_vertical_source"] == "estimated"
+        assert updates[0]["shot"]["carry_spin_adjusted"] > 0
+        assert len(session_log.shots) == 1
+        assert session_log.shots[0]["launch_angle_vertical_source"] == "estimated"
+        assert session_log.shots[0]["carry_spin_adjusted"] > 0
+
+    @staticmethod
+    def _assert_finalization_coordinator_empty():
+        with server_module._shot_finalization_lock:
+            assert not server_module._shot_finalization_order
+            assert not server_module._shot_finalization_registered
+            assert not server_module._shot_finalization_ready
+            assert server_module._shot_finalization_running is False
+
+    @staticmethod
+    def _wait_for_finalization_coordinator_idle(timeout_s: float = 2.0):
+        _wait_for_shot_finalization_idle(timeout_s)
+
+    def test_enrichment_queue_has_hard_capacity(self):
+        assert server_module._SHOT_ENRICHMENT_QUEUE_CAPACITY > 0
+        assert (
+            server_module.shot_enrichment_queue.maxsize
+            == server_module._SHOT_ENRICHMENT_QUEUE_CAPACITY
+        )
+
+    def test_emits_ops_metrics_before_iwr6843_dump_finishes(self, monkeypatch):
+        """The seven-second TI UART dump must not hold the first UI update."""
+        dump_started = threading.Event()
+        release_dump = threading.Event()
+        emitted = []
+        background_threads = []
+
+        class BlockingRuntime:
+            @staticmethod
+            def process_shot(**_kwargs):
+                dump_started.set()
+                assert release_dump.wait(5.0)
+                return SimpleNamespace(capture=None, measurement=None, club_path=None)
+
+        def start_background_task(target, *args, **kwargs):
+            thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True)
+            background_threads.append(thread)
+            thread.start()
+            return thread
+
+        monkeypatch.setattr(server_module, "iwr6843_runtime", BlockingRuntime())
+        monkeypatch.setattr(server_module, "kld7_vertical", None)
+        monkeypatch.setattr(server_module, "kld7_horizontal", None)
+        monkeypatch.setattr(server_module, "camera_tracker", None)
+        monkeypatch.setattr(server_module, "camera_enabled", False)
+        monkeypatch.setattr(server_module, "camera_capture_runtime", None)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module.socketio, "start_background_task", start_background_task)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
+
+        shot = self._shot()
+        callback = threading.Thread(target=on_shot_detected, args=(shot,), daemon=True)
+        callback.start()
+        assert dump_started.wait(2.0)
+        try:
+            callback.join(timeout=1.0)
+            assert not callback.is_alive()
+            assert emitted[0][0] == "shot"
+            assert emitted[0][1]["shot"]["ball_speed_mph"] == 150.0
+            assert emitted[0][1]["pending"] == {"iwr6843": True}
+            assert all(event != "shot_update" for event, _payload in emitted)
+        finally:
+            release_dump.set()
+            callback.join(timeout=2.0)
+            for thread in background_threads:
+                thread.join(timeout=2.0)
+
+        self._wait_for_finalization_coordinator_idle()
+
+        assert [event for event, _payload in emitted].count("shot") == 1
+        updates = [payload for event, payload in emitted if event == "shot_update"]
+        assert len(updates) == 1
+        assert updates[0]["shot"]["timestamp"] == shot.timestamp.isoformat()
+
+    def test_deferred_shots_are_fifo_on_one_worker(self, monkeypatch):
+        processed = []
+        worker_targets = []
+        worker_token = object()
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(
+            server_module,
+            "_finish_shot_detected",
+            lambda shot, **_kwargs: processed.append(shot.timestamp),
+        )
+
+        def capture_worker(target, *_args, **_kwargs):
+            worker_targets.append(target)
+            return worker_token
+
+        monkeypatch.setattr(server_module.socketio, "start_background_task", capture_worker)
+        shots = [self._shot(1), self._shot(2)]
+
+        for shot in shots:
+            server_module._defer_shot_enrichment(
+                shot,
+                emit_event="shot_update",
+                initial_ui_ms=10.0,
+            )
+
+        assert worker_targets == [server_module._drain_shot_enrichment_queue]
+        assert server_module.shot_enrichment_task is worker_token
+
+        worker_targets[0]()
+
+        assert processed == [shot.timestamp for shot in shots]
+        assert enrichment_queue.empty()
+        assert server_module.shot_enrichment_task is None
+
+    def test_successful_worker_finalizes_and_persists_once(self, monkeypatch):
+        emitted, session_log = self._record_finalization(monkeypatch)
+        worker_targets = []
+        enrichment_calls = []
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", object())
+        monkeypatch.setattr(
+            server_module.socketio,
+            "start_background_task",
+            lambda target, *_args, **_kwargs: worker_targets.append(target) or object(),
+        )
+        monkeypatch.setattr(
+            server_module,
+            "_enrich_shot_from_optional_hardware",
+            lambda shot: (
+                enrichment_calls.append(shot.timestamp) or server_module._ShotEnrichmentResult()
+            ),
+        )
+
+        shot = self._shot()
+        on_shot_detected(shot)
+        worker_targets[0]()
+        self._wait_for_finalization_coordinator_idle()
+
+        assert enrichment_calls == [shot.timestamp]
+        self._assert_finalized_once(emitted, session_log)
+
+    def test_camera_only_enrichment_uses_provisional_then_final_events(self, monkeypatch):
+        emitted = []
+        worker_targets = []
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", None)
+        monkeypatch.setattr(server_module, "camera_capture_runtime", object())
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
+
+        def capture_worker(target, *_args, **_kwargs):
+            worker_targets.append(target)
+            return object()
+
+        monkeypatch.setattr(server_module.socketio, "start_background_task", capture_worker)
+        monkeypatch.setattr(
+            server_module,
+            "_enrich_shot_from_optional_hardware",
+            lambda _shot: server_module._ShotEnrichmentResult(),
+        )
+
+        on_shot_detected(self._shot())
+        worker_targets[0]()
+        self._wait_for_finalization_coordinator_idle()
+
+        assert [event for event, _payload in emitted] == ["shot", "shot_update"]
+        assert emitted[0][1]["pending"] == {"camera": True}
+
+    def test_worker_start_failure_keeps_ops_result_usable(self, monkeypatch):
+        emitted, session_log = self._record_finalization(monkeypatch)
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", None)
+        monkeypatch.setattr(server_module, "camera_capture_runtime", object())
+        monkeypatch.setattr(
+            server_module.socketio,
+            "start_background_task",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("no worker")),
+        )
+
+        on_shot_detected(self._shot())
+        self._wait_for_finalization_coordinator_idle()
+
+        assert [event for event, _payload in emitted] == [
+            "shot",
+            "shot_update",
+            "shot_update",
+        ]
+        assert emitted[1][1]["pending"] == {}
+        assert emitted[1][1]["enrichment"] == {
+            "status": "skipped",
+            "reason": "worker_unavailable",
+            "hardware": ["camera"],
+        }
+        self._assert_finalized_once(emitted, session_log)
+        assert enrichment_queue.empty()
+
+    def test_worker_enrichment_failure_keeps_ops_result_usable(self, monkeypatch):
+        emitted, session_log = self._record_finalization(monkeypatch)
+        worker_targets = []
+        enrichment_calls = []
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", object())
+        monkeypatch.setattr(
+            server_module.socketio,
+            "start_background_task",
+            lambda target, *_args, **_kwargs: worker_targets.append(target) or object(),
+        )
+        monkeypatch.setattr(
+            server_module,
+            "_enrich_shot_from_optional_hardware",
+            lambda shot: (
+                enrichment_calls.append(shot.timestamp)
+                or (_ for _ in ()).throw(RuntimeError("hardware failed"))
+            ),
+        )
+
+        shot = self._shot()
+        on_shot_detected(shot)
+        worker_targets[0]()
+        self._wait_for_finalization_coordinator_idle()
+
+        assert enrichment_calls == [shot.timestamp]
+        assert [event for event, _payload in emitted] == ["shot", "shot_update"]
+        self._assert_finalized_once(emitted, session_log)
+
+    def test_ordered_finalizer_failure_does_not_strand_later_shot(self, monkeypatch):
+        attempts = []
+        logged_errors = []
+        shots = [self._shot(0), self._shot(1)]
+        for shot_number, shot in enumerate(shots, start=1):
+            shot.shot_number = shot_number
+            server_module._register_shot_for_finalization(shot)
+
+        def finalize(shot, **_kwargs):
+            attempts.append(shot.shot_number)
+            if shot.shot_number == 1:
+                raise RuntimeError("final publish failed")
+
+        monkeypatch.setattr(server_module, "_finalize_shot_detected", finalize)
+        monkeypatch.setattr(
+            server_module,
+            "log_session_error",
+            lambda *args, **kwargs: logged_errors.append((args, kwargs)),
+        )
+
+        server_module._queue_shot_finalization(
+            shots[1],
+            emit_event="shot_update",
+            initial_ui_ms=10.0,
+        )
+        assert attempts == []
+
+        server_module._queue_shot_finalization(
+            shots[0],
+            emit_event="shot_update",
+            initial_ui_ms=10.0,
+        )
+        self._wait_for_finalization_coordinator_idle()
+
+        assert attempts == [1, 2]
+        assert len(logged_errors) == 1
+        self._assert_finalization_coordinator_empty()
+
+    def test_queue_overflow_preserves_shot_order_and_hardware_identity(self, monkeypatch):
+        emitted, session_log = self._record_finalization(monkeypatch)
+        dump_started = threading.Event()
+        release_dump = threading.Event()
+        all_initial_shots_emitted = threading.Event()
+        background_threads = []
+        simulator_shots = []
+        enrichment_queue = self._enrichment_queue()
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "_shot_sequence_number", 0, raising=False)
+
+        class BlockingIWRRuntime:
+            @staticmethod
+            def process_shot(**kwargs):
+                if kwargs["impact_timestamp"] == 100.0:
+                    dump_started.set()
+                    assert release_dump.wait(5.0)
+                return SimpleNamespace(capture=None, measurement=None, club_path=None)
+
+        class CameraRuntime:
+            camera_analysis_eligible = False
+
+            @staticmethod
+            def capture_for_shot(impact_timestamp, timeout_s):
+                del timeout_s
+                return SimpleNamespace(
+                    trigger_timestamp=impact_timestamp,
+                    path=None,
+                    metadata={},
+                    error="test capture",
+                    valid=False,
+                    sequence=int(impact_timestamp),
+                )
+
+        def start_background_task(target, *args, **kwargs):
+            thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True)
+            background_threads.append(thread)
+            thread.start()
+            return thread
+
+        monkeypatch.setattr(server_module, "iwr6843_runtime", BlockingIWRRuntime())
+        monkeypatch.setattr(server_module, "camera_capture_runtime", CameraRuntime())
+        monkeypatch.setattr(server_module.socketio, "start_background_task", start_background_task)
+
+        def record_emit(event, payload):
+            emitted.append((event, payload))
+            if event == "shot" and sum(name == "shot" for name, _payload in emitted) == 4:
+                all_initial_shots_emitted.set()
+
+        monkeypatch.setattr(server_module.socketio, "emit", record_emit)
+        monkeypatch.setattr(
+            server_module,
+            "_forward_shot_to_simulators",
+            lambda shot: simulator_shots.append((shot.shot_number, shot.impact_timestamp)),
+        )
+
+        shots = [self._shot(second) for second in range(4)]
+        for shot_number, shot in enumerate(shots, start=1):
+            shot.shot_number = shot_number
+            session_log.log_rolling_buffer_capture(
+                shot_number=shot_number,
+                shot_timestamp=shot.impact_timestamp,
+            )
+        on_shot_detected(shots[0])
+        assert dump_started.wait(2.0)
+
+        on_shot_detected(shots[1])
+        on_shot_detected(shots[2])
+        assert enrichment_queue.full()
+
+        overflow_callback = threading.Thread(
+            target=on_shot_detected,
+            args=(shots[3],),
+            daemon=True,
+        )
+        overflow_callback.start()
+        assert all_initial_shots_emitted.wait(2.0)
+        try:
+            overflow_callback.join(timeout=1.0)
+            assert not overflow_callback.is_alive(), (
+                "OPS callback must not wait for optional hardware"
+            )
+            assert not session_log.shots
+        finally:
+            release_dump.set()
+
+        assert session_log.all_shots_logged.wait(5.0)
+        overflow_callback.join(timeout=2.0)
+        for thread in background_threads:
+            thread.join(timeout=2.0)
+        assert not overflow_callback.is_alive()
+        assert all(not thread.is_alive() for thread in background_threads)
+
+        expected = [(index, shot.impact_timestamp) for index, shot in enumerate(shots, start=1)]
+        initial_shots = [payload["shot"] for event, payload in emitted if event == "shot"]
+        skipped_updates = [
+            payload
+            for event, payload in emitted
+            if event == "shot_update" and payload.get("enrichment", {}).get("status") == "skipped"
+        ]
+        final_shots = [payload["shot"] for payload in self._final_update_payloads(emitted)]
+        assert [(row["shot_number"], row["impact_timestamp"]) for row in initial_shots] == expected
+        assert len(skipped_updates) == 1
+        assert skipped_updates[0]["shot"]["shot_number"] == 4
+        assert skipped_updates[0]["pending"] == {}
+        assert skipped_updates[0]["enrichment"] == {
+            "status": "skipped",
+            "reason": "queue_full",
+            "hardware": ["iwr6843", "camera"],
+        }
+        assert [
+            (row["shot_number"], row["impact_timestamp"]) for row in session_log.shots
+        ] == expected
+        assert [
+            (row["shot_number"], row["shot_timestamp"])
+            for row in session_log.rolling_buffer_captures
+        ] == expected
+        expected_enriched = expected[:3]
+        assert [
+            (row["shot_number"], row["shot_timestamp"]) for row in session_log.iwr6843_captures
+        ] == expected_enriched
+        assert [
+            (row["shot_number"], row["shot_timestamp"]) for row in session_log.camera_captures
+        ] == expected_enriched
+        assert [(row["shot_number"], row["impact_timestamp"]) for row in final_shots] == expected
+        assert simulator_shots == expected
+        self._assert_finalization_coordinator_empty()
+
+    def test_capacity_eviction_never_finalizes_on_ops_callback(self, monkeypatch):
+        enrichment_queue = self._enrichment_queue()
+        finalization_started = threading.Event()
+        finalization_finished = threading.Event()
+        release_finalization = threading.Event()
+        worker_token = object()
+
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", object())
+        monkeypatch.setattr(server_module, "camera_capture_runtime", None)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
+        monkeypatch.setattr(server_module, "_SHOT_ENRICHMENT_DEADLINE_S", 30.0)
+        monkeypatch.setattr(
+            server_module.socketio,
+            "start_background_task",
+            lambda *_args, **_kwargs: worker_token,
+        )
+
+        def block_finalization(*_args, **_kwargs):
+            finalization_started.set()
+            try:
+                assert release_finalization.wait(5.0)
+            finally:
+                finalization_finished.set()
+
+        monkeypatch.setattr(server_module, "_finalize_shot_detected", block_finalization)
+
+        for second in range(server_module._SHOT_FINALIZATION_CAPACITY):
+            on_shot_detected(self._shot(second))
+
+        fifth_callback = threading.Thread(
+            target=on_shot_detected,
+            args=(self._shot(server_module._SHOT_FINALIZATION_CAPACITY),),
+            daemon=True,
+        )
+        fifth_callback.start()
+        assert finalization_started.wait(2.0)
+        try:
+            fifth_callback.join(timeout=1.0)
+            assert not fifth_callback.is_alive(), (
+                "capacity eviction must not run finalization on the OPS callback"
+            )
+        finally:
+            release_finalization.set()
+            fifth_callback.join(timeout=2.0)
+            assert finalization_finished.wait(2.0)
+            server_module._reset_shot_sequence()
+
+    def test_stuck_head_deadline_bounds_coordinator_and_finalizes_ops_in_order(self, monkeypatch):
+        emitted, session_log = self._record_finalization(monkeypatch)
+        dump_started = threading.Event()
+        release_dump = threading.Event()
+        first_shot_logged = threading.Event()
+        all_shots_logged = threading.Event()
+        background_threads = []
+        simulator_shots = []
+        coordinator_sizes = []
+        enrichment_queue = self._enrichment_queue()
+        shot_count = 20
+        shots = [self._shot(second) for second in range(shot_count)]
+
+        monkeypatch.setattr(server_module, "shot_enrichment_queue", enrichment_queue)
+        monkeypatch.setattr(server_module, "shot_enrichment_task", None)
+        monkeypatch.setattr(server_module, "iwr6843_runtime", object())
+        monkeypatch.setattr(server_module, "_SHOT_ENRICHMENT_DEADLINE_S", 0.05, raising=False)
+        monkeypatch.setattr(server_module, "_SHOT_FINALIZATION_CAPACITY", 4, raising=False)
+
+        original_log_shot = session_log.log_shot
+
+        def log_shot(**shot_data):
+            original_log_shot(**shot_data)
+            if len(session_log.shots) == 1:
+                first_shot_logged.set()
+            if len(session_log.shots) == shot_count:
+                all_shots_logged.set()
+
+        session_log.log_shot = log_shot
+
+        def block_first_enrichment(shot):
+            if shot.shot_number == 1:
+                dump_started.set()
+                assert release_dump.wait(5.0)
+            shot.launch_angle_vertical = 42.0
+            shot.launch_angle_vertical_source = "iwr6843"
+            return server_module._ShotEnrichmentResult()
+
+        def start_background_task(target, *args, **kwargs):
+            thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True)
+            background_threads.append(thread)
+            thread.start()
+            return thread
+
+        monkeypatch.setattr(
+            server_module,
+            "_enrich_shot_from_optional_hardware",
+            block_first_enrichment,
+        )
+        monkeypatch.setattr(server_module.socketio, "start_background_task", start_background_task)
+        monkeypatch.setattr(
+            server_module,
+            "_forward_shot_to_simulators",
+            lambda shot: simulator_shots.append(shot.shot_number),
+        )
+
+        on_shot_detected(shots[0])
+        assert dump_started.wait(2.0)
+        assert first_shot_logged.wait(2.0)
+        assert not release_dump.is_set(), "deadline must not wait for hardware to return"
+
+        def submit_remaining_shots():
+            for shot in shots[1:]:
+                on_shot_detected(shot)
+                with server_module._shot_finalization_condition:
+                    bounded = server_module._shot_finalization_condition.wait_for(
+                        lambda: len(server_module._shot_finalization_order) <= 4,
+                        timeout=1.0,
+                    )
+                    assert bounded
+                    coordinator_sizes.append(
+                        (
+                            len(server_module._shot_finalization_order),
+                            len(server_module._shot_finalization_registered),
+                            len(server_module._shot_finalization_ready),
+                        )
+                    )
+
+        callbacks = threading.Thread(target=submit_remaining_shots, daemon=True)
+        callbacks.start()
+        try:
+            callbacks.join(timeout=5.0)
+            assert not callbacks.is_alive(), "OPS callbacks must not wait for stuck hardware"
+            assert max(size[0] for size in coordinator_sizes) <= 4
+            assert max(size[1] for size in coordinator_sizes) <= 4
+            assert max(size[2] for size in coordinator_sizes) <= 4
+            assert all_shots_logged.wait(2.0)
+            assert not release_dump.is_set(), "overflow must not wait for hardware to return"
+        finally:
+            release_dump.set()
+
+        callbacks.join(timeout=2.0)
+        for thread in background_threads:
+            thread.join(timeout=2.0)
+
+        final_shots = [payload["shot"] for payload in self._final_update_payloads(emitted)]
+        assert [row["shot_number"] for row in final_shots] == list(range(1, shot_count + 1))
+        assert [row["shot_number"] for row in session_log.shots] == list(range(1, shot_count + 1))
+        assert all(row["launch_angle_vertical_source"] == "estimated" for row in final_shots)
+        assert all(row["carry_spin_adjusted"] > 0 for row in final_shots)
+        assert all(shot.launch_angle_vertical_source == "estimated" for shot in shots)
+        assert simulator_shots == list(range(1, shot_count + 1))
+        self._assert_finalization_coordinator_empty()
+
     def test_kld7_uses_shot_impact_timestamp(self, monkeypatch):
         """K-LD7 selection should be anchored to the OPS243 impact timestamp."""
         calls = []
@@ -2774,6 +3434,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert ("ball", 1234.5) in calls
         assert ("club", 1234.5) in calls
@@ -2830,6 +3491,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert snapshot_calls == [True]
         assert logged_buffers[0]["buffer_frames"][0]["radc_b64"] == "AQID"
@@ -2886,6 +3548,7 @@ class TestOnShotDetected:
 
         with caplog.at_level(logging.WARNING, logger="openflight.server"):
             on_shot_detected(shot)
+            self._wait_for_finalization_coordinator_idle()
 
         assert any("raw RADC replay payload missing" in r.message for r in caplog.records)
 
@@ -2921,6 +3584,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.angle_source == "estimated"
         assert shot.launch_angle_vertical == pytest.approx(20.5)
@@ -2963,6 +3627,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_vertical == pytest.approx(10.7)
         assert shot.launch_angle_vertical_source == "radar"
@@ -3006,6 +3671,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         # Lane disagreement no longer silently replaces the measurement:
         # shown as radar with single-dot (marginal) confidence
@@ -3081,6 +3747,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_vertical == pytest.approx(19.9)
         assert shot.launch_angle_vertical_source == "radar"
@@ -3162,6 +3829,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_vertical == pytest.approx(19.9)
         assert shot.launch_angle_vertical_source == "radar"
@@ -3233,6 +3901,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         # Marginal accept: shown as radar with single-dot confidence
         # instead of silently replaced by the club estimate
@@ -3280,6 +3949,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.angle_source == "estimated"
         assert shot.launch_angle_vertical == pytest.approx(20.5)
@@ -3327,6 +3997,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_horizontal == pytest.approx(16.1)
         assert shot.launch_angle_horizontal_source == "radar"
@@ -3367,6 +4038,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_horizontal == pytest.approx(0.0)
         assert shot.launch_angle_horizontal_source == "estimated"
@@ -3419,6 +4091,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_horizontal == pytest.approx(-2.2)
         assert shot.launch_angle_horizontal_source == "radar"
@@ -3472,6 +4145,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_horizontal == pytest.approx(0.0)
         assert shot.launch_angle_horizontal_source == "estimated"
@@ -3525,6 +4199,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.launch_angle_horizontal == pytest.approx(0.0)
         assert shot.launch_angle_horizontal_source == "estimated"
@@ -3567,6 +4242,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.angle_source == "radar"
         assert shot.launch_angle_vertical == pytest.approx(18.7)
@@ -3589,6 +4265,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.angle_source == "estimated"
         assert shot.launch_angle_vertical == pytest.approx(20.5)
@@ -3631,6 +4308,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.club_angle_deg is None, (
             f"AoA of +31° should be rejected, got {shot.club_angle_deg}"
@@ -3669,6 +4347,7 @@ class TestOnShotDetected:
         )
 
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
         assert shot.angle_source == "radar"
         assert shot.launch_angle_vertical == pytest.approx(18.7)
@@ -3699,6 +4378,7 @@ class TestOnShotDetected:
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
         monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
         on_shot_detected(shot)
+        self._wait_for_finalization_coordinator_idle()
 
     def test_spin_axis_emitted_when_horizontal_confidence_clears_gate(self, monkeypatch):
         shot = self._spin_axis_shot(horizontal_confidence=server_module.SPIN_AXIS_MIN_CONFIDENCE)
@@ -3806,6 +4486,7 @@ class TestCarryComputation:
         )
 
         on_shot_detected(shot)
+        _wait_for_shot_finalization_idle()
 
         assert "conditions" in captured, "simulate() should have been called"
         assert captured["conditions"].spin_source == "measured"
@@ -3835,6 +4516,7 @@ class TestCarryComputation:
         )
 
         on_shot_detected(shot)
+        _wait_for_shot_finalization_idle()
 
         assert shot.carry_spin_adjusted is not None
         assert shot.carry_spin_adjusted > 0
@@ -3868,6 +4550,7 @@ class TestCarryComputation:
         )
 
         on_shot_detected(shot)
+        _wait_for_shot_finalization_idle()
 
         assert shot.carry_spin_adjusted is not None
         assert shot.carry_spin_adjusted > 0

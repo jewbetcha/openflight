@@ -284,7 +284,12 @@ def angle_points(
 def circular_median(values: list[float]) -> float:
     """Median of angles, wrapping correctly across +/-pi."""
     array = np.asarray(values, dtype=float)
-    scores = [np.median(np.abs(np.angle(np.exp(1j * (array - candidate))))) for candidate in array]
+    # Score every observed angle as the candidate in one small matrix. The
+    # horizontal estimators call this hundreds of times per shot (usually for
+    # four RX phases); constructing a separate NumPy pipeline per candidate
+    # made this otherwise tiny robust statistic a measurable hot path.
+    wrapped_distances = np.abs(np.angle(np.exp(1j * (array[:, np.newaxis] - array[np.newaxis, :]))))
+    scores = np.median(wrapped_distances, axis=0)
     return float(array[int(np.argmin(scores))])
 
 

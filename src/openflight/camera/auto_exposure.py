@@ -17,7 +17,6 @@ ExposureQualityStatus = Literal[
 ]
 ExposureRecommendation = Literal["brighter", "darker", "hold"]
 AutoExposureStatus = Literal[
-    "calibrating",
     "ready",
     "adjusting",
     "lighting_required",
@@ -173,7 +172,7 @@ def measure_exposure(image: np.ndarray) -> ExposureObservation:
     else:
         status = "marginal"
         recommendation = "darker" if clipped_pct > 2.0 or median > 180.0 else "brighter"
-        message = f"Exposure is usable; monitoring for a {recommendation} adjustment"
+        message = f"Exposure is usable; a {recommendation} setting may improve contrast"
 
     return ExposureObservation(
         sample_available=True,
@@ -199,36 +198,31 @@ def motion_blur_risk(exposure_us: int) -> Literal["low", "elevated", "high"]:
 
 
 class AutoExposurePolicy:
-    """Choose startup jumps and conservative steady-state adjustments."""
+    """Choose startup exposure steps and lock the first terminal decision."""
 
     def __init__(
         self,
         *,
         fps: float,
         startup_max_adjustments: int = 3,
-        steady_confirmations: int = 2,
     ):
         if startup_max_adjustments < 1:
             raise ValueError("startup_max_adjustments must be positive")
-        if steady_confirmations < 1:
-            raise ValueError("steady_confirmations must be positive")
         self.steps = exposure_steps_for_fps(fps)
         self.startup_max_adjustments = startup_max_adjustments
-        self.steady_confirmations = steady_confirmations
-        self._fast_reacquire_armed = False
-        self._reset_startup_state()
-
-    def _reset_startup_state(self) -> None:
-        """Enter startup convergence without rearming scene-change detection."""
         self._startup = True
         self._startup_adjustments = 0
-        self._pending_recommendation: ExposureRecommendation = "hold"
-        self._pending_count = 0
+        self._locked_decision: AutoExposureDecision | None = None
+
+    def _reset_startup_state(self) -> None:
+        """Enter startup convergence and clear any prior locked result."""
+        self._startup = True
+        self._startup_adjustments = 0
+        self._locked_decision: AutoExposureDecision | None = None
 
     def reset(self) -> None:
-        """Restart fast convergence after a material scene change."""
+        """Unlock the policy for a new camera startup."""
         self._reset_startup_state()
-        self._fast_reacquire_armed = False
 
     @property
     def startup(self) -> bool:
@@ -243,6 +237,9 @@ class AutoExposurePolicy:
         gain: float,
     ) -> AutoExposureDecision:
         """Return the next camera-control decision without applying it."""
+        if self._locked_decision is not None:
+            return self._locked_decision
+
         current_index = self._nearest_step_index(exposure_us, gain)
         current_step = self.steps[current_index]
         risk = motion_blur_risk(current_step.exposure_us)
@@ -259,36 +256,16 @@ class AutoExposurePolicy:
         if observation.acceptable:
             self._startup = False
             self._startup_adjustments = 0
-            self._pending_recommendation = "hold"
-            self._pending_count = 0
-            self._fast_reacquire_armed = True
-            return AutoExposureDecision(
+            self._locked_decision = AutoExposureDecision(
                 status="ready",
                 analysis_eligible=True,
                 message=observation.message,
                 observation=observation,
                 motion_blur_risk=risk,
             )
+            return self._locked_decision
 
-        if self._startup:
-            return self._startup_decision(observation, current_index)
-        if self._fast_reacquire_armed and self._is_material_change(
-            observation,
-            current_index,
-        ):
-            self._reset_startup_state()
-            self._fast_reacquire_armed = False
-            return self._startup_decision(observation, current_index)
-        return self._steady_decision(observation, current_index)
-
-    def _is_material_change(
-        self,
-        observation: ExposureObservation,
-        current_index: int,
-    ) -> bool:
-        """Return whether the measured scene needs a multi-step correction."""
-        target_index = self._startup_target_index(observation, current_index)
-        return abs(target_index - current_index) >= 2
+        return self._startup_decision(observation, current_index)
 
     def _startup_decision(
         self,
@@ -299,24 +276,26 @@ class AutoExposurePolicy:
         risk = motion_blur_risk(current.exposure_us)
         if self._startup_adjustments >= self.startup_max_adjustments:
             self._startup = False
-            return AutoExposureDecision(
+            self._locked_decision = AutoExposureDecision(
                 status="lighting_required",
                 analysis_eligible=False,
                 message=self._lighting_message(observation),
                 observation=observation,
                 motion_blur_risk=risk,
             )
+            return self._locked_decision
 
         target_index = self._startup_target_index(observation, current_index)
         if target_index == current_index:
             self._startup = False
-            return AutoExposureDecision(
+            self._locked_decision = AutoExposureDecision(
                 status="lighting_required",
                 analysis_eligible=False,
                 message=self._lighting_message(observation),
                 observation=observation,
                 motion_blur_risk=risk,
             )
+            return self._locked_decision
 
         self._startup_adjustments += 1
         target = self.steps[target_index]
@@ -327,51 +306,6 @@ class AutoExposurePolicy:
                 "Calibrating camera exposure "
                 f"({self._startup_adjustments}/{self.startup_max_adjustments})"
             ),
-            observation=observation,
-            target=target,
-            motion_blur_risk=motion_blur_risk(target.exposure_us),
-        )
-
-    def _steady_decision(
-        self,
-        observation: ExposureObservation,
-        current_index: int,
-    ) -> AutoExposureDecision:
-        if observation.recommendation != self._pending_recommendation:
-            self._pending_recommendation = observation.recommendation
-            self._pending_count = 1
-        else:
-            self._pending_count += 1
-
-        current = self.steps[current_index]
-        risk = motion_blur_risk(current.exposure_us)
-        if self._pending_count < self.steady_confirmations:
-            return AutoExposureDecision(
-                status="calibrating",
-                analysis_eligible=False,
-                message="Confirming the lighting change before adjusting",
-                observation=observation,
-                motion_blur_risk=risk,
-            )
-
-        direction = 1 if observation.recommendation == "brighter" else -1
-        target_index = max(0, min(len(self.steps) - 1, current_index + direction))
-        self._pending_count = 0
-        self._pending_recommendation = "hold"
-        if target_index == current_index:
-            return AutoExposureDecision(
-                status="lighting_required",
-                analysis_eligible=False,
-                message=self._lighting_message(observation),
-                observation=observation,
-                motion_blur_risk=risk,
-            )
-
-        target = self.steps[target_index]
-        return AutoExposureDecision(
-            status="adjusting",
-            analysis_eligible=False,
-            message=f"Adjusting camera {observation.recommendation}",
             observation=observation,
             target=target,
             motion_blur_risk=motion_blur_risk(target.exposure_us),

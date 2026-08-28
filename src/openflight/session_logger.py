@@ -382,6 +382,7 @@ class SessionLogger:
         impact_timestamp: Optional[float] = None,
         player_name: Optional[str] = None,
         inclinometer: Optional[Dict] = None,
+        shot_number: Optional[int] = None,
     ):
         """
         Log a detected shot with all metrics.
@@ -394,6 +395,7 @@ class SessionLogger:
             club: Club type used
             peak_magnitude: Peak radar magnitude
             readings_count: Number of readings in the shot window
+            shot_number: Stable sequence assigned when the shot was detected
             readings: Optional list of individual readings that comprised the shot
             spin_rpm: Spin rate in RPM (rolling buffer mode only)
             spin_confidence: Confidence of spin detection (rolling buffer mode only)
@@ -422,9 +424,12 @@ class SessionLogger:
             return
 
         self._stats["shots_detected"] += 1
+        resolved_shot_number = (
+            shot_number if shot_number is not None else self._stats["shots_detected"]
+        )
 
         data = {
-            "shot_number": self._stats["shots_detected"],
+            "shot_number": resolved_shot_number,
             "ball_speed_mph": ball_speed_mph,
             "club_speed_mph": club_speed_mph,
             "smash_factor": smash_factor,

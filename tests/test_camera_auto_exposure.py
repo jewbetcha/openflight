@@ -106,37 +106,35 @@ def test_acceptable_startup_observation_marks_analysis_ready():
     assert not decision.should_apply
 
 
-def test_steady_state_requires_confirmation_and_moves_one_step():
-    policy = AutoExposurePolicy(fps=488.0, steady_confirmations=2)
-    policy.evaluate(observation("good", "hold"), exposure_us=650, gain=15.0)
-    bad = observation("too_dark", "brighter", median=70.0, p90=74.0)
+def test_ready_setting_stays_locked_until_the_next_startup():
+    policy = AutoExposurePolicy(fps=488.0)
+    ready = policy.evaluate(
+        observation("good", "hold"),
+        exposure_us=500,
+        gain=12.0,
+    )
 
-    first = policy.evaluate(bad, exposure_us=650, gain=15.0)
-    second = policy.evaluate(bad, exposure_us=650, gain=15.0)
-
-    assert first.status == "calibrating"
-    assert not first.should_apply
-    assert second.status == "adjusting"
-    assert second.target == EXPOSURE_STEPS[11]
-
-
-def test_material_steady_state_change_reenters_fast_convergence():
-    policy = AutoExposurePolicy(fps=488.0, steady_confirmations=2)
-    policy.evaluate(observation("good", "hold"), exposure_us=500, gain=12.0)
-
-    decision = policy.evaluate(
+    changed_scene = policy.evaluate(
+        observation("too_dark", "brighter", median=18.0, p90=40.0),
+        exposure_us=500,
+        gain=12.0,
+    )
+    policy.reset()
+    next_startup = policy.evaluate(
         observation("too_dark", "brighter", median=18.0, p90=40.0),
         exposure_us=500,
         gain=12.0,
     )
 
-    assert decision.status == "adjusting"
-    assert decision.should_apply
-    assert decision.target.signal > EXPOSURE_STEPS[9].signal
+    assert changed_scene is ready
+    assert changed_scene.status == "ready"
+    assert not changed_scene.should_apply
+    assert next_startup.status == "adjusting"
+    assert next_startup.should_apply
     assert policy.startup is True
 
 
-def test_ladder_limit_requires_lighting_but_recovers_automatically():
+def test_ladder_limit_stays_locked_until_the_next_startup():
     policy = AutoExposurePolicy(fps=488.0)
     darkest = EXPOSURE_STEPS[-1]
 
@@ -145,6 +143,12 @@ def test_ladder_limit_requires_lighting_but_recovers_automatically():
         exposure_us=darkest.exposure_us,
         gain=darkest.gain,
     )
+    locked = policy.evaluate(
+        observation("marginal", "brighter", median=40.0, p90=95.0),
+        exposure_us=darkest.exposure_us,
+        gain=darkest.gain,
+    )
+    policy.reset()
     recovered = policy.evaluate(
         observation("marginal", "brighter", median=40.0, p90=95.0),
         exposure_us=darkest.exposure_us,
@@ -154,6 +158,7 @@ def test_ladder_limit_requires_lighting_but_recovers_automatically():
     assert failed.status == "lighting_required"
     assert failed.analysis_eligible is False
     assert "add or redirect light" in failed.message
+    assert locked is failed
     assert recovered.status == "ready"
     assert recovered.analysis_eligible is True
 
@@ -171,35 +176,6 @@ def test_startup_attempt_limit_requires_lighting_change():
 
     assert failed.status == "lighting_required"
     assert not failed.should_apply
-
-
-def test_lighting_failure_can_recover_with_steady_state_adjustment():
-    policy = AutoExposurePolicy(fps=488.0, startup_max_adjustments=1)
-    dark = observation("too_dark", "brighter", median=18.0, p90=40.0)
-    first = policy.evaluate(dark, exposure_us=250, gain=4.0)
-    failed = policy.evaluate(
-        dark,
-        exposure_us=first.target.exposure_us,
-        gain=first.target.gain,
-    )
-    bright = observation("too_bright", "darker", median=240.0, p90=255.0)
-
-    confirming = policy.evaluate(
-        bright,
-        exposure_us=first.target.exposure_us,
-        gain=first.target.gain,
-    )
-    recovered = policy.evaluate(
-        bright,
-        exposure_us=first.target.exposure_us,
-        gain=first.target.gain,
-    )
-
-    assert failed.status == "lighting_required"
-    assert policy.startup is False
-    assert confirming.status == "calibrating"
-    assert recovered.should_apply
-    assert recovered.target.signal < first.target.signal
 
 
 @pytest.mark.parametrize(

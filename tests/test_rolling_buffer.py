@@ -554,10 +554,7 @@ class TestSoundTriggerTimestampPropagation:
 
             def __init__(self):
                 self._response = (
-                    b'{"sample_time": 1.0}\r\n'
-                    b'{"trigger_time": 1.1}\r\n'
-                    b'{"I": [1]}\r\n'
-                    b'{"Q": [1]}'
+                    b'{"sample_time": 1.0}\r\n{"trigger_time": 1.1}\r\n{"I": [1]}\r\n{"Q": [1]}'
                 )
 
             @property
@@ -1185,6 +1182,79 @@ class TestRollingBufferMonitorSpinPlausibility:
         assert shot is not None
         assert shot.impact_timestamp == pytest.approx(1715000000.123)
         assert shot.impact_timestamp_kld7 == pytest.approx(1715000000.115)
+
+
+class TestRollingBufferShotIdentity:
+    """Raw OPS captures and downstream shots must share a monotonic identity."""
+
+    @staticmethod
+    def _processed(impact_timestamp: float) -> ProcessedCapture:
+        capture = IQCapture(
+            sample_time=100.0,
+            trigger_time=100.068,
+            i_samples=[2048] * 16,
+            q_samples=[2048] * 16,
+            trigger_timestamp=impact_timestamp,
+        )
+        return ProcessedCapture(
+            timeline=SpeedTimeline(readings=[], sample_rate_hz=937.5, capture=capture),
+            ball_speed_mph=100.0,
+            ball_timestamp_ms=68.0,
+            club_speed_mph=75.0,
+            capture=capture,
+        )
+
+    def test_clear_session_does_not_reuse_raw_ops_shot_number(self, monkeypatch):
+        from openflight.rolling_buffer import RollingBufferMonitor, monitor as monitor_module
+
+        raw_captures = []
+        downstream_shots = []
+        session_log = MagicMock()
+        session_log.log_rolling_buffer_capture.side_effect = lambda **row: raw_captures.append(row)
+        monkeypatch.setattr(monitor_module, "get_session_logger", lambda: session_log)
+
+        monitor = RollingBufferMonitor(port=None, trigger_type="manual")
+        monitor._diagnostic_callback = None
+        monitor._shot_callback = downstream_shots.append
+
+        def run_capture(impact_timestamp):
+            processed = self._processed(impact_timestamp)
+
+            class OneCaptureTrigger:
+                calls = 0
+
+                def wait_for_trigger(self, **_kwargs):
+                    self.calls += 1
+                    if self.calls == 1:
+                        return processed.capture
+                    monitor._running = False
+                    return None
+
+                @staticmethod
+                def drain_diagnostics():
+                    return []
+
+                @staticmethod
+                def reset():
+                    return None
+
+            monitor.trigger = OneCaptureTrigger()
+            monitor.processor = MagicMock(process_capture=MagicMock(return_value=processed))
+            monitor._running = True
+            monitor._capture_loop()
+
+        run_capture(1000.0)
+        monitor.clear_session()
+        run_capture(1001.0)
+
+        assert [(shot.shot_number, shot.impact_timestamp) for shot in downstream_shots] == [
+            (1, 1000.0),
+            (2, 1001.0),
+        ]
+        assert [(row["shot_number"], row["trigger_timestamp"]) for row in raw_captures] == [
+            (1, 1000.0),
+            (2, 1001.0),
+        ]
 
 
 # =============================================================================

@@ -73,6 +73,8 @@ describe('CameraFeed', () => {
     expect(html).toContain('camera-feed__workspace');
     expect(html).toContain('Camera setup');
     expect(html).toContain('Automatic exposure');
+    expect(html).toContain('calibrates once at startup');
+    expect(html).not.toContain('checks every 5 seconds');
     expect(html).toContain('Auto exposure');
     expect(html).toContain('camera-feed__exposure-quality');
     expect(html).toContain('Camera analysis active');

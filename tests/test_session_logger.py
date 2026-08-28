@@ -208,6 +208,27 @@ class TestLogTriggerDiagnostic:
 class TestLogShot:
     """Tests for shot logging."""
 
+    def test_shot_uses_detection_time_shot_number(self, tmp_path):
+        logger = SessionLogger(log_dir=tmp_path, enabled=True)
+        logger.start_session(mode="rolling-buffer", trigger_type="sound")
+
+        logger.log_shot(
+            ball_speed_mph=150.0,
+            club_speed_mph=100.0,
+            smash_factor=1.5,
+            estimated_carry_yards=250.0,
+            club="driver",
+            peak_magnitude=None,
+            readings_count=0,
+            shot_number=7,
+            impact_timestamp=1234.5,
+        )
+
+        entry = json.loads(logger.session_path.read_text().strip().split("\n")[-1])
+        assert entry["shot_number"] == 7
+        assert entry["impact_timestamp"] == 1234.5
+        assert logger.stats["shots_detected"] == 1
+
     def test_shot_logs_spin_diagnostics(self, tmp_path):
         """Shot entries should preserve rejected-spin diagnostics."""
         logger = SessionLogger(log_dir=tmp_path, enabled=True)

@@ -302,6 +302,146 @@ def test_startup_applies_kld7_latency_setup_before_server_start():
     assert setup_idx < server_start_idx
 
 
+def test_startup_splash_flag_only_adds_structured_status_to_server_cli():
+    """The experimental splash should not alter any hardware configuration."""
+    baseline = _dry_run()
+    enabled = _dry_run("--startup-splash")
+
+    enabled_arguments = enabled.stdout.strip().split()
+    status_index = enabled_arguments.index("--startup-status-file")
+    del enabled_arguments[status_index : status_index + 2]
+    assert enabled_arguments == baseline.stdout.strip().split()
+    assert "--startup-splash " not in enabled.stdout
+    script = (Path(__file__).resolve().parents[1] / "scripts/start-kiosk.sh").read_text(
+        encoding="utf-8"
+    )
+    assert "--startup-splash)" in script
+
+
+def test_startup_splash_launches_before_environment_sync():
+    """The feature only helps if Chromium starts before the slow preparation work."""
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+
+    splash_idx = script.index("\nstart_startup_splash\n")
+    sync_idx = script.index('\nif ! uv sync "${UV_SYNC_ARGS[@]}"; then\n')
+
+    assert splash_idx < sync_idx
+    assert 'if [ "$STARTUP_SPLASH" != true ]; then' in script
+    assert 'launch_kiosk_browser "$KIOSK_URL"' in script
+
+
+def test_startup_splash_includes_high_speed_camera_capture_component():
+    """The current OV9281 capture path should appear when explicitly enabled."""
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+    splash_function = script[
+        script.index("start_startup_splash() {") : script.index("show_startup_failure() {")
+    ]
+
+    assert 'if [ "$CAMERA_CAPTURE" = true ] || [ "$NO_CAMERA" != true ]; then' in splash_function
+    assert "status_options+=(--camera)" in splash_function
+
+
+def test_startup_splash_asset_has_branding_and_redirect_contract():
+    """The local page should communicate startup and hand off to the configured app."""
+    repo_root = Path(__file__).resolve().parents[1]
+    splash = (repo_root / "ui/public/startup-splash.html").read_text(encoding="utf-8")
+
+    assert "openflightlogo.svg" in splash
+    assert "Starting OpenFlight" in splash
+    assert "Preparing software and connecting hardware" in splash
+    assert "searchParams.get('target')" in splash
+    assert "window.location.replace(targetUrl)" in splash
+    assert "mode: 'no-cors'" in splash
+
+
+def test_startup_branding_is_top_anchored_while_status_content_changes():
+    repo_root = Path(__file__).resolve().parents[1]
+    splash = (repo_root / "ui/public/startup-splash.html").read_text(encoding="utf-8")
+    body_styles = splash[splash.index("      body {") : splash.index("      main {")]
+
+    assert "align-items: flex-start" in body_styles
+    assert "justify-content: center" in body_styles
+    assert "place-items: center" not in body_styles
+
+
+def test_startup_splash_renders_versioned_component_progress_safely():
+    repo_root = Path(__file__).resolve().parents[1]
+    splash = (repo_root / "ui/public/startup-splash.html").read_text(encoding="utf-8")
+
+    assert "fetch('status.json'" in splash
+    assert "status.version !== 1" in splash
+    assert 'id="components"' in splash
+    assert "component.state" in splash
+    assert "textContent" in splash
+    assert "innerHTML" not in splash
+    assert "waiting" in splash
+    assert "starting" in splash
+    assert "ready" in splash
+    assert "skipped" in splash
+
+
+def test_startup_splash_holds_component_failure_until_dismissed():
+    repo_root = Path(__file__).resolve().parents[1]
+    splash = (repo_root / "ui/public/startup-splash.html").read_text(encoding="utf-8")
+
+    assert 'id="error-details"' in splash
+    assert 'id="recovery"' in splash
+    assert 'id="log-path"' in splash
+    assert 'id="dismiss"' in splash
+    assert "startupFailed = true" in splash
+    assert "document.body.classList.add('failed')" in splash
+    assert "if (startupFailed) return" in splash
+    assert "fetch('/dismiss', { method: 'POST' })" in splash
+
+
+def test_unchanged_status_does_not_restart_component_animations():
+    """Polling must not replace spinner DOM nodes unless component state changes."""
+    repo_root = Path(__file__).resolve().parents[1]
+    splash = (repo_root / "ui/public/startup-splash.html").read_text(encoding="utf-8")
+
+    guard_index = splash.index("componentSignature === renderedComponentSignature")
+    replacement_index = splash.index("components.replaceChildren")
+    assert guard_index < replacement_index
+
+
+def test_startup_splash_passes_status_file_to_server():
+    """The server should publish progress into the splash server's runtime directory."""
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+
+    assert 'STARTUP_STATUS_FILE=""' in script
+    assert "--startup-status-file $STARTUP_STATUS_FILE" in script
+    assert '"$STARTUP_STATUS_FILE"' in script
+    assert 'python -m openflight.startup_status ready "$STARTUP_STATUS_FILE"' in script
+    assert "python3 -m openflight.startup_status" in script
+    assert 'initialize "$STARTUP_STATUS_FILE"' in script
+
+
+def test_launcher_reports_distinct_failures_and_waits_for_dismissal():
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts/start-kiosk.sh").read_text(encoding="utf-8")
+
+    assert "show_startup_failure()" in script
+    assert '"OpenFlight preparation failed"' in script
+    assert '"server"' in script
+    assert 'while [ ! -f "$STARTUP_DISMISS_FILE" ]' in script
+    assert 'uv sync "${UV_SYNC_ARGS[@]}"' in script
+    assert "npm run build" in script
+
+
+def test_start_kiosk_script_has_valid_shell_syntax():
+    repo_root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        ["bash", "-n", "scripts/start-kiosk.sh"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_camera_capture_uses_system_python_for_sync_and_server_start():
     """Camera startup must keep system Python through sync and server launch."""
     from pathlib import Path
@@ -311,14 +451,13 @@ def test_camera_capture_uses_system_python_for_sync_and_server_start():
 
     sync_setup_idx = script.index("UV_SYNC_ARGS=(--quiet)")
     camera_branch_idx = script.index('if [ "$CAMERA_CAPTURE" = true ]; then', sync_setup_idx)
-    camera_else_idx = script.index("\nelse\n", camera_branch_idx)
     export_idx = script.index("export UV_PYTHON=/usr/bin/python3", camera_branch_idx)
-    camera_sync_idx = script.index('uv sync "${UV_SYNC_ARGS[@]}"', export_idx, camera_else_idx)
+    camera_sync_idx = script.index('if ! uv sync "${UV_SYNC_ARGS[@]}"; then', export_idx)
     server_start_idx = script.index("uv run ${OPENFLIGHT_UV_RUN_ARGS:-} $SERVER_CMD &")
 
     assert "uv venv --clear --system-site-packages --python /usr/bin/python3" in script
     assert "UV_SYNC_ARGS+=(--extra camera)" in script
-    assert camera_branch_idx < export_idx < camera_sync_idx < camera_else_idx < server_start_idx
+    assert camera_branch_idx < export_idx < camera_sync_idx < server_start_idx
 
 
 def test_shutdown_requests_server_cleanup_before_forcing_process_exit():
