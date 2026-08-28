@@ -11,7 +11,7 @@ scripts/start-kiosk.sh --startup-splash
 The splash is opt-in. Without the flag, `scripts/start-kiosk.sh` retains its
 existing startup behavior.
 
-![OpenFlight starting the server and TI radar](assets/startup-splash-ti-loading.png)
+![OpenFlight starting the server and TI radar](../assets/startup-splash-ti-loading.png)
 
 ## What It Shows
 
@@ -101,7 +101,7 @@ spin with an opt-in kinematic estimate whenever a measured launch angle is
 available. Enable it only when that behavior is desired.
 
 The geometry above is an example, not a default. Follow the
-[IWR6843 operator guide](iwr6843/README.md#measure-the-geometry) and enter the
+[IWR6843 mounting guide](../iwr6843/mounting.md#measure-the-geometry) and enter the
 measurements from the actual installation.
 
 The example wrapper also holds a per-user launch lock. Repeated taps exit
@@ -169,7 +169,7 @@ action, and retains the terminal-log location for diagnosis.
 
 | OPS unavailable | TI firmware wedged |
 |---|---|
-| ![OPS radar startup failure](assets/startup-splash-ops-error.png) | ![TI radar reset guidance](assets/startup-splash-ti-error.png) |
+| ![OPS radar startup failure](../assets/startup-splash-ops-error.png) | ![TI radar reset guidance](../assets/startup-splash-ti-error.png) |
 
 Select **Return to desktop** after a failure. This dismisses the error state and
 releases the launch lock before the next attempt.

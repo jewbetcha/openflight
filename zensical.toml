@@ -51,6 +51,7 @@ nav = [
     "setup/raspberry-pi.md",
     "setup/rolling-buffer.md",
     "setup/auto-start.md",
+    "setup/splash-screen.md",
     "setup/diagnostic.md",
   ] },
 

@@ -160,8 +160,8 @@ reboot. Run the device wizard, then follow the legacy guide:
 ```
 
 The wizard also installs the required FTDI low-latency rule. See
-[Legacy K-LD7 Setup](kld7.md) for mounting and startup, and
-[K-LD7 Troubleshooting](kld7-troubleshooting.md) for serial failures.
+[Legacy K-LD7 Setup](../legacy/index.md) for mounting and startup, and
+[K-LD7 Troubleshooting](../legacy/troubleshooting.md) for serial failures.
 
 ### Desktop Launcher And Startup Splash
 
@@ -225,8 +225,8 @@ sudo systemctl restart openflight
 ./scripts/start-kiosk.sh --mock # Mock mode (no hardware needed)
 ```
 
-Use the [IWR6843 Operator Guide](iwr6843/README.md#start-openflight) or
-[Legacy K-LD7 Setup](kld7.md) for angle-radar startup commands.
+Use the [IWR6843 startup steps](../iwr6843/verify.md#start-openflight) or
+[Legacy K-LD7 Setup](../legacy/index.md) for angle-radar startup commands.
 
 ### Manual Start
 
