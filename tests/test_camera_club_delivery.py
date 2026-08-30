@@ -299,8 +299,7 @@ class TestChainedImpactDelivery:
 
     def test_impact_straddling_path_wins_over_broad_approach_consensus(self):
         path_windows = [
-            ApproachPairEstimate(path, -4.0, 1.0, 1.0, 12)
-            for path in (6.0, 7.0, 8.0, 9.0)
+            ApproachPairEstimate(path, -4.0, 1.0, 1.0, 12) for path in (6.0, 7.0, 8.0, 9.0)
         ]
         impact_path = ApproachPairEstimate(3.0, -4.0, 1.0, 1.0, 12)
 
@@ -886,3 +885,45 @@ class TestTraceEstimation:
         assert result.status == "ok", result
         assert result.impact_frame == pytest.approx(impact_frame, abs=1)
         assert result.n_pairs >= 2
+
+
+class TestVelocityAngleProjection:
+    """Attack angle is the elevation of a 3D velocity, not a 2D ratio.
+
+    ``_velocity_angles`` returned ``atan2(vertical, forward)``, which is the
+    elevation only when the club path is zero. The exact elevation divides by
+    the full horizontal speed, so the error scales as ``cos(path)``.
+
+    Measured on session 20260825_181734 this is +0.052 deg mean and 0.347 deg
+    max at the observed fused club paths -- small, but a systematic,
+    path-correlated bias, and it grows to 0.60 deg at a 30 deg path.
+    """
+
+    def test_attack_angle_uses_total_horizontal_speed(self):
+        """A velocity with lateral motion must not inflate the attack angle."""
+        # 10 m/s lateral, 10 m/s vertical, 10 m/s forward.
+        # forward-only ratio  -> atan2(10, 10)            = 45 deg
+        # true elevation      -> atan2(10, hypot(10, 10)) = 35.264 deg
+        velocity = np.array([10.0, 10.0, 10.0])
+
+        path_deg, attack_deg = club_delivery_module._velocity_angles(velocity)
+
+        assert path_deg == pytest.approx(45.0, abs=1e-9)
+        assert attack_deg == pytest.approx(math.degrees(math.atan2(10.0, math.hypot(10.0, 10.0))))
+        assert attack_deg == pytest.approx(35.26438968, abs=1e-6)
+
+    def test_zero_path_is_unchanged(self):
+        """With no lateral motion the two formulations must agree exactly."""
+        velocity = np.array([0.0, -3.0, 40.0])
+
+        _path_deg, attack_deg = club_delivery_module._velocity_angles(velocity)
+
+        assert attack_deg == pytest.approx(math.degrees(math.atan2(-3.0, 40.0)))
+
+    def test_club_path_still_uses_forward_speed(self):
+        """Path is an azimuth in the horizontal plane and must not change."""
+        velocity = np.array([5.0, 99.0, 20.0])
+
+        path_deg, _attack_deg = club_delivery_module._velocity_angles(velocity)
+
+        assert path_deg == pytest.approx(math.degrees(math.atan2(5.0, 20.0)))

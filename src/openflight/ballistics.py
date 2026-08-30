@@ -44,10 +44,23 @@ AIR_DENSITY_STD = 1.225  # kg/m³ at sea level, 15 °C ISA
 # These are simple parametric forms consistent with Bearman & Harvey (1976)
 # and Kensrud & Smith (2018) for dimpled balls past the drag crisis
 # (Re ~ 5e4–2e5), which covers the full range of realistic golf shots.
-CD_BASE = 0.205
-CD_SPIN_COEFF = 0.18
-CL_SATURATION = 0.32
-CL_HALF_SP = 0.15
+#
+# Fitted with scripts/analysis/sweep_ballistic_coeffs.py against the committed
+# TrackMan capture (session_logs/OpenFlight-Test.Normalized.csv, 24 shots,
+# differential evolution + Nelder-Mead, rho=1.184 to match TrackMan "Flat").
+# Overall carry RMSE against TrackMan: 24.52 -> 3.97 yd. The previous
+# CL_HALF_SP of 0.15 sat well above the low-spin driver regime (driver
+# Sp ~ 0.05-0.08), so for drivers the lift curve never left its low-lift
+# regime and driver carry ran ~37 yd short. Irons and wedges (Sp ~ 0.21-0.63)
+# were already past CL_HALF_SP and ran long instead, which is why the error
+# flipped sign by club. Resulting Cl is ~0.13-0.16 for drivers, rising to
+# ~0.22-0.23 for irons and wedges; the iron/wedge values sit inside the
+# 0.18-0.25 band the cited sources report, while the driver values remain
+# below it.
+CD_BASE = 0.19071
+CD_SPIN_COEFF = 0.31588
+CL_SATURATION = 0.25544
+CL_HALF_SP = 0.04758
 
 # Exponential spin decay: ω(t) = ω₀·exp(-rate·t).
 # ~4%/s per Kiratidis & Leinweber (2018); small but matters over ~6 s flights.

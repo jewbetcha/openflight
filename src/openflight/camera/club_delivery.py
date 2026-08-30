@@ -281,10 +281,19 @@ def _pixels_to_world(
 
 
 def _velocity_angles(velocity: np.ndarray) -> tuple[float, float]:
+    """Club path (azimuth) and attack angle (elevation) of a 3D velocity.
+
+    Attack angle divides by the TOTAL horizontal speed, not by the forward
+    component alone. The two agree only at zero club path; otherwise the
+    forward-only form inflates the attack angle by a factor of 1/cos(path).
+    Measured on session 20260825_181734 that is +0.052 deg mean and 0.347 deg
+    max at the observed paths, rising to 0.60 deg at a 30 deg path -- small,
+    but systematic and correlated with path.
+    """
     lateral, vertical, forward = (float(value) for value in velocity)
     return (
         math.degrees(math.atan2(lateral, forward)),
-        math.degrees(math.atan2(vertical, forward)),
+        math.degrees(math.atan2(vertical, math.hypot(lateral, forward))),
     )
 
 

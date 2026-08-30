@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Attack angle no longer inflated by 1/cos(club path).** The camera club
+  delivery divided vertical speed by the forward component alone instead of the
+  full horizontal speed, overstating attack angle on any shot with club path.
+
 ### Added
 - **Automatic OV9281 exposure control.** High-speed camera capture now measures
   the impact area every five seconds, restores the last known-good setting at
