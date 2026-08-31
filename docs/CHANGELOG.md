@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   full horizontal speed, overstating attack angle on any shot with club path.
 
 ### Added
+- **Clubhead-pose geometry (`openflight.camera.clubpose`).** The club mesh and
+  its normalization tooling, the calibrated camera model with silhouette
+  projection, and sub-pixel location of the teed ball, which anchors the world
+  frame and the camera range. First stage of the clubface impact-location work;
+  not yet wired into the shot pipeline.
+- **Clubhead-pose fitting and delivered angles.** Sequence pose fit with
+  physical bounds, boundary-distance and rotation-consistency scores, clubhead
+  and shaft separation, and delivered loft/face/lie with plausibility
+  envelopes. Includes the technical report on what is validated (fused
+  radar+camera clubhead velocity, ball detection, impact timing) and what is
+  not (clubhead orientation has no accuracy figure against truth).
+
+### Added
 - **Automatic OV9281 exposure control.** High-speed camera capture now measures
   the impact area every five seconds, restores the last known-good setting at
   startup, and selects a shutter/gain combination that preserves club contrast
