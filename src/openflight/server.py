@@ -158,6 +158,7 @@ inclinometer_runtime_config: dict = {"enabled": False}
 # a vertical launch angle is available. Operators can explicitly disable it;
 # missing launch inputs always fall back to the legacy table estimator.
 ballistics_enabled: bool = True
+demo_horizontal_launch_limit_deg: float | None = None
 
 # Simulator connectors (optional). Populated in main() from config/sim.json +
 # CLI flags; shots fan out to every connected connector. Player/club state is
@@ -893,6 +894,30 @@ def _ensure_user_facing_launch_angles(shot: Shot) -> None:
         if shot.angle_source is None:
             shot.angle_source = "estimated"
         logger.info("[SERVER] Horizontal angle source: neutral estimate (0.0°)")
+
+
+def _apply_demo_horizontal_launch_limit(shot: Shot) -> bool:
+    """Clamp finalized horizontal launch for opt-in simulator demos."""
+    if demo_horizontal_launch_limit_deg is None or shot.launch_angle_horizontal is None:
+        return False
+
+    measured = shot.launch_angle_horizontal
+    limited = min(
+        demo_horizontal_launch_limit_deg,
+        max(-demo_horizontal_launch_limit_deg, measured),
+    )
+    if limited == measured:
+        return False
+
+    shot.launch_angle_horizontal = limited
+    if shot.spin_axis_deg is not None and shot.club_path_deg is not None:
+        shot.spin_axis_deg = round(limited - shot.club_path_deg, 1)
+    logger.warning(
+        "[SERVER] Demo horizontal launch limit: %+.1f° -> %+.1f°",
+        measured,
+        limited,
+    )
+    return True
 
 
 # K-LD7 produces ~34 RADC frames/sec at 3 Mbaud. With buffer_seconds=6
@@ -3803,6 +3828,7 @@ def _finalize_shot_detected(
     # Always emit user-facing launch angles. Radar/camera measurements win;
     # rejected or missing axes fall back to conservative estimates.
     _ensure_user_facing_launch_angles(shot)
+    _apply_demo_horizontal_launch_limit(shot)
 
     # Ball-speed cosine correction: the OPS reads the radial component of
     # a ball departing at the launch angle. Applied AFTER the K-LD7 (which
@@ -5196,6 +5222,16 @@ def main():
         help="Enable simulator connectors from config/sim.json (GSPro / OpenGolfSim). "
         "Off by default.",
     )
+    parser.add_argument(
+        "--demo-horizontal-launch-limit",
+        type=float,
+        default=None,
+        metavar="DEGREES",
+        help=(
+            "Clamp finalized horizontal launch to +/-DEGREES before logging, UI output, "
+            "and simulator forwarding. Disabled by default."
+        ),
+    )
     _add_ballistics_arguments(parser)
     parser.add_argument(
         "--trigger",
@@ -5578,6 +5614,11 @@ def main():
         parser.error("--iwr6843 already owns BCM GPIO; use the default --trigger sound")
     if args.iwr6843 and (args.iwr6843_tee_m <= 0 or args.iwr6843_net_m <= 0):
         parser.error("--iwr6843-tee-m and --iwr6843-net-m must be positive")
+    if args.demo_horizontal_launch_limit is not None and (
+        not math.isfinite(args.demo_horizontal_launch_limit)
+        or args.demo_horizontal_launch_limit <= 0
+    ):
+        parser.error("--demo-horizontal-launch-limit must be positive")
     if args.camera_capture and (
         args.camera_capture_width <= 0
         or args.camera_capture_height <= 0
@@ -5608,6 +5649,7 @@ def main():
     global experimental_kld7_raw_radc_logging
     global active_kld7_radc_tuning
     global ballistics_enabled
+    global demo_horizontal_launch_limit_deg
     global battery_provider
     global profile_store
     experimental_kld7_raw_radc_logging = args.experimental_kld7_raw_radc_logging
@@ -5625,6 +5667,7 @@ def main():
     global calculated_spin_enabled
     calculated_spin_enabled = args.calculated_spin
     ballistics_enabled = args.ballistics
+    demo_horizontal_launch_limit_deg = args.demo_horizontal_launch_limit
     battery_provider = args.battery
     profile_store = ProfileStore(args.profiles_path)
     kld7_radc_tuning_kwargs = _kld7_radc_tuning_kwargs(args)
@@ -5672,6 +5715,8 @@ def main():
         print("Ballistic carry model: ENABLED (simulator + drag/Magnus)")
     else:
         print("Ballistic carry model: DISABLED (table fallback for all shots)")
+    if demo_horizontal_launch_limit_deg is not None:
+        print(f"Demo horizontal launch limit: ±{demo_horizontal_launch_limit_deg:g}°")
 
     # Configure radar logging if requested
     if args.radar_log:

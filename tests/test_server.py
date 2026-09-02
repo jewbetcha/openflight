@@ -4715,6 +4715,90 @@ class TestBallisticsConfiguration:
         assert server_module.ballistics_enabled is True
 
 
+class TestDemoHorizontalLaunchLimit:
+    """The opt-in demo guardrail constrains finalized shot output."""
+
+    @pytest.mark.parametrize(
+        ("measured", "expected"),
+        [(12.0, 5.0), (-12.0, -5.0), (4.9, 4.9), (5.0, 5.0)],
+    )
+    def test_clamps_symmetrically_at_finalization(self, monkeypatch, measured, expected):
+        forwarded = []
+        logged = []
+        emitted = []
+        shot = Shot(
+            ball_speed_mph=150.0,
+            club_speed_mph=100.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+            launch_angle_horizontal=measured,
+            launch_angle_horizontal_confidence=0.8,
+            launch_angle_horizontal_source="camera_assisted_experimental",
+            iwr6843_horizontal_deg=measured,
+            club_path_deg=2.0,
+            spin_axis_deg=round(measured - 2.0, 1),
+        )
+
+        monkeypatch.setattr(server_module, "demo_horizontal_launch_limit_deg", 5.0)
+        monkeypatch.setattr(server_module, "ball_speed_correction_enabled", False)
+        monkeypatch.setattr(server_module, "calculated_spin_enabled", False)
+        monkeypatch.setattr(server_module, "ballistics_enabled", False)
+        monkeypatch.setattr(server_module, "monitor", None)
+        monkeypatch.setattr(server_module, "debug_mode", False)
+        monkeypatch.setattr(
+            server_module,
+            "get_session_logger",
+            lambda: SimpleNamespace(log_shot=lambda **data: logged.append(data)),
+        )
+        monkeypatch.setattr(
+            server_module.socketio,
+            "emit",
+            lambda event, payload: emitted.append((event, payload)),
+        )
+        monkeypatch.setattr(
+            server_module,
+            "_forward_shot_to_simulators",
+            lambda finalized: forwarded.append(
+                (finalized.launch_angle_horizontal, finalized.spin_axis_deg)
+            ),
+        )
+
+        server_module._finalize_shot_detected(shot, emit_event="shot")
+
+        assert shot.launch_angle_horizontal == expected
+        assert shot.iwr6843_horizontal_deg == measured
+        assert shot.spin_axis_deg == round(expected - 2.0, 1)
+        assert logged[0]["launch_angle_horizontal"] == expected
+        assert emitted[0][1]["shot"]["launch_angle_horizontal"] == expected
+        assert forwarded == [(expected, round(expected - 2.0, 1))]
+
+    def test_disabled_limit_preserves_measurement(self, monkeypatch):
+        shot = Shot(
+            ball_speed_mph=150.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+            launch_angle_horizontal=12.0,
+        )
+        monkeypatch.setattr(server_module, "demo_horizontal_launch_limit_deg", None)
+
+        assert server_module._apply_demo_horizontal_launch_limit(shot) is False
+        assert shot.launch_angle_horizontal == 12.0
+
+    @pytest.mark.parametrize("bad", ["0", "-1", "nan", "inf"])
+    def test_cli_rejects_non_positive_limit(self, monkeypatch, capsys, bad):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["openflight-server", "--demo-horizontal-launch-limit", bad],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            server_module.main()
+
+        assert exc_info.value.code == 2
+        assert "--demo-horizontal-launch-limit must be positive" in capsys.readouterr().err
+
+
 class TestBatteryConfiguration:
     """Battery monitoring is explicitly enabled with a supported provider."""
 

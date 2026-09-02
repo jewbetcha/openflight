@@ -90,6 +90,7 @@ EXPERIMENTAL_KLD7_HORIZONTAL_RETRY_IMPACT_ENERGY=""
 EXPERIMENTAL_KLD7_HORIZONTAL_ANGLE_LIMIT=""
 BALLISTICS=true
 SIM=false
+DEMO_HORIZONTAL_LAUNCH_LIMIT=""
 CALCULATED_SPIN=false
 BATTERY_PROVIDER=""
 SWING_SPEED=false
@@ -416,6 +417,10 @@ while [[ $# -gt 0 ]]; do
         --sim)
             SIM=true
             shift
+            ;;
+        --demo-horizontal-launch-limit)
+            DEMO_HORIZONTAL_LAUNCH_LIMIT="$2"
+            shift 2
             ;;
         --calculated-spin)
             CALCULATED_SPIN=true
@@ -822,6 +827,10 @@ fi
 # Simulator connectors: off unless --sim; targets come from config/sim.json
 if [ "$SIM" = true ]; then
     SERVER_CMD="$SERVER_CMD --sim"
+fi
+
+if [ -n "$DEMO_HORIZONTAL_LAUNCH_LIMIT" ]; then
+    SERVER_CMD="$SERVER_CMD --demo-horizontal-launch-limit $DEMO_HORIZONTAL_LAUNCH_LIMIT"
 fi
 
 if [ "$CALCULATED_SPIN" = true ]; then

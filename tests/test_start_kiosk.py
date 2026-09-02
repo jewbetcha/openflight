@@ -110,6 +110,12 @@ def test_iwr6843_overrides_are_forwarded():
     assert "--iwr6843-capture-timeout 15" in command
 
 
+def test_demo_horizontal_launch_limit_is_forwarded():
+    command_arguments = _dry_run("--demo-horizontal-launch-limit", "5").stdout.strip().split()
+
+    assert command_arguments[command_arguments.index("--demo-horizontal-launch-limit") + 1] == "5"
+
+
 def test_camera_capture_flags_are_forwarded():
     result = _dry_run(
         "--camera-capture",
