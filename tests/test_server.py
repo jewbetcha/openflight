@@ -4835,9 +4835,37 @@ class TestCarryComputation:
         monkeypatch.setattr(server_module, "get_session_logger", lambda: None)
         monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
 
+    def test_finalized_adjusted_carry_matches_baseline_while_spin_is_unreliable(self, monkeypatch):
+        self._patch_environment(monkeypatch)
+        monkeypatch.setattr(server_module, "experimental_spin_carry_enabled", False)
+        monkeypatch.setattr(server_module, "ballistics_enabled", True)
+        monkeypatch.setattr(
+            server_module,
+            "simulate",
+            lambda _conditions: SimpleNamespace(carry_yards=123.0),
+        )
+
+        shot = Shot(
+            ball_speed_mph=165.0,
+            club_speed_mph=112.0,
+            timestamp=datetime.now(),
+            club=ClubType.DRIVER,
+            launch_angle_vertical=11.0,
+            spin_rpm=2700,
+            spin_confidence=0.85,
+            angle_source="radar",
+        )
+        baseline_carry = shot.estimated_carry_yards
+
+        on_shot_detected(shot)
+        _wait_for_shot_finalization_idle()
+
+        assert shot.carry_spin_adjusted == pytest.approx(baseline_carry)
+
     def test_carry_uses_ballistic_simulator_when_launch_angle_present(self, monkeypatch):
         """A shot with a vertical launch angle should get carry from the physics sim."""
         self._patch_environment(monkeypatch)
+        monkeypatch.setattr(server_module, "experimental_spin_carry_enabled", True)
         monkeypatch.setattr(server_module, "ballistics_enabled", True)
 
         captured = {}
@@ -4875,6 +4903,7 @@ class TestCarryComputation:
     def test_carry_falls_back_to_table_when_resolve_returns_none(self, monkeypatch):
         """When resolve_launch returns None, the table path should compute carry."""
         self._patch_environment(monkeypatch)
+        monkeypatch.setattr(server_module, "experimental_spin_carry_enabled", True)
 
         monkeypatch.setattr(server_module, "resolve_launch", lambda shot: None)
 
@@ -4905,6 +4934,7 @@ class TestCarryComputation:
         if a valid launch angle is present — carry falls through to the
         table estimator. Operators can request this with `--no-ballistics`."""
         self._patch_environment(monkeypatch)
+        monkeypatch.setattr(server_module, "experimental_spin_carry_enabled", True)
         monkeypatch.setattr(server_module, "ballistics_enabled", False)
 
         def fail_resolve(*args, **kwargs):

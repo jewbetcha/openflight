@@ -66,7 +66,6 @@ function buildMetrics(shot: Shot | null, unitSystem: 'imperial' | 'metric', t: T
     ];
   }
 
-  const carryYards = shot.carry_spin_adjusted ?? shot.estimated_carry_yards;
   const fusedDeliveryAttempted = shot.experimental_fused_status != null;
 
   return [
@@ -77,9 +76,8 @@ function buildMetrics(shot: Shot | null, unitSystem: 'imperial' | 'metric', t: T
     },
     {
       label: t('metric.carry'),
-      value: formatDistance(carryYards, unitSystem, 0),
+      value: formatDistance(shot.estimated_carry_yards, unitSystem, 0),
       unit: getDistanceUnit(unitSystem),
-      detail: shot.carry_spin_adjusted ? t('metric.spinAdjusted') : undefined,
     },
     {
       label: t('display.clubSpeed'),
@@ -270,8 +268,7 @@ export function DisplayMode({ connected, cameraStatus, latestShot, shots }: Disp
               </span>
               {!isSwingSpeedShot(shot) && (
                 <span className="display-shot-chip__stat">
-                  {formatDistance(shot.carry_spin_adjusted ?? shot.estimated_carry_yards, unitSystem, 0)}{' '}
-                  {getDistanceUnit(unitSystem)}
+                  {formatDistance(shot.estimated_carry_yards, unitSystem, 0)} {getDistanceUnit(unitSystem)}
                 </span>
               )}
             </div>

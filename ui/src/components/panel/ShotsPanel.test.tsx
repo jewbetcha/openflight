@@ -101,11 +101,11 @@ describe('ShotsPanel', () => {
     expect(html).toContain('shots-panel__value--accent');
   });
 
-  it('prefers spin-adjusted carry over baseline carry', () => {
+  it('uses baseline carry when spin-adjusted carry is available', () => {
     const html = render([makeShot({ estimated_carry_yards: 170, carry_spin_adjusted: 132 })]);
 
-    expect(html).toContain('>132<');
-    expect(html).not.toContain('>170<');
+    expect(html).toContain('>170<');
+    expect(html).not.toContain('>132<');
   });
 
   it('renders placeholders rather than blanks for missing values', () => {

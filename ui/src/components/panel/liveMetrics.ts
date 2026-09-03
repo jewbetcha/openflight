@@ -73,7 +73,6 @@ function experimentalStatus(status: string | null | undefined): string {
 
 function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[] {
   const speedUnit = getSpeedUnit(unitSystem);
-  const carry = shot.carry_spin_adjusted ?? shot.estimated_carry_yards;
   const angleConfidence = launchAngleQuality(shot.launch_angle_confidence);
   const angleEstimated = shot.angle_source === 'estimated';
   const horizontalLaunchIsCameraAssisted = shot.launch_angle_horizontal_source === 'camera_assisted_experimental';
@@ -111,10 +110,9 @@ function buildBallStrikeMetrics(shot: Shot, unitSystem: UnitSystem): LiveMetric[
     {
       id: 'carry',
       label: t('metric.carry'),
-      value: formatDistance(carry, unitSystem, 0),
+      value: formatDistance(shot.estimated_carry_yards, unitSystem, 0),
       unit: getDistanceUnit(unitSystem),
-      subtext: shot.carry_spin_adjusted === null ? undefined : t('metric.spinAdjusted'),
-      estimated: markEstimated(shot.carry_spin_adjusted === null),
+      estimated: true,
     },
     {
       id: 'club_speed',

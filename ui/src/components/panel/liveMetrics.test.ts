@@ -106,23 +106,16 @@ describe('buildLiveMetrics', () => {
 
     expect(byId(imperial, 'ball_speed')).toMatchObject({ value: '92.0', unit: 'mph' });
     expect(byId(metric, 'ball_speed')).toMatchObject({ value: '148.1', unit: 'km/h' });
-    expect(byId(imperial, 'carry')).toMatchObject({ value: '214', unit: 'yds' });
-    expect(byId(metric, 'carry')).toMatchObject({ value: '196', unit: 'm' });
+    expect(byId(imperial, 'carry')).toMatchObject({ value: '210', unit: 'yds' });
+    expect(byId(metric, 'carry')).toMatchObject({ value: '192', unit: 'm' });
   });
 
-  it('prefers the spin-adjusted carry and marks model carry as estimated', () => {
-    const adjusted = byId(buildLiveMetrics(makeShot(), 'imperial', emptySwingStats), 'carry');
-    expect(adjusted.value).toBe('214');
-    expect(adjusted.subtext).toBe('Spin-adjusted');
-    expect(adjusted.estimated).toBeUndefined();
+  it('uses baseline carry even when spin-adjusted carry is available', () => {
+    const carry = byId(buildLiveMetrics(makeShot(), 'imperial', emptySwingStats), 'carry');
 
-    const estimated = byId(
-      buildLiveMetrics(makeShot({ carry_spin_adjusted: null }), 'imperial', emptySwingStats),
-      'carry'
-    );
-    expect(estimated.value).toBe('210');
-    expect(estimated.subtext).toBeUndefined();
-    expect(estimated.estimated).toBe(true);
+    expect(carry.value).toBe('210');
+    expect(carry.subtext).toBeUndefined();
+    expect(carry.estimated).toBe(true);
   });
 
   it('signs the directional angles and labels the shot shape', () => {

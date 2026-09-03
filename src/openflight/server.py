@@ -158,6 +158,9 @@ inclinometer_runtime_config: dict = {"enabled": False}
 # a vertical launch angle is available. Operators can explicitly disable it;
 # missing launch inputs always fall back to the legacy table estimator.
 ballistics_enabled: bool = True
+# Keep the experimental carry pipeline available for validation without exposing
+# spin-derived distances as production values while spin is unreliable.
+experimental_spin_carry_enabled: bool = False
 demo_horizontal_launch_limit_deg: float | None = None
 
 # Simulator connectors (optional). Populated in main() from config/sim.json +
@@ -3854,12 +3857,12 @@ def _finalize_shot_detected(
     if calculated_spin_enabled:
         _apply_calculated_spin(shot)
 
-    # Compute carry. Prefer the physics simulator (drag + Magnus, RK4) when
-    # ballistics is enabled and a vertical launch angle is available; fall
-    # back to the table estimator otherwise (either ballistics disabled or
-    # angle missing → resolve_launch returns None).
+    # Keep the legacy field populated for clients that expect it, but expose
+    # baseline carry until the spin-derived pipeline is ready for production.
     _MIN_RELIABLE_SPIN_CONF = 0.6
-    if shot.carry_spin_adjusted is None and shot.mode != "mock":
+    if not experimental_spin_carry_enabled:
+        shot.carry_spin_adjusted = shot.estimated_carry_yards
+    elif shot.carry_spin_adjusted is None and shot.mode != "mock":
         conditions = resolve_launch(shot) if ballistics_enabled else None
         if conditions is not None:
             trajectory = simulate(conditions)

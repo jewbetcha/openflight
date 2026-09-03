@@ -41,7 +41,8 @@ describe('DisplayMode', () => {
 
     expect(html).toContain('OpenFlight Display');
     expect(html).toContain('151.2');
-    expect(html).toContain('261');
+    expect(html).toContain('254');
+    expect(html).not.toContain('261');
     expect(html).toContain('Socket connected');
     expect(html).toContain('display-shot-chip__number');
     expect(html).toContain('metric-card--emphasis');

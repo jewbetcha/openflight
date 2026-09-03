@@ -51,7 +51,7 @@ function rowValues(shot: Shot, unitSystem: UnitSystem): string[] {
     shot.club_speed_mph === null ? '—' : formatSpeed(shot.club_speed_mph, unitSystem, 1),
     optionalNumber(shot.launch_angle_vertical),
     shot.spin_rpm === null ? '—' : shot.spin_rpm.toLocaleString(getHtmlLang(), { maximumFractionDigits: 0 }),
-    formatDistance(shot.carry_spin_adjusted ?? shot.estimated_carry_yards, unitSystem, 0),
+    formatDistance(shot.estimated_carry_yards, unitSystem, 0),
   ];
 }
 
