@@ -315,6 +315,7 @@ uv run pytest tests/ -v
 - **[Parts List](docs/PARTS.md)** — What to buy
 - **[Sound Trigger Wiring](docs/sound-trigger-wiring.md)** — How to wire the sound trigger
 - **[Raspberry Pi Setup](docs/raspberry-pi-setup.md)** — Full setup guide
+- **[Electron Kiosk Shell](docs/electron-kiosk-shell.md)** — Why the kiosk runs in Electron and how self-updating could work later
 - **[Battery Monitoring](docs/battery/README.md)** — Provider architecture, UI states, and shared Pi support
 - **[Geekworm X1202/X1206 Operator Guide](docs/battery/geekworm.md)** — Batteries, Pi setup, native telemetry, and warnings
 - **[IWR6843 Operator Guide](docs/iwr6843/README.md)** — Wire, flash, mount, aim, and calibrate the angle radar
