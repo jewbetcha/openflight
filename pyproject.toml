@@ -87,6 +87,11 @@ dev = [
     "pytest>=9.0.3",
     "ruff>=0.1.0",
 ]
+# Documentation site. Zensical is pre-1.0, so pin the minor to keep CI and
+# local builds on the same renderer.
+docs = [
+    "zensical>=0.0.57,<0.1",
+]
 
 [tool.ruff]
 line-length = 100
