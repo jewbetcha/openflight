@@ -21,11 +21,11 @@ describe('i18n catalogs', () => {
   });
 
   it('interpolates placeholders in the active locale', () => {
-    expect(t('players.shots', { count: '3' })).toBe('3 shots');
+    expect(t('profiles.shots', { count: '3' })).toBe('3 shots');
 
     setActiveLocale('es');
     expect(t('nav.live')).toBe('En vivo');
-    expect(t('players.shots', { count: '3' })).toBe('3 golpes');
+    expect(t('profiles.shots', { count: '3' })).toBe('3 golpes');
   });
 
   it('falls back to English when a locale id is unknown', () => {

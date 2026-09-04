@@ -736,9 +736,9 @@
   letter-spacing: -0.03em;
 }
 
-/* ---------------------------------------------------------- players panel -- */
+/* --------------------------------------------------------- profiles panel -- */
 
-.players-panel__grid {
+.profiles-panel__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
@@ -752,16 +752,16 @@
   -webkit-user-select: none;
 }
 
-.players-panel__card-wrap {
+.profiles-panel__card-wrap {
   position: relative;
   content-visibility: auto;
   contain-intrinsic-size: 0 132px;
 }
 
-.players-panel__card {
+.profiles-panel__card {
   width: 100%;
   min-height: 132px;
-  padding: 22px 20px 18px;
+  padding: 22px 96px 18px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -777,12 +777,12 @@
   touch-action: none;
 }
 
-.players-panel__card--selected {
+.profiles-panel__card--selected {
   border-color: var(--color-accent);
   box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
-.players-panel__name {
+.profiles-panel__name {
   font-weight: 700;
   font-size: clamp(1.25rem, 4vh, 1.75rem);
   letter-spacing: -0.03em;
@@ -792,7 +792,7 @@
   max-width: 100%;
 }
 
-.players-panel__count {
+.profiles-panel__count {
   font-weight: 600;
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
@@ -800,10 +800,17 @@
   color: var(--color-text);
 }
 
-.players-panel__remove {
+.profiles-panel__actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.profiles-panel__rename,
+.profiles-panel__remove {
   width: 44px;
   height: 44px;
   display: flex;
@@ -817,9 +824,22 @@
   touch-action: none;
 }
 
-.players-panel__remove:hover,
-.players-panel__remove:active {
+.profiles-panel__rename:hover,
+.profiles-panel__rename:active {
+  color: var(--color-text);
+}
+
+.profiles-panel__remove:hover,
+.profiles-panel__remove:active {
   color: var(--color-danger);
+}
+
+.profiles-panel__skeleton {
+  grid-column: 1 / -1;
+  min-height: 132px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 /* ----------------------------------------------------------- shots panel -- */
@@ -892,14 +912,14 @@
   color: var(--color-text);
 }
 
-.shots-panel__player {
+.shots-panel__profile {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.shots-panel__player-name {
+.shots-panel__profile-name {
   font-weight: 600;
   font-size: 0.6875rem;
   color: var(--color-text);
@@ -908,7 +928,7 @@
   white-space: nowrap;
 }
 
-.shots-panel__player-club {
+.shots-panel__profile-club {
   font-weight: 500;
   font-size: 0.5625rem;
   letter-spacing: 0.14em;
@@ -1373,40 +1393,27 @@
   padding: 0 16px;
 }
 
-/* ------------------------------------------------------- add player modal -- */
+/* ----------------------------------------------------- profile name modal -- */
 
-.add-player-modal {
+.profile-name-modal {
   position: absolute;
   inset: 0;
   z-index: 40;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.add-player-modal__scrim {
-  position: absolute;
-  inset: 0;
-  border: none;
-  padding: 0;
-  background: var(--color-scrim);
-  cursor: pointer;
-}
-
-.add-player-modal__dialog {
-  position: relative;
-  z-index: 1;
-  width: min(420px, calc(100% - 48px));
-  display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 22px 24px;
   background: var(--color-bg);
-  border: 0px;
-  border-radius: var(--radius);
 }
 
-.add-player-modal__title {
+.profile-name-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 26px 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.profile-name-modal__title {
   font-weight: 700;
   font-size: 0.8125rem;
   letter-spacing: 0.2em;
@@ -1414,19 +1421,32 @@
   color: var(--color-text);
 }
 
-.add-player-modal__input {
+.profile-name-modal__close {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 1.0625rem;
+  cursor: pointer;
+}
+
+.profile-name-modal__input {
   display: block;
   box-sizing: border-box;
-  width: 100%;
-  height: 44px;
-  margin: 0;
+  flex-shrink: 0;
+  width: calc(100% - 36px);
+  height: 48px;
+  margin: 12px 18px 0;
   padding: 0 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: transparent;
   color: var(--color-text);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -1435,20 +1455,111 @@
   box-shadow: none;
 }
 
-.add-player-modal__input::placeholder {
+.profile-name-modal__input::placeholder {
   color: var(--color-text-faint);
 }
 
-.add-player-modal__input:focus,
-.add-player-modal__input:focus-visible {
+.profile-name-modal__input:focus,
+.profile-name-modal__input:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-color: var(--color-border);
 }
 
-.add-player-modal__actions {
+.profile-name-modal__keyboard {
+  flex: 1;
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 12px 8px;
+}
+
+.profile-name-modal__key-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.profile-name-modal__key {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: clamp(0.875rem, 3.2vh, 1.25rem);
+  cursor: pointer;
+}
+
+.profile-name-modal__key--wide {
+  flex: 4;
+}
+
+.profile-name-modal__key--mod {
+  flex: 1.4;
+  font-size: clamp(0.75rem, 2.6vh, 1rem);
+  letter-spacing: 0.04em;
+}
+
+.profile-name-modal__key--active {
+  background: var(--color-accent-block);
+  border-color: var(--color-accent-block);
+  color: var(--color-accent-fg);
+}
+
+.profile-name-modal__actions {
+  display: flex;
+  flex-shrink: 0;
   gap: 10px;
+  padding: 8px 18px 18px;
+}
+
+.clear-session-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-session-modal__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  cursor: pointer;
+}
+
+.clear-session-modal__dialog {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(28rem, calc(100% - 48px));
+  max-height: calc(100% - 32px);
+  padding: 1.5rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.clear-session-modal__title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  color: var(--color-text);
 }
 
 .clear-session-dialog__detail {
@@ -1459,7 +1570,20 @@
   color: var(--color-text-muted);
 }
 
-.add-player-modal__actions .panel-action {
+.clear-session-modal__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  margin-top: 0.25rem;
+}
+
+.clear-session-modal__actions .panel-action {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.profile-name-modal__actions .panel-action {
   flex: 1;
   min-width: 0;
   justify-content: center;
@@ -1523,14 +1647,14 @@
     padding-inline: 18px;
   }
 
-  .players-panel__grid {
+  .profiles-panel__grid {
     padding-inline: 18px;
     gap: 10px;
   }
 
-  .players-panel__card {
+  .profiles-panel__card {
     min-height: 112px;
-    padding: 16px 16px 14px;
+    padding: 16px 96px 14px 16px;
   }
 
   .shots-panel__row-main {
@@ -1561,5 +1685,38 @@
 
   .picker-overlay__option {
     font-size: clamp(0.8125rem, calc(var(--picker-tile-h) * 0.2), 1.0625rem);
+  }
+
+  .profile-name-modal__header {
+    padding: 10px 18px 8px;
+  }
+
+  .profile-name-modal__close {
+    width: var(--panel-control-height, 32px);
+    height: var(--panel-control-height, 32px);
+  }
+
+  .profile-name-modal__input {
+    height: 44px;
+    margin: 8px 18px 0;
+    font-size: 1.125rem;
+  }
+
+  .profile-name-modal__keyboard {
+    gap: 5px;
+    padding: 8px 10px 6px;
+  }
+
+  .profile-name-modal__key-row {
+    gap: 5px;
+  }
+
+  .profile-name-modal__actions {
+    padding: 6px 18px 12px;
+  }
+
+  .clear-session-modal__dialog {
+    width: min(28rem, calc(100% - 32px));
+    padding: 1.25rem 1rem 1rem;
   }
 }

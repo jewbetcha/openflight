@@ -2,36 +2,36 @@ import { PanelAction } from './PanelAction';
 import { useI18n } from '../../i18n/useI18n';
 
 interface ClearSessionDialogProps {
-  playerName: string;
+  profileName: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function ClearSessionDialog({ playerName, onConfirm, onCancel }: ClearSessionDialogProps) {
+export function ClearSessionDialog({ profileName, onConfirm, onCancel }: ClearSessionDialogProps) {
   const { t } = useI18n();
 
   return (
-    <div className="add-player-modal">
+    <div className="clear-session-modal">
       <button
         type="button"
-        className="add-player-modal__scrim"
+        className="clear-session-modal__scrim"
         aria-label={t('clearSession.close')}
         onClick={onCancel}
       />
       <div
-        className="add-player-modal__dialog"
+        className="clear-session-modal__dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="clear-session-title"
         aria-describedby="clear-session-detail"
       >
-        <span id="clear-session-title" className="add-player-modal__title">
-          {t('clearSession.confirm', { name: playerName })}
+        <span id="clear-session-title" className="clear-session-modal__title">
+          {t('clearSession.confirm', { name: profileName })}
         </span>
         <p id="clear-session-detail" className="clear-session-dialog__detail">
-          {t('clearSession.detail', { name: playerName })}
+          {t('clearSession.detail', { name: profileName })}
         </p>
-        <div className="add-player-modal__actions">
+        <div className="clear-session-modal__actions">
           <PanelAction variant="danger" autoFocus onClick={onConfirm}>
             {t('app.clearSession')}
           </PanelAction>

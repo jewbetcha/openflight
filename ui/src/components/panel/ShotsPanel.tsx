@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Shot } from '../../types/shot';
-import { filterShotsByPlayer, getSwingSpeedMph, isSwingSpeedShot } from '../../types/shot';
+import { filterShotsByProfile, getSwingSpeedMph, isSwingSpeedShot } from '../../types/shot';
 import { useDragScroll } from '../../hooks/useDragScroll';
 import { useUnitPreference } from '../../state/useUnitPreference';
 import { useSystemStore } from '../../stores/useSystemStore';
@@ -17,7 +17,8 @@ import { useI18n } from '../../i18n/useI18n';
 
 interface ShotsPanelProps {
   shots: Shot[];
-  playerName: string;
+  profileId: string;
+  profileName: string;
   clubLabel?: string;
   onDeleteShot: (timestamp: string) => void;
   onReplayShot?: (shot: Shot) => void;
@@ -119,7 +120,7 @@ function ValidationEditor({
  * inline, so a row expands on tap to reveal them — the mockup's own "make the
  * shot rows tappable to open shot detail" follow-up.
  */
-export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onReplayShot }: ShotsPanelProps) {
+export function ShotsPanel({ shots, profileId, profileName, clubLabel, onDeleteShot, onReplayShot }: ShotsPanelProps) {
   const { t } = useI18n();
   const { unitSystem } = useUnitPreference();
   const { entries, updateEntry, removeEntry } = useValidationStore();
@@ -133,16 +134,16 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
     }))
   );
 
-  const playerShots = useMemo(() => filterShotsByPlayer(shots, playerName), [shots, playerName]);
-  const visibleShots = useMemo(() => [...playerShots].reverse(), [playerShots]);
+  const profileShots = useMemo(() => filterShotsByProfile(shots, profileId), [shots, profileId]);
+  const visibleShots = useMemo(() => [...profileShots].reverse(), [profileShots]);
   const validatedCount = useMemo(
-    () => playerShots.filter((shot) => entries[shot.timestamp]?.comparatorSpeed).length,
-    [entries, playerShots]
+    () => profileShots.filter((shot) => entries[shot.timestamp]?.comparatorSpeed).length,
+    [entries, profileShots]
   );
 
   const handleExport = () => {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadCsv(`openflight-validation-${stamp}.csv`, buildValidationCsv(playerShots, entries));
+    downloadCsv(`openflight-validation-${stamp}.csv`, buildValidationCsv(profileShots, entries));
   };
 
   const handleDelete = (timestamp: string) => {
@@ -154,13 +155,13 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
     <PanelHeader
       title={t('nav.shots')}
       subtitle={
-        playerShots.length === 0
-          ? playerName
+        profileShots.length === 0
+          ? profileName
           : cloudUploadMessage ||
             t('shots.recorded', {
-              count: playerShots.length,
+              count: profileShots.length,
               validated: validatedCount,
-              total: playerShots.length,
+              total: profileShots.length,
             })
       }
       club={clubLabel}
@@ -168,12 +169,12 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
         <>
           <PanelAction
             variant="secondary"
-            disabled={cloudUploadState === 'running' || playerShots.length === 0}
+            disabled={cloudUploadState === 'running' || profileShots.length === 0}
             onClick={() => socketService.uploadCloud()}
           >
             {cloudUploadState === 'running' ? t('shots.uploading') : t('shots.uploadCloud')}
           </PanelAction>
-          <PanelAction variant="primary" disabled={playerShots.length === 0} onClick={handleExport}>
+          <PanelAction variant="primary" disabled={profileShots.length === 0} onClick={handleExport}>
             {t('shots.exportCsv')}
           </PanelAction>
         </>
@@ -181,7 +182,7 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
     />
   );
 
-  if (playerShots.length === 0) {
+  if (profileShots.length === 0) {
     return (
       <div className="panel shots-panel">
         {header}
@@ -198,7 +199,7 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
       {header}
       <div className="shots-panel__columns" role="presentation">
         <span>{t('shots.colShot')}</span>
-        <span>{t('shots.colPlayer')}</span>
+        <span>{t('shots.colProfile')}</span>
         <span className="shots-panel__num">{t('shots.colBall')}</span>
         <span className="shots-panel__num">{t('shots.colClub')}</span>
         <span className="shots-panel__num">{t('shots.colLaunch')}</span>
@@ -218,7 +219,7 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
         onClickCapture={dragScroll.onClickCapture}
       >
         {visibleShots.map((shot, index) => {
-          const shotNumber = playerShots.length - index;
+          const shotNumber = profileShots.length - index;
           const entry = entries[shot.timestamp] ?? getEmptyValidationEntry();
           const isOpen = expanded === shot.timestamp;
           const [ball, club, launch, spin, carry] = rowValues(shot, unitSystem);
@@ -233,9 +234,9 @@ export function ShotsPanel({ shots, playerName, clubLabel, onDeleteShot, onRepla
                   onClick={() => setExpanded(isOpen ? null : shot.timestamp)}
                 >
                   <span className="shots-panel__index">{shotNumber}</span>
-                  <span className="shots-panel__player">
-                    <span className="shots-panel__player-name">{shot.player_name ?? 'Player 1'}</span>
-                    <span className="shots-panel__player-club">{shot.training_implement_label ?? shot.club}</span>
+                  <span className="shots-panel__profile">
+                    <span className="shots-panel__profile-name">{profileName}</span>
+                    <span className="shots-panel__profile-club">{shot.training_implement_label ?? shot.club}</span>
                   </span>
                   <span className="shots-panel__num shots-panel__value">{ball}</span>
                   <span className="shots-panel__num shots-panel__value">{club}</span>

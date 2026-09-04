@@ -23,7 +23,7 @@ export function buildValidationCsv(shots: Shot[], entries: Record<string, Valida
   const headers = [
     'shot_number',
     'timestamp',
-    'player',
+    'profile',
     'mode',
     'implement',
     'openflight_speed_mph',
@@ -44,7 +44,7 @@ export function buildValidationCsv(shots: Shot[], entries: Record<string, Valida
     return [
       index + 1,
       shot.timestamp,
-      shot.player_name ?? '',
+      shot.profile_name ?? '',
       shot.mode ?? '',
       shot.training_implement_label ?? shot.club,
       openflightSpeedMph(shot).toFixed(1),

@@ -5,11 +5,10 @@ import { useSystemStore } from './stores/useSystemStore';
 import { useShotStore } from './stores/useShotStore';
 import { useCameraStore } from './stores/useCameraStore';
 import { useDebugStore } from './stores/useDebugStore';
-import { usePlayerStore } from './stores/usePlayerStore';
+import { useProfileStore } from './stores/useProfileStore';
 import { useHeroMetricStore } from './stores/useHeroMetricStore';
 import { useCameraReplayController } from './hooks/useCameraReplayController';
 import { socketService } from './services/socketService';
-import { shouldEchoSelectionToServer } from './services/playerSocketSync';
 import { DebugPanel } from './components/DebugPanel';
 import { DisplayMode } from './components/DisplayMode';
 import { SimShotBadges } from './components/SimShotBadges';
@@ -19,7 +18,8 @@ import { CameraReplayDialog } from './components/CameraReplayDialog';
 import {
   CameraPanel,
   LivePanel,
-  AddPlayerDialog,
+  ProfileNameDialog,
+  ProfilesPanel,
   ClearSessionDialog,
   SimulateBubble,
   MenuSheet,
@@ -27,7 +27,6 @@ import {
   PanelHeader,
   PanelAction,
   PickerOverlay,
-  PlayersPanel,
   ShotsPanel,
   StatsPanel,
   clubSections,
@@ -35,7 +34,8 @@ import {
   type PanelView,
 } from './components/panel';
 import { shouldEnableLiveBallWarning } from './components/panel/liveMetrics';
-import { filterShotsByPlayer } from './types/shot';
+import { filterShotsByProfile } from './types/shot';
+import type { Profile } from './types/profile';
 import { getClubName } from './data/clubs';
 import { getTrainingImplementLabel } from './data/trainingImplements';
 import { unlockAudioCue } from './utils/audioCue';
@@ -72,16 +72,15 @@ function AppContent() {
       captureSettingsError: state.captureSettingsError,
     }))
   );
-  const { selectedPlayer, players, selectPlayer, addPlayer, removePlayer } = usePlayerStore(
+  const { profiles, activeProfileId, profilesLoaded } = useProfileStore(
     useShallow((state) => ({
-      selectedPlayer: state.selectedPlayer,
-      players: state.players,
-      selectPlayer: state.selectPlayer,
-      addPlayer: state.addPlayer,
-      removePlayer: state.removePlayer,
+      profiles: state.profiles,
+      activeProfileId: state.activeProfileId,
+      profilesLoaded: state.loaded,
     }))
   );
-  const serverPlayerName = useSystemStore((state) => state.serverPlayerName);
+  const activeProfile = profiles.find((profile) => profile.id === activeProfileId) ?? null;
+  const activeProfileName = activeProfile?.name ?? '';
   const { heroMetricId, setHeroMetricId } = useHeroMetricStore(
     useShallow((state) => ({ heroMetricId: state.heroMetricId, setHeroMetricId: state.setHeroMetricId }))
   );
@@ -115,8 +114,8 @@ function AppContent() {
   // shot; dismissing keeps the default. The /display route returns early below,
   // so this never appears in the passive TV view.
   const [pickerOpen, setPickerOpen] = useState(true);
-  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
-  const [newPlayerName, setNewPlayerName] = useState('');
+  const [profileDialog, setProfileDialog] = useState<{ mode: 'add' | 'rename'; target: Profile | null } | null>(null);
+  const [profileDialogName, setProfileDialogName] = useState('');
   const [clearSessionOpen, setClearSessionOpen] = useState(false);
   const { activeReplay, openReplay, closeReplay, reportPlaybackError } = useCameraReplayController();
 
@@ -128,15 +127,6 @@ function AppContent() {
     setAppliedServerClub(serverClub);
     setSelectedClub(serverClub);
   }
-  // Same pattern for a server-pushed player change. This used to live in
-  // PlayerPicker, which the menu sheet replaced.
-  const [appliedServerPlayer, setAppliedServerPlayer] = useState<string | null>(null);
-  if (serverPlayerName && serverPlayerName !== appliedServerPlayer) {
-    setAppliedServerPlayer(serverPlayerName);
-    if (serverPlayerName !== selectedPlayer) {
-      selectPlayer(serverPlayerName);
-    }
-  }
 
   const { isLaunchDaddyMode, isExploding, triggerExplosion } = useLaunchDaddy();
   const isDisplayRoute = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/display';
@@ -144,14 +134,6 @@ function AppContent() {
   const activeImplementLabel = isSwingSpeedMode
     ? getTrainingImplementLabel(selectedTrainingImplement)
     : getClubName(selectedClub);
-
-  // Push the local player to the server once connected, so a reload restores it.
-  // Do not re-emit when selectedPlayer changes: that echoes player_changed back
-  // as set_player and races with the connect-time session_state snapshot.
-  useEffect(() => {
-    if (!connected || !shouldEchoSelectionToServer('became-connected')) return;
-    socketService.setPlayer(usePlayerStore.getState().selectedPlayer);
-  }, [connected]);
 
   useEffect(() => {
     return socketService.onSessionCleared(() => {
@@ -179,23 +161,41 @@ function AppContent() {
     };
   }, []);
 
-  const handleSelectPlayer = (playerName: string) => {
-    selectPlayer(playerName);
-    socketService.setPlayer(playerName);
+  const handleSelectProfile = (profileId: string) => {
+    socketService.setActiveProfile(profileId);
     setCurrentView('live');
   };
 
-  const handleRemovePlayer = (playerName: string) => {
-    if (playerName === usePlayerStore.getState().selectedPlayer) return;
-    removePlayer(playerName);
+  const handleRemoveProfile = (profileId: string) => {
+    // The server refuses to remove the active profile; don't offer it either.
+    if (profileId === activeProfileId) return;
+    socketService.removeProfile(profileId);
   };
 
-  const handleAddPlayer = () => {
-    if (!newPlayerName.trim()) return;
-    const playerName = addPlayer(newPlayerName);
-    socketService.setPlayer(playerName);
-    setNewPlayerName('');
-    setAddPlayerOpen(false);
+  const openAddProfile = () => {
+    setProfileDialog({ mode: 'add', target: null });
+    setProfileDialogName('');
+  };
+
+  const openRenameProfile = (profile: Profile) => {
+    setProfileDialog({ mode: 'rename', target: profile });
+    setProfileDialogName(profile.name);
+  };
+
+  const closeProfileDialog = () => {
+    setProfileDialog(null);
+    setProfileDialogName('');
+  };
+
+  const handleConfirmProfileDialog = () => {
+    const name = profileDialogName.trim();
+    if (!name || !profileDialog) return;
+    if (profileDialog.mode === 'add') {
+      socketService.addProfile(name);
+    } else if (profileDialog.target) {
+      socketService.renameProfile(profileDialog.target.id, name);
+    }
+    closeProfileDialog();
   };
 
   const handlePickerSelect = (id: string) => {
@@ -223,10 +223,10 @@ function AppContent() {
     setShutdownState('confirm');
   };
 
-  const playerShots = filterShotsByPlayer(shots, selectedPlayer);
-  const playerLatestShot = playerShots[playerShots.length - 1] ?? null;
-  const playerIsNewShot = Boolean(
-    isNewShot && latestShot && playerLatestShot && latestShot.timestamp === playerLatestShot.timestamp
+  const profileShots = filterShotsByProfile(shots, activeProfileId);
+  const profileLatestShot = profileShots[profileShots.length - 1] ?? null;
+  const profileIsNewShot = Boolean(
+    isNewShot && latestShot && profileLatestShot && latestShot.timestamp === profileLatestShot.timestamp
   );
 
   if (isDisplayRoute) {
@@ -238,7 +238,7 @@ function AppContent() {
       {isSwingSpeedMode ? t('app.changeImplement') : t('app.changeClub')}
     </PanelAction>
   );
-  const latestReplay = playerLatestShot?.camera_replay;
+  const latestReplay = profileLatestShot?.camera_replay;
 
   const liveHeaderActions = (
     <>
@@ -251,7 +251,7 @@ function AppContent() {
     </>
   );
 
-  const addPlayerAction = <PanelAction onClick={() => setAddPlayerOpen(true)}>{t('menu.addPlayer')}</PanelAction>;
+  const addProfileAction = <PanelAction onClick={openAddProfile}>{t('menu.addProfile')}</PanelAction>;
 
   const clearSessionAction = (
     <PanelAction variant="danger" onClick={() => setClearSessionOpen(true)}>
@@ -301,14 +301,15 @@ function AppContent() {
             <ShotProcessingArea phase={shotProcessingPhase}>
               <LivePanel
                 key={shotVersion}
-                shot={playerLatestShot}
+                shot={profileLatestShot}
                 shots={shots}
-                playerName={selectedPlayer}
+                profileId={activeProfileId}
+                profileName={activeProfileName}
                 clubLabel={activeImplementLabel}
                 activeTrainingImplement={isSwingSpeedMode ? selectedTrainingImplement : undefined}
                 selectedMetricId={heroMetricId}
                 onSelectMetric={setHeroMetricId}
-                isNewShot={playerIsNewShot}
+                isNewShot={profileIsNewShot}
                 ballDetectionEnabled={shouldEnableLiveBallWarning(currentView, cameraStatus)}
                 ballDetected={cameraStatus.ball_detected}
                 headerAction={liveHeaderActions}
@@ -317,28 +318,32 @@ function AppContent() {
             {debugMode && <SimShotBadges latestSimShots={latestSimShots} />}
           </>
         )}
-        {currentView === 'players' && (
-          <PlayersPanel
-            players={players}
-            selectedPlayer={selectedPlayer}
+        {currentView === 'profiles' && (
+          <ProfilesPanel
+            profiles={profiles}
+            activeProfileId={activeProfileId}
             shots={shots}
-            onSelectPlayer={handleSelectPlayer}
-            onRemovePlayer={handleRemovePlayer}
-            headerAction={addPlayerAction}
+            loaded={profilesLoaded}
+            onSelectProfile={handleSelectProfile}
+            onRenameProfile={openRenameProfile}
+            onRemoveProfile={handleRemoveProfile}
+            headerAction={addProfileAction}
           />
         )}
         {currentView === 'stats' && (
           <StatsPanel
             shots={shots}
             activeClub={selectedClub}
-            playerName={selectedPlayer}
+            profileId={activeProfileId}
+            profileName={activeProfileName}
             headerAction={clearSessionAction}
           />
         )}
         {currentView === 'shots' && (
           <ShotsPanel
             shots={shots}
-            playerName={selectedPlayer}
+            profileId={activeProfileId}
+            profileName={activeProfileName}
             clubLabel={activeImplementLabel}
             onDeleteShot={(timestamp) => socketService.deleteShot(timestamp)}
             onReplayShot={(shot) => {
@@ -403,22 +408,20 @@ function AppContent() {
         />
       ) : null}
 
-      {addPlayerOpen ? (
-        <AddPlayerDialog
-          name={newPlayerName}
-          onChange={setNewPlayerName}
-          onAdd={handleAddPlayer}
-          onCancel={() => {
-            setNewPlayerName('');
-            setAddPlayerOpen(false);
-          }}
+      {profileDialog ? (
+        <ProfileNameDialog
+          mode={profileDialog.mode}
+          name={profileDialogName}
+          onChange={setProfileDialogName}
+          onConfirm={handleConfirmProfileDialog}
+          onCancel={closeProfileDialog}
         />
       ) : null}
 
       {clearSessionOpen ? (
         <ClearSessionDialog
-          playerName={selectedPlayer}
-          onConfirm={() => socketService.clearSession(selectedPlayer)}
+          profileName={activeProfileName}
+          onConfirm={() => socketService.clearSession(activeProfileId)}
           onCancel={() => setClearSessionOpen(false)}
         />
       ) : null}
@@ -439,7 +442,7 @@ function AppContent() {
         onChangeView={setCurrentView}
         onOpenMenu={() => setMenuOpen((open) => !open)}
         menuOpen={menuOpen}
-        shotCount={playerShots.length}
+        shotCount={profileShots.length}
         cameraStreaming={cameraStatus.streaming}
         ballDetected={cameraStatus.ball_detected}
         debugRecording={debugMode}

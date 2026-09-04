@@ -18,7 +18,7 @@ interface MenuSheetProps {
 /**
  * The sheet behind the footer logo button (design doc 6a `menuOpen6`).
  *
- * 6a draws Units / Shut down. Players live on their own panel. The System
+ * 6a draws Units / Shut down. Profiles live on their own panel. The System
  * block is an addition: the mockup replaced the old top header, and simulator
  * and ball-detection state had nowhere else to go. Battery lives in the footer.
  * Socket connection lives on the panel header LED.

@@ -2,7 +2,7 @@
 
 The OpenFlight dashboard: a React + TypeScript + Vite app that connects to the
 backend over `socket.io`. The kiosk is a tabbed instrument panel (Live, Stats,
-Shots, Camera, Players, Debug) plus a screen-mounted display mode at `/display`.
+Shots, Camera, Profiles, Debug) plus a screen-mounted display mode at `/display`.
 
 This README covers frontend development. For the hardware, the radar pipeline,
 and how the whole system fits together, see the [root README](../README.md).
@@ -23,7 +23,7 @@ npm run dev:mock
 
 Open `http://localhost:5173`. Use **Simulate** to generate shots. The mock
 speaks the same Socket.IO events as the real backend (`shot`, `session_state`,
-club/player changes, clear/delete, stub cloud upload and shutdown).
+club/profile changes, clear/delete, stub cloud upload and shutdown).
 
 ### Against the real / Python mock backend
 
@@ -81,9 +81,42 @@ The app is entirely client-side. Everything flows through one socket connection.
   `simulate_shot`, and `toggle_camera`. Read it before assuming what the
   backend emits. **`mock-server/`** implements that contract in Node for
   `npm run dev:mock`.
-- **State** lives in `stores/` (Zustand: shots, system, camera, debug, …).
+- **State** lives in `stores/` (Zustand: shots, system, camera, debug, profiles, …).
 - **Shutdown** posts to `/api/shutdown` to stop the connected backend (stubbed
   as a no-op by the Node mock).
+
+### Profiles socket contract
+
+Shots are attributed to a server-owned **profile** — a person or a place — with
+a stable id. There is no browser-local roster: the server is the only source of
+truth, sent as one snapshot plus five mutations.
+
+Server → client:
+
+- `profiles` — `{ profiles: Profile[], active_profile_id: string }`. Sent on
+  connect and after every mutation below. `Profile` is
+  `{ id, name, created_at, settings }`.
+- `session_cleared` — `{ profile_id: string, shots: Shot[] }`, sent after
+  `clear_session`.
+
+Client → server:
+
+- `get_profiles` — request a fresh `profiles` snapshot.
+- `set_active_profile` — `{ profile_id }`. Switches which profile new shots
+  attribute to.
+- `add_profile` — `{ name }`. Creates a profile and makes it active.
+- `rename_profile` — `{ profile_id, name }`. Renames in place; the id (and
+  every shot already attributed to it) is unchanged.
+- `remove_profile` — `{ profile_id }`. The server refuses to remove the active
+  profile, the last remaining profile, or a profile that still has session
+  shots. Clear that profile's session first.
+- `clear_session` — `{ profile_id }` (defaults to the active profile).
+  Deletes that profile's shots; other profiles are untouched.
+
+Shots carry `profile_id` and `profile_name` (a snapshot at capture time) for
+logging / external consumers. The kiosk UI renders the current profile name
+from the `profiles` roster (joined by `profile_id`), so renaming updates the
+on-screen name for past shots.
 
 **Kiosk shell.** Footer tabs switch views. The footer logo opens a sheet for
 units (MPH/YDS vs KMH/M), dark/light theme, language, simulator and
@@ -129,7 +162,7 @@ is stored in `localStorage` under `openflight.locale:v1`.
    - Import the catalog and add it to `catalogs`.
 4. Run `npm test` — a catalog that drifts from English keys fails.
 
-Do not translate player names, club tile codes (`7i`, `DR`), or unit
+Do not translate profile names, club tile codes (`7i`, `DR`), or unit
 abbreviations (`MPH` / `YDS`).
 
 ## Project layout
@@ -146,9 +179,9 @@ src/
   services/socketService.ts  # socket connection, events, backend commands
   hooks/useSocket.ts         # connects on mount
   utils/serverOrigin.ts      # backend origin resolution
-  stores/                    # Zustand (shots, system, camera, players, …)
+  stores/                    # Zustand (shots, system, camera, profiles, …)
   components/
-    panel/                   # Live, Stats, Shots, Camera, Players, chrome
+    panel/                   # Live, Stats, Shots, Camera, Profiles, chrome
     ui/                      # MetricCard, TabBar, Button, SegmentedControl
     DisplayMode.tsx          # /display
     DebugPanel.tsx

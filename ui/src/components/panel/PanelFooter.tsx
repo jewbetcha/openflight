@@ -36,7 +36,7 @@ const VIEWS_WITH_UNITS: ReadonlySet<PanelView> = new Set(['live', 'stats', 'shot
  * Bottom bar: menu button, divider-separated panel tabs, and view meta on the
  * right. Panel actions live in `PanelHeader`.
  *
- * The mockup footer shows four tabs; Players and Debug are extra working
+ * The mockup footer shows four tabs; Profiles and Debug are extra working
  * screens. Burying either behind a gesture makes them unreachable on the kiosk.
  */
 export function PanelFooter({

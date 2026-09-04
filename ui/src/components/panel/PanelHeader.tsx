@@ -11,7 +11,7 @@ import { StatusMenu } from './StatusMenu';
 interface PanelHeaderProps {
   /** Uppercase panel name, e.g. "Live". */
   title: string;
-  /** Secondary text after the hairline divider, e.g. the player or shot count. */
+  /** Secondary text after the hairline divider, e.g. the profile or shot count. */
   subtitle?: ReactNode;
   /** Active club or training implement, shown after the subtitle. */
   club?: ReactNode;
@@ -34,7 +34,7 @@ interface PanelHeaderProps {
 }
 
 /**
- * Hairline divider plus muted identity text. Used for the player/status
+ * Hairline divider plus muted identity text. Used for the profile/status
  * subtitle and the active club so both stay visually in the same row.
  */
 function IdentityPart({ children, className }: { children: ReactNode; className: string }) {

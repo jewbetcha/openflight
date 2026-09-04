@@ -26,6 +26,7 @@ export function registerHandlers(io: Server, session: MockSession): void {
     console.log('[mock-server] client connected');
 
     socket.emit('session_state', session.sessionStatePayload(true));
+    socket.emit('profiles', session.snapshot());
     socket.emit('trigger_status', session.triggerStatus());
     socket.emit('radar_config', session.radarConfig);
     socket.emit('camera_status', session.cameraStatus());
@@ -78,11 +79,6 @@ export function registerHandlers(io: Server, session: MockSession): void {
       io.emit('club_changed', { club });
     });
 
-    socket.on('set_player', (data: { player_name?: string }) => {
-      const playerName = session.setPlayer(data?.player_name);
-      io.emit('player_changed', { player_name: playerName });
-    });
-
     socket.on('set_training_implement', (data: { implement?: string }) => {
       const implement = session.setTrainingImplement(data?.implement ?? 'driver');
       io.emit('training_implement_changed', {
@@ -91,14 +87,34 @@ export function registerHandlers(io: Server, session: MockSession): void {
       });
     });
 
-    socket.on('clear_session', (data?: { player_name?: string }) => {
-      const playerName =
-        typeof data?.player_name === 'string' && data.player_name.trim()
-          ? data.player_name
-          : session.playerName;
-      session.clearPlayer(playerName);
-      io.emit('session_cleared', { player_name: playerName, shots: session.shots });
-      io.emit('session_state', session.sessionStatePayload(true));
+    const emitProfiles = () => io.emit('profiles', session.snapshot());
+
+    socket.on('get_profiles', emitProfiles);
+
+    socket.on('set_active_profile', (data: { profile_id?: string }) => {
+      session.setActiveProfile(data?.profile_id);
+      emitProfiles();
+    });
+
+    socket.on('add_profile', (data: { name?: string }) => {
+      session.addProfile(data?.name);
+      emitProfiles();
+    });
+
+    socket.on('rename_profile', (data: { profile_id?: string; name?: string }) => {
+      session.renameProfile(data?.profile_id, data?.name);
+      emitProfiles();
+    });
+
+    socket.on('remove_profile', (data: { profile_id?: string }) => {
+      session.removeProfile(data?.profile_id);
+      emitProfiles();
+    });
+
+    socket.on('clear_session', (data?: { profile_id?: string }) => {
+      const profileId = data?.profile_id || session.activeProfile.id;
+      session.clearProfile(profileId);
+      io.emit('session_cleared', { profile_id: profileId, shots: session.shots });
     });
 
     socket.on('delete_shot', (data: { timestamp?: string }) => {

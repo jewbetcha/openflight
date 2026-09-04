@@ -111,7 +111,8 @@ export function estimateCarryYards(ballSpeedMph: number): number {
 
 export interface GenerateShotOptions {
   club: string;
-  playerName: string;
+  profileId: string;
+  profileName: string;
   ballSpeed?: number;
 }
 
@@ -143,7 +144,8 @@ export function generateShot(options: GenerateShotOptions): Shot {
     estimated_carry_yards: carry,
     carry_range: [Math.round(carry * 0.95), Math.round(carry * 1.05)],
     club,
-    player_name: options.playerName,
+    profile_id: options.profileId,
+    profile_name: options.profileName,
     timestamp: new Date().toISOString(),
     peak_magnitude: null,
     launch_angle_vertical: Math.round(launchV * 10) / 10,

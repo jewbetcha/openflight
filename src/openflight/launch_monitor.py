@@ -289,7 +289,8 @@ class Shot:
     spin_rejection_reason: Optional[str] = None
     carry_spin_adjusted: Optional[float] = None
     mode: str = "rolling-buffer"
-    player_name: str = "Player 1"
+    profile_id: str = ""
+    profile_name: str = ""
     readings_data: Optional[list] = None
     camera_replay: Optional[dict] = None
     angle_source: Optional[str] = None  # "radar", "camera", "estimated", or None

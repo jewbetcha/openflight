@@ -20,7 +20,8 @@ function makeShot(overrides: Partial<Shot> = {}): Shot {
     estimated_carry_yards: 200,
     carry_range: [195, 205],
     club: 'driver',
-    player_name: 'James',
+    profile_id: 'james',
+    profile_name: 'James',
     timestamp: '2026-08-19T10:00:00Z',
     peak_magnitude: 100,
     launch_angle_vertical: 13,
@@ -42,7 +43,15 @@ function makeShot(overrides: Partial<Shot> = {}): Shot {
 
 const render = (shots: Shot[], activeClub = 'driver', headerAction?: ReactNode) =>
   text(
-    renderToString(<StatsPanel shots={shots} activeClub={activeClub} playerName="James" headerAction={headerAction} />)
+    renderToString(
+      <StatsPanel
+        shots={shots}
+        activeClub={activeClub}
+        profileId="james"
+        profileName="James"
+        headerAction={headerAction}
+      />
+    )
   );
 
 describe('StatsPanel', () => {
@@ -152,10 +161,10 @@ describe('StatsPanel', () => {
     expect(activeChip).toBe('All (1)');
   });
 
-  it('computes averages and club chips from the current player only', () => {
+  it('computes averages and club chips from the current profile only', () => {
     const html = render([
       makeShot({ ball_speed_mph: 90, timestamp: 'a' }),
-      makeShot({ player_name: 'Alex', ball_speed_mph: 150, club: '7-iron', timestamp: 'b' }),
+      makeShot({ profile_id: 'alex', profile_name: 'Alex', ball_speed_mph: 150, club: '7-iron', timestamp: 'b' }),
     ]);
 
     expect(html).toContain('All (1)');
@@ -167,8 +176,8 @@ describe('StatsPanel', () => {
     expect(html).not.toContain('metric-card__value">120.0<');
   });
 
-  it('shows the empty state when only other players have shots', () => {
-    const html = render([makeShot({ player_name: 'Alex' })]);
+  it('shows the empty state when only other profiles have shots', () => {
+    const html = render([makeShot({ profile_id: 'alex', profile_name: 'Alex' })]);
 
     expect(html).toContain('No shots yet');
     expect(html).not.toContain('stats-panel__grid');

@@ -1443,7 +1443,7 @@ class TestShotToDict:
         assert result["ball_speed_mph"] == 150.5
         assert result["club_speed_mph"] == 103.2
         assert result["club"] == "driver"
-        assert result["player_name"] == "Player 1"
+        assert result["profile_name"] == ""
         assert result["timestamp"] == "2024-01-15T10:30:00"
         assert "estimated_carry_yards" in result
         assert "carry_range" in result
@@ -1822,7 +1822,8 @@ class TestSwingSpeedMode:
             "peak_magnitude": 42,
             "training_implement": "driver",
             "training_implement_label": "Driver",
-            "player_name": "Player 1",
+            "profile_id": "",
+            "profile_name": "",
             "unit": "mph",
             "mode": "swing-speed",
         }
@@ -1850,29 +1851,7 @@ class TestSwingSpeedMode:
         assert result["swing_speed_trigger_mph"] == 32.2
         assert result["training_implement"] == "driver"
         assert result["training_implement_label"] == "Driver"
-        assert result["player_name"] == "Player 1"
-
-    def test_set_player_updates_future_swing_speed_payloads(self, monkeypatch):
-        """Selected UI player should be stamped on subsequent swing speed reps."""
-        emitted = []
-        monkeypatch.setattr(server_module, "current_player_name", "Player 1")
-        monkeypatch.setattr(
-            server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
-        )
-
-        server_module.handle_set_player({"player_name": "David"})
-        event = SwingSpeedEvent(
-            peak_speed_mph=101.44,
-            timestamp=datetime(2024, 1, 15, 10, 30, 0),
-            duration_ms=347.8,
-            reading_count=9,
-            trigger_speed_mph=32.25,
-        )
-        server_module.on_swing_speed_detected(event)
-
-        assert server_module.current_player_name == "David"
-        shot_payload = next(payload for name, payload in emitted if name == "shot")
-        assert shot_payload["shot"]["player_name"] == "David"
+        assert result["profile_name"] == ""
 
     def test_start_monitor_uses_swing_speed_monitor(self, monkeypatch):
         """Swing speed mode should start a club-only monitor and callback."""
@@ -2122,6 +2101,58 @@ class TestSwingSpeedMode:
         assert server_module.radar_config["max_speed"] == 0
 
 
+class TestProfileStamping:
+    """Shot and swing-speed payloads carry profile id plus a name snapshot."""
+
+    def test_shot_to_dict_emits_profile_fields(self):
+        shot = Shot(
+            ball_speed_mph=140.0,
+            club_speed_mph=100.0,
+            club=ClubType.DRIVER,
+            timestamp=datetime(2026, 8, 27, 10, 0, 0),
+        )
+        shot.profile_id = "abc123"
+        shot.profile_name = "Home Range"
+
+        payload = shot_to_dict(shot)
+
+        assert payload["profile_id"] == "abc123"
+        assert payload["profile_name"] == "Home Range"
+        assert "player_name" not in payload
+
+    def test_unstamped_shot_has_empty_profile_fields(self):
+        shot = Shot(
+            ball_speed_mph=140.0,
+            club_speed_mph=100.0,
+            club=ClubType.DRIVER,
+            timestamp=datetime(2026, 8, 27, 10, 0, 0),
+        )
+
+        assert shot.profile_id == ""
+        assert shot.profile_name == ""
+
+    def test_swing_speed_dicts_emit_profile_fields(self):
+        event = SwingSpeedEvent(
+            peak_speed_mph=101.4,
+            timestamp=datetime(2026, 8, 27, 10, 0, 0),
+            duration_ms=347.8,
+            reading_count=9,
+            trigger_speed_mph=32.2,
+        )
+        event.profile_id = "abc123"
+        event.profile_name = "Home Range"
+
+        event_payload = swing_speed_to_dict(event)
+        shot_payload = swing_speed_to_shot_dict(event)
+
+        assert event_payload["profile_id"] == "abc123"
+        assert event_payload["profile_name"] == "Home Range"
+        assert shot_payload["profile_id"] == "abc123"
+        assert shot_payload["profile_name"] == "Home Range"
+        assert "player_name" not in event_payload
+        assert "player_name" not in shot_payload
+
+
 class TestEstimateLaunchAngle:
     """Tests for launch angle estimation from club type and ball speed."""
 
@@ -2345,122 +2376,386 @@ class TestMockLaunchMonitor:
         assert monitor.get_session_stats()["shot_count"] == 0
 
 
-class TestHandleClearSession:
-    """Clear session removes only the active player's shots."""
+class TestProfileSocketHandlers:
+    """Every mutation answers with the authoritative snapshot."""
 
-    def test_removes_only_named_player_shots(self, monkeypatch):
-        """Other players' shots must remain after a clear."""
-        monitor = MockLaunchMonitor()
-        monitor.connect()
-        monitor.start()
-        james = monitor.simulate_shot(ball_speed=140.0)
-        james.player_name = "James"
-        alex = monitor.simulate_shot(ball_speed=150.0)
-        alex.player_name = "Alex"
+    @pytest.fixture(name="store")
+    def fixture_store(self, tmp_path, monkeypatch):
+        from openflight.profiles import ProfileStore
 
-        emitted = []
-        monkeypatch.setattr(server_module, "monitor", monitor)
-        monkeypatch.setattr(server_module, "current_player_name", "James")
+        store = ProfileStore(tmp_path / "profiles.json")
+        monkeypatch.setattr(server_module, "profile_store", store)
+        return store
+
+    @pytest.fixture(name="emitted")
+    def fixture_emitted(self, monkeypatch):
+        captured = []
         monkeypatch.setattr(
-            server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
+            server_module.socketio, "emit", lambda *args, **kwargs: captured.append(args)
         )
+        return captured
 
-        server_module.handle_clear_session({"player_name": "James"})
+    @staticmethod
+    def _last_snapshot(emitted):
+        return next(payload for name, payload in reversed(emitted) if name == "profiles")
 
-        assert [shot.player_name for shot in monitor.get_shots()] == ["Alex"]
-        _event, payload = next(args for args in emitted if args[0] == "session_cleared")
-        assert payload["player_name"] == "James"
-        assert len(payload["shots"]) == 1
-        assert payload["shots"][0]["player_name"] == "Alex"
+    def test_get_profiles_emits_snapshot(self, store, emitted):
+        server_module.handle_get_profiles()
 
-    def test_uses_current_player_when_payload_omits_name(self, monkeypatch):
-        """Socket clients that omit player_name still clear the active player."""
-        monitor = MockLaunchMonitor()
-        monitor.connect()
-        monitor.start()
-        first = monitor.simulate_shot()
-        first.player_name = "Alex"
-        second = monitor.simulate_shot()
-        second.player_name = "James"
+        snapshot = self._last_snapshot(emitted)
+        assert snapshot["active_profile_id"] == store.get_active().id
+        assert len(snapshot["profiles"]) == 1
 
-        monkeypatch.setattr(server_module, "monitor", monitor)
-        monkeypatch.setattr(server_module, "current_player_name", "Alex")
-        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+    def test_add_profile_adds_and_broadcasts(self, store, emitted):
+        server_module.handle_add_profile({"name": "Home Range"})
 
-        server_module.handle_clear_session()
+        snapshot = self._last_snapshot(emitted)
+        assert [entry["name"] for entry in snapshot["profiles"]][-1] == "Home Range"
+        assert snapshot["active_profile_id"] == store.list()[-1].id
 
-        assert [shot.player_name for shot in monitor.get_shots()] == ["James"]
+    def test_add_profile_with_blank_name_broadcasts_unchanged_snapshot(self, store, emitted):
+        server_module.handle_add_profile({"name": "   "})
 
-    def test_matches_player_name_case_insensitively(self, monkeypatch):
-        """UI and radar casing should not leave a player's shots behind."""
+        assert len(self._last_snapshot(emitted)["profiles"]) == 1
+
+    def test_set_active_profile_switches(self, store, emitted):
+        first = store.list()[0]
+        store.add("Second")
+
+        server_module.handle_set_active_profile({"profile_id": first.id})
+
+        assert self._last_snapshot(emitted)["active_profile_id"] == first.id
+
+    def test_set_active_profile_with_unknown_id_broadcasts_unchanged_snapshot(
+        self, store, emitted
+    ):
+        before = store.get_active().id
+
+        server_module.handle_set_active_profile({"profile_id": "ghost"})
+
+        assert self._last_snapshot(emitted)["active_profile_id"] == before
+
+    def test_rename_profile_broadcasts_new_name(self, store, emitted):
+        added = store.add("Rnage")
+
+        server_module.handle_rename_profile({"profile_id": added.id, "name": "Range"})
+
+        assert self._last_snapshot(emitted)["profiles"][-1]["name"] == "Range"
+
+    def test_remove_profile_deletes_inactive(self, store, emitted):
+        doomed = store.add("Doomed")
+        store.add("Keeper")
+
+        server_module.handle_remove_profile({"profile_id": doomed.id})
+
+        names = [entry["name"] for entry in self._last_snapshot(emitted)["profiles"]]
+        assert "Doomed" not in names
+
+    def test_remove_profile_refuses_the_active_one(self, store, emitted):
+        active = store.add("Active")
+
+        server_module.handle_remove_profile({"profile_id": active.id})
+
+        snapshot = self._last_snapshot(emitted)
+        assert snapshot["active_profile_id"] == active.id
+        assert len(snapshot["profiles"]) == 2
+
+    def test_remove_profile_refuses_when_profile_has_shots(self, store, emitted, monkeypatch):
+        doomed = store.add("Doomed")
+        store.add("Keeper")
         monitor = MockLaunchMonitor()
         monitor.connect()
         monitor.start()
         shot = monitor.simulate_shot()
-        shot.player_name = "james"
-        other = monitor.simulate_shot()
-        other.player_name = "Alex"
-
+        shot.profile_id = doomed.id
         monkeypatch.setattr(server_module, "monitor", monitor)
-        monkeypatch.setattr(server_module, "current_player_name", "James")
-        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
 
-        server_module.handle_clear_session({"player_name": " JAMES "})
+        server_module.handle_remove_profile({"profile_id": doomed.id})
 
-        assert [shot.player_name for shot in monitor.get_shots()] == ["Alex"]
+        names = [entry["name"] for entry in self._last_snapshot(emitted)["profiles"]]
+        assert "Doomed" in names
+        assert [row.profile_id for row in monitor.get_shots()] == [doomed.id]
 
-    def test_treats_missing_player_name_as_player_1(self, monkeypatch):
-        """Unstamped shots belong to the default player."""
+    def test_remove_profile_succeeds_after_session_rows_are_cleared(
+        self, store, emitted, monkeypatch
+    ):
+        doomed = store.add("Doomed")
+        store.add("Keeper")
         monitor = MockLaunchMonitor()
         monitor.connect()
         monitor.start()
-        unstamped = monitor.simulate_shot()
-        unstamped.player_name = "Player 1"
-        named = monitor.simulate_shot()
-        named.player_name = "Alex"
-
+        shot = monitor.simulate_shot()
+        shot.profile_id = doomed.id
         monkeypatch.setattr(server_module, "monitor", monitor)
-        monkeypatch.setattr(server_module, "current_player_name", "Player 1")
+
+        server_module.handle_clear_session({"profile_id": doomed.id})
+        server_module.handle_remove_profile({"profile_id": doomed.id})
+
+        names = [entry["name"] for entry in self._last_snapshot(emitted)["profiles"]]
+        assert "Doomed" not in names
+        assert monitor.get_shots() == []
+
+    def test_remove_profile_refuses_when_profile_has_swing_speed_events(
+        self, store, emitted, monkeypatch
+    ):
+        doomed = store.add("Doomed")
+        store.add("Keeper")
+        monitor = MockSwingSpeedMonitor()
+        monitor.connect()
+        monitor.start()
+        event = SwingSpeedEvent(
+            peak_speed_mph=100.0,
+            timestamp=datetime(2026, 8, 27, 10, 0, 0),
+            duration_ms=300.0,
+            reading_count=8,
+            trigger_speed_mph=32.0,
+        )
+        event.profile_id = doomed.id
+        monitor._events[:] = [event]  # pylint: disable=protected-access
+        monkeypatch.setattr(server_module, "monitor", monitor)
+
+        server_module.handle_remove_profile({"profile_id": doomed.id})
+
+        names = [entry["name"] for entry in self._last_snapshot(emitted)["profiles"]]
+        assert "Doomed" in names
+        assert [row.profile_id for row in monitor.get_events()] == [doomed.id]
+
+    def test_handlers_tolerate_non_dict_payloads(self, store, emitted):
+        server_module.handle_set_active_profile(None)
+        server_module.handle_add_profile("not a dict")
+        server_module.handle_rename_profile(None)
+        server_module.handle_remove_profile(None)
+
+        assert len(self._last_snapshot(emitted)["profiles"]) == 1
+
+    def test_switching_active_profile_via_handler_is_seen_by_later_events(
+        self, store, emitted, monkeypatch
+    ):
+        """A mutation handler must change what later events are stamped with.
+
+        Regression guard for a gap a reviewer found: earlier coverage only
+        called ``store.add()`` directly (which sets the new profile active as
+        a side effect of the mutator) and never actually went through
+        ``handle_set_active_profile``. This drives the real handler, then a
+        real event callback, so it would catch either side caching a stale
+        selection.
+        """
+        first = store.list()[0]
+        second = store.add("Second")
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        monkeypatch.setattr(server_module, "monitor", monitor)
+
+        server_module.handle_set_active_profile({"profile_id": first.id})
+        shot = monitor.simulate_shot(ball_speed=140.0)
+        on_shot_detected(shot)
+
+        assert shot.profile_id == first.id
+        assert shot.profile_id != second.id
+
+
+class TestShotProfileStamping:
+    """Shots take their attribution from the active profile."""
+
+    def test_shot_is_stamped_with_active_profile(self, tmp_path, monkeypatch):
+        from openflight.profiles import ProfileStore
+
+        store = ProfileStore(tmp_path / "profiles.json")
+        active = store.add("Home Range")
+        monkeypatch.setattr(server_module, "profile_store", store)
         monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
 
-        server_module.handle_clear_session({"player_name": "Player 1"})
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        monkeypatch.setattr(server_module, "monitor", monitor)
+        shot = monitor.simulate_shot(ball_speed=140.0)
 
-        assert [shot.player_name for shot in monitor.get_shots()] == ["Alex"]
+        on_shot_detected(shot)
 
-    def test_clears_only_that_player_swing_speed_events(self, monkeypatch):
-        """Swing-speed mode stores reps, not ball-flight shots."""
-        monitor = MockSwingSpeedMonitor()
-        james = monitor.simulate_shot(peak_speed=95.0)
-        james.player_name = "James"
-        alex = monitor.simulate_shot(peak_speed=100.0)
-        alex.player_name = "Alex"
+        assert shot.profile_id == active.id
+        assert shot.profile_name == "Home Range"
+
+    def test_swing_speed_event_is_stamped_with_active_profile(self, tmp_path, monkeypatch):
+        from openflight.profiles import ProfileStore
+
+        store = ProfileStore(tmp_path / "profiles.json")
+        active = store.add("David")
+        monkeypatch.setattr(server_module, "profile_store", store)
+        emitted = []
+        monkeypatch.setattr(
+            server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
+        )
+
+        event = SwingSpeedEvent(
+            peak_speed_mph=101.44,
+            timestamp=datetime(2026, 8, 27, 10, 30, 0),
+            duration_ms=347.8,
+            reading_count=9,
+            trigger_speed_mph=32.25,
+        )
+        server_module.on_swing_speed_detected(event)
+
+        shot_payload = next(payload for name, payload in emitted if name == "shot")
+        assert shot_payload["shot"]["profile_id"] == active.id
+        assert shot_payload["shot"]["profile_name"] == "David"
+
+
+class TestHandleClearSession:
+    """Clear session removes only the active profile's rows, matched by id."""
+
+    @pytest.fixture(name="store")
+    def fixture_store(self, tmp_path, monkeypatch):
+        from openflight.profiles import ProfileStore
+
+        store = ProfileStore(tmp_path / "profiles.json")
+        monkeypatch.setattr(server_module, "profile_store", store)
+        return store
+
+    def test_removes_only_that_profiles_shots(self, store, monkeypatch):
+        james = store.add("James")
+        alex = store.add("Alex")
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        james_shot = monitor.simulate_shot(ball_speed=140.0)
+        james_shot.profile_id = james.id
+        james_shot.profile_name = "James"
+        alex_shot = monitor.simulate_shot(ball_speed=150.0)
+        alex_shot.profile_id = alex.id
+        alex_shot.profile_name = "Alex"
 
         emitted = []
         monkeypatch.setattr(server_module, "monitor", monitor)
-        monkeypatch.setattr(server_module, "current_player_name", "James")
         monkeypatch.setattr(
             server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
         )
 
-        server_module.handle_clear_session({"player_name": "James"})
+        server_module.handle_clear_session({"profile_id": james.id})
 
-        assert [event.player_name for event in monitor.get_events()] == ["Alex"]
+        assert [shot.profile_name for shot in monitor.get_shots()] == ["Alex"]
         _event, payload = next(args for args in emitted if args[0] == "session_cleared")
-        assert payload["shots"][0]["player_name"] == "Alex"
+        assert payload["profile_id"] == james.id
+        assert [entry["profile_name"] for entry in payload["shots"]] == ["Alex"]
 
-    def test_emits_cleared_payload_without_monitor(self, monkeypatch):
+    def test_uses_active_profile_when_payload_omits_id(self, store, monkeypatch):
+        alex = store.add("Alex")
+        james = store.add("James")
+        store.set_active(alex.id)
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        first = monitor.simulate_shot()
+        first.profile_id = alex.id
+        second = monitor.simulate_shot()
+        second.profile_id = james.id
+
+        monkeypatch.setattr(server_module, "monitor", monitor)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        server_module.handle_clear_session()
+
+        assert [shot.profile_id for shot in monitor.get_shots()] == [james.id]
+
+    def test_profiles_with_names_differing_only_in_case_do_not_collide(self, store, monkeypatch):
+        """The old name-keyed code folded case and cleared both. Ids must not."""
+        lower = store.add("james")
+        upper = store.add("James")
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        lower_shot = monitor.simulate_shot()
+        lower_shot.profile_id = lower.id
+        lower_shot.profile_name = "james"
+        upper_shot = monitor.simulate_shot()
+        upper_shot.profile_id = upper.id
+        upper_shot.profile_name = "James"
+
+        monkeypatch.setattr(server_module, "monitor", monitor)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        server_module.handle_clear_session({"profile_id": lower.id})
+
+        assert [shot.profile_name for shot in monitor.get_shots()] == ["James"]
+
+    def test_unstamped_shots_belong_to_no_profile(self, store, monkeypatch):
+        active = store.get_active()
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        monitor.simulate_shot()
+
+        monkeypatch.setattr(server_module, "monitor", monitor)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        server_module.handle_clear_session({"profile_id": active.id})
+
+        assert len(monitor.get_shots()) == 1
+
+    def test_emits_cleared_payload_without_monitor(self, store, monkeypatch):
         """UI still gets an ack so the confirm dialog can close."""
+        active = store.get_active()
         emitted = []
         monkeypatch.setattr(server_module, "monitor", None)
-        monkeypatch.setattr(server_module, "current_player_name", "James")
         monkeypatch.setattr(
             server_module.socketio, "emit", lambda *args, **kwargs: emitted.append(args)
         )
 
-        server_module.handle_clear_session({"player_name": "James"})
+        server_module.handle_clear_session({"profile_id": active.id})
 
         _event, payload = next(args for args in emitted if args[0] == "session_cleared")
-        assert payload == {"player_name": "James", "shots": []}
+        assert payload["profile_id"] == active.id
+
+    def test_clears_only_that_profiles_swing_speed_events(self, store, monkeypatch):
+        james = store.add("James")
+        alex = store.add("Alex")
+        monitor = MockSwingSpeedMonitor()
+        monitor.connect()
+        monitor.start()
+        first = SwingSpeedEvent(
+            peak_speed_mph=100.0,
+            timestamp=datetime(2026, 8, 27, 10, 0, 0),
+            duration_ms=300.0,
+            reading_count=8,
+            trigger_speed_mph=32.0,
+        )
+        first.profile_id = james.id
+        second = SwingSpeedEvent(
+            peak_speed_mph=105.0,
+            timestamp=datetime(2026, 8, 27, 10, 1, 0),
+            duration_ms=310.0,
+            reading_count=8,
+            trigger_speed_mph=32.0,
+        )
+        second.profile_id = alex.id
+        monitor._events[:] = [first, second]  # pylint: disable=protected-access
+
+        monkeypatch.setattr(server_module, "monitor", monitor)
+        monkeypatch.setattr(server_module.socketio, "emit", lambda *args, **kwargs: None)
+
+        server_module.handle_clear_session({"profile_id": james.id})
+
+        assert [
+            event.profile_id
+            for event in monitor._events  # pylint: disable=protected-access
+        ] == [alex.id]
+
+
+class TestSessionStatePayload:
+    """session_state no longer carries a selection, so it cannot race."""
+
+    def test_payload_has_no_selection_field(self, monkeypatch):
+        monitor = MockLaunchMonitor()
+        monitor.connect()
+        monitor.start()
+        monkeypatch.setattr(server_module, "monitor", monitor)
+
+        payload = server_module._session_state_payload()  # pylint: disable=protected-access
+
+        assert "player_name" not in payload
+        assert "profile_id" not in payload
+        assert "active_profile_id" not in payload
 
 
 class TestRadarLaunchGuard:

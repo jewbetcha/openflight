@@ -8,12 +8,12 @@ function renderMenu() {
   return renderToString(<MenuSheet onClose={() => {}} onShutdown={() => {}} />);
 }
 
-describe('MenuSheet players', () => {
-  it('does not manage players in the menu', () => {
+describe('MenuSheet profiles', () => {
+  it('does not manage profiles in the menu', () => {
     const html = renderMenu();
 
-    expect(html).not.toContain('menu-sheet__section-title">Player');
-    expect(html).not.toContain('Add player');
+    expect(html).not.toContain('menu-sheet__section-title">Profile');
+    expect(html).not.toContain('Add profile');
     expect(html).not.toContain('menu-sheet__input');
   });
 });

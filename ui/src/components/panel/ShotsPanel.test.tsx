@@ -19,7 +19,8 @@ function makeShot(overrides: Partial<Shot> = {}): Shot {
     estimated_carry_yards: 210,
     carry_range: [205, 215],
     club: 'driver',
-    player_name: 'James',
+    profile_id: 'james',
+    profile_name: 'James',
     timestamp: '2026-08-19T10:00:00Z',
     peak_magnitude: 100,
     launch_angle_vertical: 13.4,
@@ -40,7 +41,11 @@ function makeShot(overrides: Partial<Shot> = {}): Shot {
 }
 
 const render = (shots: Shot[]) =>
-  text(renderToString(<ShotsPanel shots={shots} playerName="James" onDeleteShot={() => {}} onReplayShot={() => {}} />));
+  text(
+    renderToString(
+      <ShotsPanel shots={shots} profileId="james" profileName="James" onDeleteShot={() => {}} onReplayShot={() => {}} />
+    )
+  );
 
 describe('ShotsPanel', () => {
   it('shows an empty state before any shots', () => {
@@ -73,7 +78,7 @@ describe('ShotsPanel', () => {
   it('renders the seven columns the mockup draws', () => {
     const html = render([makeShot()]);
 
-    for (const column of ['Shot', 'Player', 'Ball', 'Club', 'Launch', 'Spin', 'Carry']) {
+    for (const column of ['Shot', 'Profile', 'Ball', 'Club', 'Launch', 'Spin', 'Carry']) {
       expect(html).toContain(`>${column}<`);
     }
   });
@@ -159,10 +164,10 @@ describe('ShotsPanel', () => {
     expect(html).toContain('>120<');
   });
 
-  it("lists only the current player's shots", () => {
+  it("lists only the current profile's shots", () => {
     const html = render([
       makeShot({ timestamp: 'a', ball_speed_mph: 92 }),
-      makeShot({ player_name: 'Alex', timestamp: 'b', ball_speed_mph: 140 }),
+      makeShot({ profile_id: 'alex', profile_name: 'Alex', timestamp: 'b', ball_speed_mph: 140 }),
     ]);
     const indexes = [...html.matchAll(/shots-panel__index">(\d+)</g)].map((m) => m[1]);
 
@@ -173,8 +178,8 @@ describe('ShotsPanel', () => {
     expect(indexes).toEqual(['1']);
   });
 
-  it('shows the empty state when only other players have shots', () => {
-    const html = render([makeShot({ player_name: 'Alex' })]);
+  it('shows the empty state when only other profiles have shots', () => {
+    const html = render([makeShot({ profile_id: 'alex', profile_name: 'Alex' })]);
 
     expect(html).toContain('No shots yet');
     expect(html).not.toContain('shots-panel__row-main');

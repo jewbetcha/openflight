@@ -63,26 +63,44 @@ export async function waitForEvent<T>(socket: Socket, event: string, timeoutMs =
   });
 }
 
+/** Roster + shot state the mock server hands back from a `profiles` snapshot. */
+interface ProfilesSnapshot {
+  profiles: Array<{ id: string; name: string }>;
+  active_profile_id: string;
+}
+
+/**
+ * Resets the shared session between tests: clears every profile's shots, then
+ * switches back to the seeded default profile and removes every other profile
+ * (the backend keeps state across connections, so profiles added by one test
+ * would otherwise leak into the next and collide on name). Removal is refused
+ * while a profile still has session rows, so shots must be cleared first.
+ */
 export async function resetSession(socket: Socket) {
-  const statePromise = waitForEvent<{ shots?: Array<{ player_name?: string }> }>(socket, 'session_state');
-  socket.emit('get_session');
-  const state = await statePromise;
-  const names = [
-    ...new Set((state.shots ?? []).map((shot) => shot.player_name?.trim() || 'Player 1')),
-  ];
-  if (names.length === 0) {
+  const snapshotPromise = waitForEvent<ProfilesSnapshot>(socket, 'profiles');
+  socket.emit('get_profiles');
+  const { profiles } = await snapshotPromise;
+
+  const defaultProfile = profiles.find((profile) => profile.name === 'Profile 1') ?? profiles[0];
+  if (!defaultProfile) return;
+
+  for (const profile of profiles) {
     const cleared = waitForEvent(socket, 'session_cleared');
-    socket.emit('clear_session');
+    socket.emit('clear_session', { profile_id: profile.id });
     await cleared;
-    return;
   }
-  for (const playerName of names) {
-    const changed = waitForEvent(socket, 'player_changed');
-    socket.emit('set_player', { player_name: playerName });
-    await changed;
-    const cleared = waitForEvent(socket, 'session_cleared');
-    socket.emit('clear_session', { player_name: playerName });
-    await cleared;
+
+  if (profiles.length > 1) {
+    const activated = waitForEvent(socket, 'profiles');
+    socket.emit('set_active_profile', { profile_id: defaultProfile.id });
+    await activated;
+
+    for (const profile of profiles) {
+      if (profile.id === defaultProfile.id) continue;
+      const removed = waitForEvent(socket, 'profiles');
+      socket.emit('remove_profile', { profile_id: profile.id });
+      await removed;
+    }
   }
 }
 

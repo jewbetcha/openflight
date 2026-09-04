@@ -20,13 +20,13 @@ describe('App shell', () => {
     expect(html).not.toContain('unit-toggle');
   });
 
-  it('renders every panel tab, with Players as a first-class view', () => {
+  it('renders every panel tab, with Profiles as a first-class view', () => {
     const html = renderToString(<App />);
 
     for (const view of PANEL_VIEWS) {
       expect(html).toContain(`<span>${view.label}</span>`);
     }
-    expect(PANEL_VIEWS.map((view) => view.id)).toEqual(['live', 'stats', 'shots', 'camera', 'players', 'debug']);
+    expect(PANEL_VIEWS.map((view) => view.id)).toEqual(['live', 'stats', 'shots', 'camera', 'profiles', 'debug']);
   });
 
   it('marks the Live tab pressed and shows the Live panel', () => {
@@ -76,8 +76,8 @@ describe('App shell', () => {
   it('does not ask to clear a session until the stats action is used', () => {
     const html = renderToString(<App />);
 
-    expect(html).not.toContain("Clear Player 1's session?");
-    expect(html).not.toContain('Clear Player 1&#x27;s session?');
+    expect(html).not.toContain("Clear Profile 1's session?");
+    expect(html).not.toContain('Clear Profile 1&#x27;s session?');
     expect(html).not.toContain('clear-session-title');
   });
 });

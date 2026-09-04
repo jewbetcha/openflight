@@ -3,7 +3,7 @@ import type { Shot } from '../../types/shot';
 import {
   computeStats,
   computeSwingSpeedStats,
-  filterShotsByPlayer,
+  filterShotsByProfile,
   getUniqueClubs,
   isSwingSpeedShot,
 } from '../../types/shot';
@@ -17,7 +17,8 @@ import { PanelHeader } from './PanelHeader';
 interface StatsPanelProps {
   shots: Shot[];
   activeClub: string;
-  playerName: string;
+  profileId: string;
+  profileName: string;
   /** Pinned header control, e.g. Clear session. */
   headerAction?: ReactNode;
 }
@@ -34,20 +35,20 @@ interface StatTile {
  * filter chips above the tiles. Six tiles for a ball-strike session (3x2 as
  * drawn), four for a swing-speed one.
  */
-export function StatsPanel({ shots, activeClub, playerName, headerAction }: StatsPanelProps) {
+export function StatsPanel({ shots, activeClub, profileId, profileName, headerAction }: StatsPanelProps) {
   const { t } = useI18n();
-  const playerShots = useMemo(() => filterShotsByPlayer(shots, playerName), [shots, playerName]);
-  const hasShotsForActiveClub = playerShots.some((shot) => shot.club === activeClub);
+  const profileShots = useMemo(() => filterShotsByProfile(shots, profileId), [shots, profileId]);
+  const hasShotsForActiveClub = profileShots.some((shot) => shot.club === activeClub);
   const [selectedClub, setSelectedClub] = useState<string | null>(hasShotsForActiveClub ? activeClub : null);
   const [prevActiveClub, setPrevActiveClub] = useState(activeClub);
-  const [prevPlayerName, setPrevPlayerName] = useState(playerName);
+  const [prevProfileId, setPrevProfileId] = useState(profileId);
   const chipRef = useRef<HTMLDivElement>(null);
   const chipScroll = useDragScroll(chipRef, 'x');
 
   // Update state during render when the prop changes, rather than in an effect.
-  if (activeClub !== prevActiveClub || playerName !== prevPlayerName) {
+  if (activeClub !== prevActiveClub || profileId !== prevProfileId) {
     setPrevActiveClub(activeClub);
-    setPrevPlayerName(playerName);
+    setPrevProfileId(profileId);
     setSelectedClub(hasShotsForActiveClub ? activeClub : null);
   }
 
@@ -55,18 +56,18 @@ export function StatsPanel({ shots, activeClub, playerName, headerAction }: Stat
   const speedUnit = getSpeedUnit(unitSystem);
   const distanceUnit = getDistanceUnit(unitSystem);
 
-  const availableClubs = useMemo(() => getUniqueClubs(playerShots), [playerShots]);
+  const availableClubs = useMemo(() => getUniqueClubs(profileShots), [profileShots]);
   const clubCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const shot of playerShots) {
+    for (const shot of profileShots) {
       counts[shot.club] = (counts[shot.club] ?? 0) + 1;
     }
     return counts;
-  }, [playerShots]);
+  }, [profileShots]);
 
   const filteredShots = useMemo(
-    () => (selectedClub === null ? playerShots : playerShots.filter((shot) => shot.club === selectedClub)),
-    [playerShots, selectedClub]
+    () => (selectedClub === null ? profileShots : profileShots.filter((shot) => shot.club === selectedClub)),
+    [profileShots, selectedClub]
   );
 
   const stats = useMemo(() => computeStats(filteredShots), [filteredShots]);
@@ -140,7 +141,7 @@ export function StatsPanel({ shots, activeClub, playerName, headerAction }: Stat
         aria-pressed={selectedClub === null}
         onClick={() => setSelectedClub(null)}
       >
-        {t('stats.all', { count: playerShots.length })}
+        {t('stats.all', { count: profileShots.length })}
       </button>
       <div
         className="panel-chips stats-panel__chip-scroll"
@@ -168,10 +169,10 @@ export function StatsPanel({ shots, activeClub, playerName, headerAction }: Stat
 
   return (
     <div className="panel">
-      <PanelHeader title={t('nav.stats')} subtitle={playerName} actions={headerAction} />
+      <PanelHeader title={t('nav.stats')} subtitle={profileName} actions={headerAction} />
       <div className="panel__body stats-panel">
-        {playerShots.length > 0 ? clubFilters : null}
-        {playerShots.length === 0 ? (
+        {profileShots.length > 0 ? clubFilters : null}
+        {profileShots.length === 0 ? (
           <div className="panel__body--empty">
             <span className="panel__empty-title">{t('stats.noShots')}</span>
             <span className="panel__empty-detail">{t('stats.noShotsDetail')}</span>

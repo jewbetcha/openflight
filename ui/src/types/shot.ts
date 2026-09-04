@@ -18,7 +18,8 @@ export interface Shot {
   estimated_carry_yards: number;
   carry_range: [number, number];
   club: string;
-  player_name?: string;
+  profile_id?: string;
+  profile_name?: string;
   timestamp: string;
   impact_timestamp?: number | null;
   peak_magnitude: number | null;
@@ -143,7 +144,7 @@ export interface SwingSpeedStats {
 }
 
 export interface SwingSpeedStatsFilter {
-  playerName?: string | null;
+  profileId?: string | null;
   trainingImplement?: string | null;
   club?: string | null;
 }
@@ -156,18 +157,14 @@ export function getSwingSpeedMph(shot: Shot): number {
   return shot.club_speed_mph ?? shot.ball_speed_mph;
 }
 
-function normalizePlayerName(playerName: string | null | undefined): string {
-  return (playerName?.trim() || 'Player 1').toLowerCase();
+export function filterShotsByProfile(shots: Shot[], profileId: string): Shot[] {
+  if (!profileId) return [];
+  return shots.filter((shot) => shot.profile_id === profileId);
 }
 
-export function filterShotsByPlayer(shots: Shot[], playerName: string): Shot[] {
-  const normalized = normalizePlayerName(playerName);
-  return shots.filter((shot) => normalizePlayerName(shot.player_name) === normalized);
-}
-
-export function excludeShotsByPlayer(shots: Shot[], playerName: string): Shot[] {
-  const normalized = normalizePlayerName(playerName);
-  return shots.filter((shot) => normalizePlayerName(shot.player_name) !== normalized);
+export function excludeShotsByProfile(shots: Shot[], profileId: string): Shot[] {
+  if (!profileId) return shots;
+  return shots.filter((shot) => shot.profile_id !== profileId);
 }
 
 function normalizeToken(value: string | null | undefined): string {
@@ -175,7 +172,7 @@ function normalizeToken(value: string | null | undefined): string {
 }
 
 export function filterSwingSpeedShots(shots: Shot[], filter: SwingSpeedStatsFilter = {}): Shot[] {
-  const scoped = filter.playerName ? filterShotsByPlayer(shots, filter.playerName) : shots;
+  const scoped = filter.profileId ? filterShotsByProfile(shots, filter.profileId) : shots;
   const trainingImplement = normalizeToken(filter.trainingImplement);
   const club = normalizeToken(filter.club);
 

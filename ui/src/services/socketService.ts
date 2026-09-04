@@ -14,9 +14,10 @@ import type { DebugReading, RadarConfig, DebugShotLog, SimShotInfo, SimStatus } 
 import type { PowerStatus } from '../types/power';
 import { getServerOrigin } from '../utils/serverOrigin';
 import { handleShotMessage, handleShotUpdate, type ShotMessage, type ShotUpdateMessage } from './handleShotMessage';
-import { ingestSocketPlayerName } from './playerSocketSync';
 import { ingestSessionClub } from './sessionClubSync';
 import { remainingShotsAfterClear } from './sessionClear';
+import { useProfileStore } from '../stores/useProfileStore';
+import type { ProfilesSnapshot } from '../types/profile';
 
 const SOCKET_URL = getServerOrigin();
 
@@ -51,6 +52,7 @@ class SocketService {
       this.socket?.emit('get_trigger_status');
       this.socket?.emit('get_radar_config');
       this.socket?.emit('get_camera_capture_settings');
+      this.socket?.emit('get_profiles');
     });
 
     this.socket.on('disconnect', () => {
@@ -106,8 +108,8 @@ class SocketService {
       ingestSessionClub(data.club);
     });
 
-    this.socket.on('player_changed', (data: { player_name: string }) => {
-      ingestSocketPlayerName('player_changed', data.player_name);
+    this.socket.on('profiles', (data: ProfilesSnapshot) => {
+      useProfileStore.getState().applySnapshot(data);
     });
 
     this.socket.on(
@@ -120,7 +122,6 @@ class SocketService {
           camera_enabled?: boolean;
           camera_streaming?: boolean;
           ball_detected?: boolean;
-          player_name?: string;
         }
       ) => {
         console.log('Session state received:', data);
@@ -134,7 +135,6 @@ class SocketService {
         if (data.debug_mode !== undefined) {
           systemStore.setDebugMode(data.debug_mode);
         }
-        ingestSocketPlayerName('session_state', data.player_name);
         ingestSessionClub(data.club);
 
         // Update camera status from session state
@@ -187,7 +187,7 @@ class SocketService {
       });
     });
 
-    this.socket.on('session_cleared', (data?: { player_name?: string; shots?: Shot[] }) => {
+    this.socket.on('session_cleared', (data?: { profile_id?: string; shots?: Shot[] }) => {
       const remaining = remainingShotsAfterClear(useShotStore.getState().shots, data);
       if (remaining.length === 0) {
         useShotStore.getState().clearShots();
@@ -227,8 +227,24 @@ class SocketService {
     };
   }
 
-  clearSession(playerName: string) {
-    this.socket?.emit('clear_session', { player_name: playerName });
+  clearSession(profileId: string) {
+    this.socket?.emit('clear_session', { profile_id: profileId });
+  }
+
+  setActiveProfile(profileId: string) {
+    this.socket?.emit('set_active_profile', { profile_id: profileId });
+  }
+
+  addProfile(name: string) {
+    this.socket?.emit('add_profile', { name });
+  }
+
+  renameProfile(profileId: string, name: string) {
+    this.socket?.emit('rename_profile', { profile_id: profileId, name });
+  }
+
+  removeProfile(profileId: string) {
+    this.socket?.emit('remove_profile', { profile_id: profileId });
   }
 
   uploadCloud() {
@@ -242,10 +258,6 @@ class SocketService {
 
   setTrainingImplement(implement: string) {
     this.socket?.emit('set_training_implement', { implement });
-  }
-
-  setPlayer(playerName: string) {
-    this.socket?.emit('set_player', { player_name: playerName });
   }
 
   simulateShot() {

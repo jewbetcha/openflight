@@ -34,6 +34,7 @@ from .ops243 import (
     set_show_raw_readings,
 )
 from .power import SUPPORTED_BATTERY_PROVIDERS, PowerMonitor, PowerStatus
+from .profiles import ProfileStore
 from .rolling_buffer.monitor import estimate_carry_with_spin, get_optimal_spin_for_ball_speed
 from .session_logger import get_session_logger, init_session_logger, log_session_error
 from .sim import (
@@ -91,7 +92,18 @@ debug_mode: bool = False
 mock_swing_speed_mode: bool = False
 debug_log_file = None
 debug_log_path: Optional[Path] = None
-current_player_name: str = "Player 1"
+# Created lazily so importing the server (in tests, in tooling) never writes
+# to the real config directory.
+profile_store: Optional[ProfileStore] = None
+
+
+def get_profile_store() -> ProfileStore:
+    """The profile roster. Single source of truth for the active selection."""
+    global profile_store  # pylint: disable=global-statement
+    if profile_store is None:
+        profile_store = ProfileStore()
+    return profile_store
+
 
 TRAINING_IMPLEMENT_LABELS = {
     "driver": "Driver",
@@ -1137,7 +1149,8 @@ def shot_to_dict(shot: Shot) -> dict:
             round(shot.estimated_carry_range[1]),
         ],
         "club": shot.club.value,
-        "player_name": shot.player_name,
+        "profile_id": shot.profile_id,
+        "profile_name": shot.profile_name,
         "timestamp": shot.timestamp.isoformat(),
         "impact_timestamp": shot.impact_timestamp,
         "peak_magnitude": shot.peak_magnitude,
@@ -2201,7 +2214,6 @@ def _session_state_payload(*, include_runtime_meta: bool = False) -> dict:
     payload = {
         "stats": monitor.get_session_stats() if monitor else {},
         "shots": _session_shots(),
-        "player_name": current_player_name,
         "club": _current_club_id(),
     }
     if include_runtime_meta:
@@ -2321,6 +2333,7 @@ def handle_connect():
     """Handle client connection."""
     print("Client connected")
     _emit_sim_snapshot()
+    _emit_profiles()
     if power_monitor and power_monitor.status:
         socketio.emit("power_status", power_monitor.status.to_dict())
     if monitor:
@@ -2353,15 +2366,57 @@ def handle_set_club(data):
         pass
 
 
-@socketio.on("set_player")
-def handle_set_player(data):
-    """Handle active player selection changes."""
-    global current_player_name  # pylint: disable=global-statement
+def _payload_dict(data) -> dict:
+    """Normalize a socket payload to a dict, ignoring anything else."""
+    return data if isinstance(data, dict) else {}
 
-    raw_name = data.get("player_name", "Player 1") if isinstance(data, dict) else "Player 1"
-    player_name = str(raw_name).strip()[:40] or "Player 1"
-    current_player_name = player_name
-    socketio.emit("player_changed", {"player_name": current_player_name})
+
+def _emit_profiles() -> None:
+    """Broadcast the authoritative roster + selection.
+
+    Sent after every mutation, including rejected ones, so a stale client
+    self-heals on the next round trip instead of needing an error event.
+    """
+    socketio.emit("profiles", get_profile_store().snapshot())
+
+
+@socketio.on("get_profiles")
+def handle_get_profiles():
+    """Send the roster to a client that asked for it."""
+    _emit_profiles()
+
+
+@socketio.on("set_active_profile")
+def handle_set_active_profile(data=None):
+    """Change which profile shots are attributed to."""
+    get_profile_store().set_active(_payload_dict(data).get("profile_id"))
+    _emit_profiles()
+
+
+@socketio.on("add_profile")
+def handle_add_profile(data=None):
+    """Add a profile and make it active."""
+    get_profile_store().add(_payload_dict(data).get("name"))
+    _emit_profiles()
+
+
+@socketio.on("rename_profile")
+def handle_rename_profile(data=None):
+    """Rename a profile. Its shots keep their id and stay attached."""
+    payload = _payload_dict(data)
+    get_profile_store().rename(payload.get("profile_id"), payload.get("name"))
+    _emit_profiles()
+
+
+@socketio.on("remove_profile")
+def handle_remove_profile(data=None):
+    """Delete a profile. Refused for the active, the last, or one with session rows."""
+    profile_id = str(_payload_dict(data).get("profile_id") or "").strip()
+    if profile_id and _profile_has_session_rows(profile_id):
+        _emit_profiles()
+        return
+    get_profile_store().remove(profile_id)
+    _emit_profiles()
 
 
 @socketio.on("set_training_implement")
@@ -2381,44 +2436,44 @@ def handle_set_training_implement(data):
     )
 
 
-def _normalize_player_name(name) -> str:
-    """Match UI player scoping: trim, default Player 1, case-insensitive."""
-    text = str(name).strip() if name is not None else ""
-    return (text or "Player 1").lower()
-
-
-def _player_matches(stored_name, player_name: str) -> bool:
-    """True when a shot/event belongs to player_name."""
-    return _normalize_player_name(stored_name) == _normalize_player_name(player_name)
-
-
-def _clear_player_rows(player_name: str) -> None:
-    """Remove one player's shots or swing-speed reps from the active monitor."""
+def _profile_has_session_rows(profile_id: str) -> bool:
+    """True when the live session still has rows stamped with this profile."""
     from .swing_speed import SwingSpeedMonitor  # pylint: disable=import-outside-toplevel
 
-    if not monitor:
+    if not monitor or not profile_id:
+        return False
+
+    if isinstance(monitor, (SwingSpeedMonitor, MockSwingSpeedMonitor)):
+        return any(getattr(event, "profile_id", "") == profile_id for event in monitor.get_events())
+
+    if hasattr(monitor, "get_shots"):
+        return any(getattr(shot, "profile_id", "") == profile_id for shot in monitor.get_shots())
+    return False
+
+
+def _clear_profile_rows(profile_id: str) -> None:
+    """Remove one profile's shots or swing-speed reps from the active monitor.
+
+    Matching is exact on the id. The old name-keyed code folded case, so two
+    profiles whose names differed only in case cleared each other.
+    """
+    from .swing_speed import SwingSpeedMonitor  # pylint: disable=import-outside-toplevel
+
+    if not monitor or not profile_id:
         return
 
     if isinstance(monitor, (SwingSpeedMonitor, MockSwingSpeedMonitor)):
         events = getattr(monitor, "_events", None)
         if events is not None:
             events[:] = [
-                event for event in events if not _player_matches(event.player_name, player_name)
+                event for event in events if getattr(event, "profile_id", "") != profile_id
             ]
         return
 
     shots = getattr(monitor, "_shots", None)
     if shots is not None:
-        removed = [
-            shot
-            for shot in shots
-            if _player_matches(getattr(shot, "player_name", None), player_name)
-        ]
-        shots[:] = [
-            shot
-            for shot in shots
-            if not _player_matches(getattr(shot, "player_name", None), player_name)
-        ]
+        removed = [shot for shot in shots if getattr(shot, "profile_id", "") == profile_id]
+        shots[:] = [shot for shot in shots if getattr(shot, "profile_id", "") != profile_id]
         for shot in removed:
             _unregister_camera_replay(shot)
         return
@@ -2429,14 +2484,13 @@ def _clear_player_rows(player_name: str) -> None:
 
 @socketio.on("clear_session")
 def handle_clear_session(data=None):
-    """Clear recorded shots for the active player only."""
-    raw_name = data.get("player_name") if isinstance(data, dict) else None
-    player_name = str(raw_name).strip()[:40] if raw_name else current_player_name
-    player_name = player_name or current_player_name
-    _clear_player_rows(player_name)
+    """Clear recorded rows for one profile only."""
+    raw_id = _payload_dict(data).get("profile_id")
+    profile_id = str(raw_id).strip() if raw_id else get_profile_store().get_active().id
+    _clear_profile_rows(profile_id)
     socketio.emit(
         "session_cleared",
-        {"player_name": player_name, "shots": _session_shots()},
+        {"profile_id": profile_id, "shots": _session_shots()},
     )
 
 
@@ -3893,7 +3947,8 @@ def _finalize_shot_detected(
                 experimental_camera_iwr_delta_deg=shot.experimental_camera_iwr_delta_deg,
                 spin_axis_deg=shot.spin_axis_deg,
                 impact_timestamp=shot.impact_timestamp,
-                player_name=shot.player_name,
+                profile_id=shot.profile_id,
+                profile_name=shot.profile_name,
                 inclinometer=shot.inclinometer,
                 pipeline_ms={
                     "initial_ui": (round(initial_ui_ms, 1) if initial_ui_ms is not None else None),
@@ -4181,7 +4236,9 @@ def on_shot_detected(shot: Shot) -> None:
 def _handle_shot_detected(shot: Shot) -> None:
     """Publish OPS metrics promptly, then enrich optional hardware data."""
     _assign_shot_number(shot)
-    shot.player_name = current_player_name
+    active_profile = get_profile_store().get_active()
+    shot.profile_id = active_profile.id
+    shot.profile_name = active_profile.name
     logger.info("[SERVER] Shot callback: %.1f mph", shot.ball_speed_mph)
 
     if not _has_slow_shot_enrichment(shot):
@@ -4255,7 +4312,8 @@ def swing_speed_to_dict(event: SwingSpeedEvent) -> dict:
         "peak_magnitude": event.peak_magnitude,
         "training_implement": event.training_implement,
         "training_implement_label": event.training_implement_label,
-        "player_name": event.player_name,
+        "profile_id": event.profile_id,
+        "profile_name": event.profile_name,
         "unit": event.unit,
         "mode": event.mode,
     }
@@ -4272,7 +4330,8 @@ def swing_speed_to_shot_dict(event: SwingSpeedEvent) -> dict:
         "estimated_carry_yards": 0,
         "carry_range": [0, 0],
         "club": event.training_implement_label,
-        "player_name": event.player_name,
+        "profile_id": event.profile_id,
+        "profile_name": event.profile_name,
         "timestamp": event.timestamp.isoformat(),
         "peak_magnitude": event.peak_magnitude,
         "launch_angle_vertical": None,
@@ -4317,7 +4376,9 @@ def swing_speed_to_shot_dict(event: SwingSpeedEvent) -> dict:
 
 def on_swing_speed_detected(event: SwingSpeedEvent):
     """Handle swing speed training reps and emit them to connected clients."""
-    event.player_name = current_player_name
+    active_profile = get_profile_store().get_active()
+    event.profile_id = active_profile.id
+    event.profile_name = active_profile.name
     event_data = swing_speed_to_dict(event)
     shot_data = swing_speed_to_shot_dict(event)
     stats = monitor.get_session_stats() if monitor else {}
@@ -5119,6 +5180,14 @@ def main():
     parser.add_argument(
         "--log-dir", help="Directory for session logs (default: ~/openflight_sessions)"
     )
+    parser.add_argument(
+        "--profiles-path",
+        default=None,
+        help=(
+            "Path to profiles.json (default: OPENFLIGHT_PROFILES_PATH or "
+            "~/.config/openflight/profiles.json)"
+        ),
+    )
     parser.add_argument("--no-logging", action="store_true", help="Disable session logging")
     _add_battery_arguments(parser)
     parser.add_argument(
@@ -5540,6 +5609,7 @@ def main():
     global active_kld7_radc_tuning
     global ballistics_enabled
     global battery_provider
+    global profile_store
     experimental_kld7_raw_radc_logging = args.experimental_kld7_raw_radc_logging
     experimental_kld7_radc_tuning = args.experimental_kld7_radc_tuning
     global ball_speed_correction_enabled
@@ -5556,6 +5626,7 @@ def main():
     calculated_spin_enabled = args.calculated_spin
     ballistics_enabled = args.ballistics
     battery_provider = args.battery
+    profile_store = ProfileStore(args.profiles_path)
     kld7_radc_tuning_kwargs = _kld7_radc_tuning_kwargs(args)
     active_kld7_radc_tuning = dict(kld7_radc_tuning_kwargs)
     startup_status = StartupStatusReporter(

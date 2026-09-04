@@ -1,60 +1,48 @@
 import { describe, expect, it } from 'vitest';
 import type { Shot } from './shot';
-import { filterShotsByPlayer, excludeShotsByPlayer } from './shot';
+import { filterShotsByProfile, excludeShotsByProfile } from './shot';
 
-function makeShot(overrides: Partial<Shot> = {}): Shot {
-  return {
-    ball_speed_mph: 90,
-    club_speed_mph: 67,
-    smash_factor: 1.34,
-    estimated_carry_yards: 200,
-    carry_range: [195, 205],
-    club: 'driver',
-    timestamp: 'a',
-    peak_magnitude: 100,
-    launch_angle_vertical: 13,
-    launch_angle_horizontal: 0,
-    launch_angle_confidence: 0.8,
-    angle_source: 'radar',
-    club_angle_deg: null,
-    club_path_deg: null,
-    spin_axis_deg: null,
-    spin_rpm: 2600,
-    spin_confidence: 0.9,
-    spin_quality: 'high',
-    spin_source: 'measured',
-    spin_method: null,
-    carry_spin_adjusted: null,
-    ...overrides,
-  };
-}
+describe('filterShotsByProfile', () => {
+  const shotWith = (profileId: string | undefined): Shot => ({ profile_id: profileId, ball_speed_mph: 100 }) as Shot;
 
-describe('filterShotsByPlayer', () => {
-  it('keeps shots whose player matches, ignoring case and padding', () => {
-    const shots = [
-      makeShot({ player_name: 'James', timestamp: 'a' }),
-      makeShot({ player_name: 'james ', timestamp: 'b' }),
-      makeShot({ player_name: 'Alex', timestamp: 'c' }),
-    ];
+  it('keeps only shots stamped with the given profile id', () => {
+    const shots = [shotWith('aaa'), shotWith('bbb'), shotWith('aaa')];
 
-    expect(filterShotsByPlayer(shots, ' JAMES').map((shot) => shot.timestamp)).toEqual(['a', 'b']);
+    expect(filterShotsByProfile(shots, 'aaa')).toHaveLength(2);
   });
 
-  it('treats a missing player name as Player 1', () => {
-    const shots = [makeShot({ timestamp: 'a' }), makeShot({ player_name: 'James', timestamp: 'b' })];
+  it('matches exactly, without folding case', () => {
+    const shots = [shotWith('AAA'), shotWith('aaa')];
 
-    expect(filterShotsByPlayer(shots, 'Player 1').map((shot) => shot.timestamp)).toEqual(['a']);
+    expect(filterShotsByProfile(shots, 'aaa')).toEqual([shots[1]]);
+  });
+
+  it('excludes unstamped shots from every profile', () => {
+    const shots = [shotWith(undefined), shotWith('')];
+
+    expect(filterShotsByProfile(shots, 'aaa')).toEqual([]);
+    expect(filterShotsByProfile(shots, 'bbb')).toEqual([]);
+  });
+
+  it('returns nothing for a blank profile id', () => {
+    const shots = [shotWith('aaa'), shotWith(undefined)];
+
+    expect(filterShotsByProfile(shots, '')).toEqual([]);
   });
 });
 
-describe('excludeShotsByPlayer', () => {
-  it('drops matching shots and keeps everyone else', () => {
-    const shots = [
-      makeShot({ player_name: 'James', timestamp: 'a' }),
-      makeShot({ player_name: 'Alex', timestamp: 'b' }),
-      makeShot({ player_name: 'james', timestamp: 'c' }),
-    ];
+describe('excludeShotsByProfile', () => {
+  const shotWith = (profileId: string | undefined): Shot => ({ profile_id: profileId, ball_speed_mph: 100 }) as Shot;
 
-    expect(excludeShotsByPlayer(shots, 'James').map((shot) => shot.timestamp)).toEqual(['b']);
+  it('drops only the given profile and keeps unstamped shots', () => {
+    const shots = [shotWith('aaa'), shotWith('bbb'), shotWith(undefined)];
+
+    expect(excludeShotsByProfile(shots, 'aaa')).toEqual([shots[1], shots[2]]);
+  });
+
+  it('excludes nothing for a blank profile id', () => {
+    const shots = [shotWith('aaa'), shotWith('bbb')];
+
+    expect(excludeShotsByProfile(shots, '')).toEqual(shots);
   });
 });

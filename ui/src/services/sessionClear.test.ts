@@ -30,21 +30,21 @@ function makeShot(overrides: Partial<Shot> = {}): Shot {
 }
 
 describe('remainingShotsAfterClear', () => {
-  const james = makeShot({ player_name: 'James', timestamp: 'j' });
-  const alex = makeShot({ player_name: 'Alex', timestamp: 'a' });
+  const james = makeShot({ profile_id: 'aaa', timestamp: 'j' });
+  const alex = makeShot({ profile_id: 'bbb', timestamp: 'a' });
 
   it('prefers the remaining shot list from the server', () => {
-    expect(remainingShotsAfterClear([james, alex], { player_name: 'James', shots: [alex] })).toEqual([alex]);
-  });
-
-  it('drops one player when the server only names who was cleared', () => {
-    expect(remainingShotsAfterClear([james, alex], { player_name: 'james' }).map((shot) => shot.timestamp)).toEqual([
-      'a',
-    ]);
+    expect(remainingShotsAfterClear([james, alex], { profile_id: 'aaa', shots: [alex] })).toEqual([alex]);
   });
 
   it('clears everything when given a legacy empty payload', () => {
     expect(remainingShotsAfterClear([james, alex])).toEqual([]);
     expect(remainingShotsAfterClear([james, alex], null)).toEqual([]);
+  });
+
+  it('falls back to dropping one profile by id', () => {
+    const current = [{ profile_id: 'aaa' } as Shot, { profile_id: 'bbb' } as Shot];
+
+    expect(remainingShotsAfterClear(current, { profile_id: 'aaa' })).toEqual([current[1]]);
   });
 });

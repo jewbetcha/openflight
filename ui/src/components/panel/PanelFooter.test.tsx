@@ -58,8 +58,8 @@ describe('PanelFooter', () => {
     }
   });
 
-  it('hides units and battery on Players, Camera, and Debug while keeping shutdown visible', () => {
-    for (const view of ['players', 'camera', 'debug'] as const) {
+  it('hides units and battery on Profiles, Camera, and Debug while keeping shutdown visible', () => {
+    for (const view of ['profiles', 'camera', 'debug'] as const) {
       const html = render(view, 4, null);
 
       expect(html).toContain('panel-footer__meta');
@@ -97,7 +97,7 @@ describe('PanelFooter', () => {
   });
 
   it('keeps the shutdown power control visible on every panel without battery telemetry', () => {
-    for (const view of ['live', 'stats', 'shots', 'camera', 'players', 'debug'] as const) {
+    for (const view of ['live', 'stats', 'shots', 'camera', 'profiles', 'debug'] as const) {
       const html = render(view, 0, null);
 
       expect(html).toContain('panel-footer__power');

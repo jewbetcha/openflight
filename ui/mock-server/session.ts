@@ -1,9 +1,10 @@
 /**
- * In-memory mock session: shots, club/player, and stats recompute.
+ * In-memory mock session: shots, club/profile, and stats recompute.
  */
 
 import type { SessionStats, Shot, TriggerStatus } from '../src/types/shot.js';
 import type { RadarConfig } from '../src/types/socket.js';
+import type { Profile } from '../src/types/profile.js';
 import { generateShot } from './shotGenerator.js';
 
 function mean(values: number[]): number {
@@ -58,7 +59,11 @@ export function computeSessionStats(shots: Shot[]): SessionStats {
 export class MockSession {
   shots: Shot[] = [];
   club = 'driver';
-  playerName = 'Player 1';
+  profiles: Profile[] = [
+    { id: 'mock-profile-1', name: 'Profile 1', created_at: '2026-01-01T00:00:00Z', settings: {} },
+  ];
+  activeProfileId = 'mock-profile-1';
+  private nextProfileNumber = 2;
   trainingImplement = 'driver';
   debugMode = false;
   radarConfig: RadarConfig = {
@@ -82,11 +87,56 @@ export class MockSession {
     return computeSessionStats(this.shots);
   }
 
+  get activeProfile(): Profile {
+    return this.profiles.find((profile) => profile.id === this.activeProfileId) ?? this.profiles[0]!;
+  }
+
+  snapshot() {
+    return { profiles: this.profiles, active_profile_id: this.activeProfile.id };
+  }
+
+  addProfile(rawName: unknown): void {
+    const name = String(rawName ?? '').trim().slice(0, 40);
+    if (!name || this.profiles.length >= 12) return;
+    const profile: Profile = {
+      id: `mock-profile-${this.nextProfileNumber++}`,
+      name,
+      created_at: new Date().toISOString(),
+      settings: {},
+    };
+    this.profiles.push(profile);
+    this.activeProfileId = profile.id;
+  }
+
+  renameProfile(profileId: unknown, rawName: unknown): void {
+    const name = String(rawName ?? '').trim().slice(0, 40);
+    const profile = this.profiles.find((entry) => entry.id === profileId);
+    if (!name || !profile) return;
+    profile.name = name;
+  }
+
+  removeProfile(profileId: unknown): void {
+    // Same refusals as the real store: never the active one, never the last,
+    // never one that still has session rows (those would be orphaned).
+    if (profileId === this.activeProfileId || this.profiles.length <= 1) return;
+    if (this.shots.some((shot) => shot.profile_id === profileId)) return;
+    this.profiles = this.profiles.filter((entry) => entry.id !== profileId);
+  }
+
+  setActiveProfile(profileId: unknown): void {
+    if (this.profiles.some((entry) => entry.id === profileId)) {
+      this.activeProfileId = String(profileId);
+    }
+  }
+
+  clearProfile(profileId: string): void {
+    this.shots = this.shots.filter((shot) => shot.profile_id !== profileId);
+  }
+
   sessionStatePayload(includeMeta = true) {
     const base = {
       stats: this.getStats(),
       shots: this.shots,
-      player_name: this.playerName,
       club: this.club,
     };
     if (!includeMeta) {
@@ -120,30 +170,21 @@ export class MockSession {
     return this.club;
   }
 
-  setPlayer(rawName: unknown): string {
-    const name = String(rawName ?? 'Player 1').trim().slice(0, 40) || 'Player 1';
-    this.playerName = name;
-    return this.playerName;
-  }
-
   setTrainingImplement(implement: string): string {
     this.trainingImplement = implement || 'driver';
     return this.trainingImplement;
   }
 
   simulateShot(): { shot: Shot; stats: SessionStats } {
-    const shot = generateShot({ club: this.club, playerName: this.playerName });
+    const shot = generateShot({
+      club: this.club,
+      profileId: this.activeProfile.id,
+      profileName: this.activeProfile.name,
+    });
     this.shots.push(shot);
     this.triggersTotal += 1;
     this.triggersAccepted += 1;
     return { shot, stats: this.getStats() };
-  }
-
-  clearPlayer(playerName: string): void {
-    const key = (playerName.trim() || 'Player 1').toLowerCase();
-    this.shots = this.shots.filter(
-      (shot) => (shot.player_name?.trim() || 'Player 1').toLowerCase() !== key
-    );
   }
 
   clear(): void {

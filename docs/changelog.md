@@ -8,11 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **On-screen keyboard for profile names.** Adding or renaming a profile on the
+  Pi kiosk now shows a full-screen keyboard. Chromium in `--kiosk` mode does not
+  surface a system keyboard, so the native text field was unusable on the
+  touchscreen.
+- **Clear-session confirmation is a modal again.** The overlay, scrim, and
+  centered dialog styles were missing after the class-name rename, so at the
+  800×480 kiosk size the prompt rendered as inline page content.
 - **Attack angle no longer inflated by 1/cos(club path).** The camera club
   delivery divided vertical speed by the forward component alone instead of the
   full horizontal speed, overstating attack angle on any shot with club path.
 
 ### Added
+- **Profiles replace players.** Shots are now attributed to a server-owned profile
+  (a person *or* a place) with a stable id, persisted to
+  `~/.config/openflight/profiles.json` (override with `OPENFLIGHT_PROFILES_PATH`
+  or `--profiles-path`). Profiles can be renamed without orphaning their shots.
+  Removing a profile is refused while it still has session rows. The socket
+  exposes a single authoritative `profiles` snapshot plus
+  `set_active_profile` / `add_profile` / `rename_profile` / `remove_profile`.
+  Breaking: `set_player` / `player_changed` are gone, `Shot.player_name` is replaced
+  by `profile_id` + `profile_name`, and existing browser-local player rosters are
+  discarded.
 - **Automatic OV9281 exposure control.** High-speed camera capture now measures
   the impact area every five seconds, restores the last known-good setting at
   startup, and selects a shutter/gain combination that preserves club contrast
@@ -21,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shot analysis is withheld when lighting is unsuitable, but radar processing
   and shot display continue normally with an operator-facing lighting warning.
 - **Instrument-panel kiosk UI.** The dashboard is a tabbed shell (Live, Stats,
-  Shots, Camera, Players, Debug) instead of the previous stacked shot and stats
+  Shots, Camera, Profiles, Debug) instead of the previous stacked shot and stats
   views. Tap a Live metric to pin it top-left while keeping all ten metrics
   visible. The footer logo opens units, dark/light theme, language, simulator,
   and ball-detection status; a persistent footer power button opens the shutdown

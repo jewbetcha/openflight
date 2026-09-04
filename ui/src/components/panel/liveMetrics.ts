@@ -214,7 +214,7 @@ function buildSwingSpeedMetrics(shot: Shot, stats: SwingSpeedStats, unitSystem: 
       label: t('metric.best'),
       value: formatSpeed(stats.best_speed_mph, unitSystem, 1),
       unit: speedUnit,
-      subtext: t('metric.playerImplement'),
+      subtext: t('metric.profileImplement'),
     },
     {
       id: 'swing_avg',
