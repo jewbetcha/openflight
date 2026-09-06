@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import __version__
-from .kld7.radc import RADC_PAYLOAD_BYTES
+from .kld7.types import RADC_PAYLOAD_BYTES
 from .ops243 import SpeedReading
 
 # Version of the session JSONL format itself. Bump on breaking changes to

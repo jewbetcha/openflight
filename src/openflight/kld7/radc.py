@@ -24,10 +24,10 @@ from .geometry import (
     fit_launch_angle_geometric,
     fit_launch_angle_single_frame_geometric,
 )
+from .types import RADC_PAYLOAD_BYTES
 
 logger = logging.getLogger(__name__)
 
-RADC_PAYLOAD_BYTES = 3072
 SAMPLES_PER_CHANNEL = 256
 
 DC_MASK_BINS = 8  # Zero out bins near DC to suppress residual leakage
